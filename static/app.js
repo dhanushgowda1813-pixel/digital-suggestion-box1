@@ -22,6 +22,7 @@ function toast(msg) {
 async function api(url, options = {}) {
     const res = await fetch(url, {
         ...options,
+        credentials: 'same-origin',
         headers: {
             ...(options.body instanceof FormData
                 ? {}
@@ -43,6 +44,11 @@ async function api(url, options = {}) {
     return data;
 }
 
+
+// --------------------------------------------------
+// NAVIGATION
+// --------------------------------------------------
+
 function view(name) {
     currentView = name;
 
@@ -55,7 +61,29 @@ function view(name) {
         admin: adminView
     };
 
+    // Submission requires an active citizen login.
+    if (name === 'submit') {
+        requireCitizenLogin();
+        return;
+    }
+
     (views[name] || homeView)();
+}
+
+async function requireCitizenLogin() {
+    try {
+        const s = await api('/api/session');
+
+        if (s.loggedIn && s.role === 'citizen') {
+            submitView();
+        } else {
+            toast('Please login first to submit a suggestion.');
+            loginView();
+        }
+    } catch {
+        toast('Please login first to submit a suggestion.');
+        loginView();
+    }
 }
 
 document.addEventListener('click', e => {
@@ -276,7 +304,7 @@ function submitView() {
                 </button>
 
                 <span class="hint">
-                    Sign in first to submit a request.
+                    You must login before submitting a suggestion.
                 </span>
             </div>
 
@@ -551,7 +579,6 @@ function setupAreaAutocomplete() {
                 try {
                     await loadLeaflet();
 
-                    // Initialize map if not already initialized.
                     if (!locationMap) {
                         locationMap = L.map('locationMap').setView(
                             [lat, lon],
@@ -619,7 +646,6 @@ function setupAreaAutocomplete() {
 
 // --------------------------------------------------
 // REVERSE GEOCODING
-// Converts map coordinates into address details
 // --------------------------------------------------
 
 async function fillAddressFromCoordinates(lat, lon) {
@@ -741,7 +767,6 @@ initializeTheme();
 
 // --------------------------------------------------
 // PHOTO PREVIEW
-// No app-level type or size restriction
 // --------------------------------------------------
 
 function previewPhoto(e) {
@@ -765,6 +790,21 @@ function previewPhoto(e) {
 
 async function submitSuggestion(e) {
     e.preventDefault();
+
+    // Check login again before submitting.
+    try {
+        const s = await api('/api/session');
+
+        if (!s.loggedIn || s.role !== 'citizen') {
+            toast('Please login first to submit a suggestion.');
+            loginView();
+            return;
+        }
+    } catch {
+        toast('Please login first to submit a suggestion.');
+        loginView();
+        return;
+    }
 
     const form = e.currentTarget;
     const fd = new FormData(form);
@@ -813,8 +853,11 @@ async function submitSuggestion(e) {
     } catch (err) {
         toast(err.message);
 
-        if (err.message.includes('log in')) {
-            view('login');
+        if (
+            err.message.toLowerCase().includes('login') ||
+            err.message.toLowerCase().includes('log in')
+        ) {
+            loginView();
         }
     }
 }
@@ -839,6 +882,7 @@ function loginView() {
                     type="email"
                     required
                     placeholder="you@example.com"
+                    autocomplete="email"
                 >
             </div>
 
@@ -850,11 +894,12 @@ function loginView() {
                     type="password"
                     required
                     minlength="8"
+                    autocomplete="current-password"
                 >
             </div>
 
             <div class="formfoot">
-                <button class="btn">
+                <button class="btn" type="submit">
                     Sign in
                 </button>
 
@@ -876,18 +921,23 @@ function loginView() {
         .addEventListener('submit', async e => {
             e.preventDefault();
 
-            const f = new FormData(e.currentTarget);
-
             try {
                 await api('/api/login', {
                     method: 'POST',
                     body: JSON.stringify(
-                        Object.fromEntries(f)
+                        Object.fromEntries(
+                            new FormData(e.currentTarget)
+                        )
                     )
                 });
 
-                toast('Welcome back!');
-                view('submit');
+                toast('Login successful. You can submit your suggestion.');
+
+                // Successful login takes the user to submission.
+                submitView();
+
+                // Update the navigation after login.
+                addCitizenNav();
 
             } catch (err) {
                 toast(err.message);
@@ -898,6 +948,7 @@ function loginView() {
 
 // --------------------------------------------------
 // CITIZEN REGISTRATION
+// Register first, then login separately.
 // --------------------------------------------------
 
 function registerView() {
@@ -914,6 +965,7 @@ function registerView() {
                     name="name"
                     required
                     maxlength="90"
+                    autocomplete="name"
                 >
             </div>
 
@@ -924,6 +976,7 @@ function registerView() {
                     name="email"
                     type="email"
                     required
+                    autocomplete="email"
                 >
             </div>
 
@@ -935,11 +988,12 @@ function registerView() {
                     type="password"
                     required
                     minlength="8"
+                    autocomplete="new-password"
                 >
             </div>
 
             <div class="formfoot">
-                <button class="btn">
+                <button class="btn" type="submit">
                     Create account
                 </button>
 
@@ -961,18 +1015,23 @@ function registerView() {
         .addEventListener('submit', async e => {
             e.preventDefault();
 
+            const form = e.currentTarget;
+
             try {
                 await api('/api/register', {
                     method: 'POST',
                     body: JSON.stringify(
                         Object.fromEntries(
-                            new FormData(e.currentTarget)
+                            new FormData(form)
                         )
                     )
                 });
 
-                toast('Account created.');
-                view('submit');
+                toast('Account created. Please login.');
+
+                // Registration does not log the user in.
+                // The user must login separately.
+                loginView();
 
             } catch (err) {
                 toast(err.message);
@@ -1013,7 +1072,7 @@ function adminLoginView() {
                 >
             </div>
 
-            <button class="btn">
+            <button class="btn" type="submit">
                 Open dashboard
             </button>
 
@@ -1038,6 +1097,8 @@ function adminLoginView() {
 
                 toast('Admin signed in.');
                 view('admin');
+
+                addAdminNav();
 
             } catch (err) {
                 toast(err.message);
@@ -1072,7 +1133,7 @@ function trackView() {
                     "
                 >
 
-                <button class="btn">
+                <button class="btn" type="submit">
                     Check status
                 </button>
 
@@ -1256,6 +1317,7 @@ async function adminView() {
             method: 'POST'
         });
 
+        removeAuthNav();
         view('home');
         toast('Signed out.');
     };
@@ -1541,6 +1603,55 @@ async function deleteAdmin(e) {
 
 
 // --------------------------------------------------
+// NAVIGATION BUTTON HELPERS
+// --------------------------------------------------
+
+function addCitizenNav() {
+    const nav = document.getElementById('nav');
+
+    if (!nav) {
+        return;
+    }
+
+    removeAuthNav();
+
+    const button = document.createElement('button');
+
+    button.className = 'navlink';
+    button.dataset.view = 'submit';
+    button.textContent = 'Submit suggestion';
+    button.dataset.authNav = 'true';
+
+    nav.prepend(button);
+}
+
+function addAdminNav() {
+    const nav = document.getElementById('nav');
+
+    if (!nav) {
+        return;
+    }
+
+    removeAuthNav();
+
+    const button = document.createElement('button');
+
+    button.className = 'navlink';
+    button.dataset.view = 'admin';
+    button.textContent = 'Dashboard';
+    button.dataset.authNav = 'true';
+
+    nav.prepend(button);
+}
+
+function removeAuthNav() {
+    document
+        .querySelectorAll('[data-auth-nav="true"]')
+        .forEach(button => button.remove());
+}
+
+
+// --------------------------------------------------
 // HELPER FUNCTIONS
 // --------------------------------------------------
 
@@ -1575,25 +1686,11 @@ function escapeHtml(value) {
     try {
         const s = await api('/api/session');
 
-        if (s.role === 'admin') {
-            const n = document.createElement('button');
-
-            n.className = 'navlink';
-            n.dataset.view = 'admin';
-            n.textContent = 'Dashboard';
-
-            document.getElementById('nav').prepend(n);
-
-        } else if (s.role === 'citizen') {
-            const n = document.createElement('button');
-
-            n.className = 'navlink';
-            n.dataset.view = 'submit';
-            n.textContent = 'Submit suggestion';
-
-            document.getElementById('nav').prepend(n);
+        if (s.role === 'admin' && s.loggedIn) {
+            addAdminNav();
+        } else if (s.role === 'citizen' && s.loggedIn) {
+            addCitizenNav();
         }
-
     } catch {}
 })();
 
