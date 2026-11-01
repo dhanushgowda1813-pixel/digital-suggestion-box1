@@ -116,8 +116,35 @@ function submitView(){
           </button>
 
           <span id="locationStatus" class="hint" aria-live="polite">
-            Location is optional. Allow location access when your browser asks.
+            Allow location access to fetch your address.
           </span>
+
+          <div id="locationDetails" class="location-details" hidden>
+            <p><strong>Full address:</strong> <span id="locFullAddress"></span></p>
+            <p><strong>Area:</strong> <span id="locArea"></span></p>
+            <p><strong>City:</strong> <span id="locCity"></span></p>
+            <p><strong>District:</strong> <span id="locDistrict"></span></p>
+            <p><strong>State:</strong> <span id="locState"></span></p>
+            <p><strong>PIN code:</strong> <span id="locPin"></span></p>
+            <p><strong>GPS accuracy:</strong> <span id="locAccuracy"></span></p>
+
+            <h4>🗺️ Map preview</h4>
+            <iframe
+              id="locationMap"
+              title="Current location map"
+              width="100%"
+              height="250"
+              style="border:0;border-radius:12px"
+              loading="lazy">
+            </iframe>
+
+            <a id="locationMapLink"
+               href="#"
+               target="_blank"
+               rel="noopener noreferrer">
+              Open in Google Maps
+            </a>
+          </div>
 
           <input type="hidden" name="latitude">
           <input type="hidden" name="longitude">
@@ -279,83 +306,57 @@ function setupAreaAutocomplete(){
 function setupCurrentLocation(){
   const button=document.getElementById('getLocation');
   if(!button)return;
-
   button.addEventListener('click',()=>{
     const status=document.getElementById('locationStatus');
-
+    const details=document.getElementById('locationDetails');
     if(!navigator.geolocation){
       status.textContent='Your browser does not support location access.';
-      return
+      return;
     }
-
     button.disabled=true;
-    status.textContent='Finding your location…';
-
-    navigator.geolocation.getCurrentPosition(
-      async position=>{
-        const lat=position.coords.latitude;
-        const lon=position.coords.longitude;
-
-        document.querySelector('input[name="latitude"]').value=lat;
-        document.querySelector('input[name="longitude"]').value=lon;
-
-        status.textContent=
-          `Location captured (accuracy about ${Math.round(position.coords.accuracy)} metres). Looking up address…`;
-
-        try{
-          const response=await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
-          );
-
-          if(response.ok){
-            const place=await response.json();
-            const a=place.address||{};
-
-            const label=[
-              a.neighbourhood,
-              a.suburb,
-              a.city_district,
-              a.town,
-              a.city,
-              a.state
-            ]
-            .filter(Boolean)
-            .filter((v,i,arr)=>arr.indexOf(v)===i)
-            .join(', ');
-
-            if(label){
-              const area=document.querySelector('input[name="area"]');
-              area.value=label;
-              status.textContent='Current location and nearby address added.'
-            }else{
-              status.textContent='Coordinates captured. Address not available; please enter your area.'
-            }
-          }else{
-            status.textContent='Coordinates captured. Please enter your area manually.'
-          }
-        }catch{
-          status.textContent='Coordinates captured. Please enter your area manually.'
-        }
-
-        button.disabled=false
-      },
-
-      error=>{
-        status.textContent=
-          error.code===1
-            ?'Location permission was denied. Enable it in browser settings or enter your area manually.'
-            :'Could not get your location. Try again or enter your area manually.';
-
-        button.disabled=false
-      },
-
-      {
-        enableHighAccuracy:true,
-        timeout:20000,
-        maximumAge:0
+    status.textContent='Finding your current location…';
+    details.hidden=true;
+    navigator.geolocation.getCurrentPosition(async position=>{
+      const lat=position.coords.latitude;
+      const lon=position.coords.longitude;
+      const accuracy=Math.round(position.coords.accuracy);
+      document.querySelector('input[name="latitude"]').value=lat;
+      document.querySelector('input[name="longitude"]').value=lon;
+      document.getElementById('locAccuracy').textContent=`Approximately ${accuracy} metres`;
+      document.getElementById('locationMap').src=
+        `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01}%2C${lat-0.01}%2C${lon+0.01}%2C${lat+0.01}&layer=mapnik&marker=${lat}%2C${lon}`;
+      document.getElementById('locationMapLink').href=`https://www.google.com/maps?q=${lat},${lon}`;
+      status.textContent='Coordinates received. Looking up address…';
+      try{
+        const response=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`);
+        if(!response.ok)throw new Error('Address lookup failed');
+        const place=await response.json();
+        const a=place.address||{};
+        const city=a.city||a.town||a.village||a.municipality||a.city_district||'';
+        const area=a.neighbourhood||a.suburb||a.residential||a.quarter||a.hamlet||'';
+        const district=a.state_district||a.county||'';
+        const state=a.state||'';
+        const pin=a.postcode||'';
+        document.getElementById('locFullAddress').textContent=place.display_name||'Not available';
+        document.getElementById('locArea').textContent=area||'Not available';
+        document.getElementById('locCity').textContent=city||'Not available';
+        document.getElementById('locDistrict').textContent=district||'Not available';
+        document.getElementById('locState').textContent=state||'Not available';
+        document.getElementById('locPin').textContent=pin||'Not available';
+        const areaInput=document.querySelector('input[name="area"]');
+        if(areaInput&&area)areaInput.value=[area,city].filter(Boolean).join(', ');
+        details.hidden=false;
+        status.textContent='Location fetched. Check the address and map below.';
+      }catch(error){
+        details.hidden=false;
+        status.textContent='Coordinates fetched, but address lookup failed. You can still view the map.';
       }
-    )
-  })
+      button.disabled=false;
+    },error=>{
+      status.textContent=error.code===1?'Location permission denied. Allow location access in browser settings.':error.code===2?'Location unavailable. Turn on device location and try again.':'Location timed out. Try again outdoors or near a window.';
+      button.disabled=false;
+    },{enableHighAccuracy:true,timeout:30000,maximumAge:0});
+  });
 }
 
 const themeNames=['light','dark','ocean','sunset','forest'];
