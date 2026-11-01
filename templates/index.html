@@ -3,17 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+
   <title>Digital Suggestion Box | Local Governance</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
+
+  <link rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
+
   <meta name="theme-color" content="#145b58">
 </head>
 
 <body>
-  <html>
   <header class="top">
     <a class="brand" href="#home">
       <span class="logo">✦</span>
+
       <span>
         Digital Suggestion Box
         <small>Citizen feedback • Local governance</small>
@@ -28,6 +34,7 @@
 
       <label class="theme-picker" for="themeSelect">
         Theme
+
         <select id="themeSelect" aria-label="Choose color theme">
           <option value="light">Light</option>
           <option value="dark">Dark</option>
@@ -58,6 +65,7 @@
           <button class="primary" data-view="submit">
             Share a suggestion ↗
           </button>
+
           <button class="secondary" data-view="track">
             Track a request
           </button>
@@ -74,6 +82,7 @@
 
         <div class="art-card">
           <div class="art-icon">✉</div>
+
           <strong>Make your voice heard</strong>
 
           <p>
@@ -83,6 +92,7 @@
 
           <div class="art-line"></div>
           <div class="art-line short"></div>
+
           <span class="art-check">✓</span>
         </div>
 
@@ -93,6 +103,7 @@
     <section class="feature-row">
       <div>
         <b>01</b>
+
         <span>
           <strong>Submit</strong>
           <small>Tell us what needs attention</small>
@@ -101,6 +112,7 @@
 
       <div>
         <b>02</b>
+
         <span>
           <strong>Track</strong>
           <small>See progress with your ID</small>
@@ -109,6 +121,7 @@
 
       <div>
         <b>03</b>
+
         <span>
           <strong>Improve</strong>
           <small>Help make your area better</small>
