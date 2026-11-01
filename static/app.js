@@ -88,12 +88,12 @@ function submitView() {
 
         <div class="field full">
           <label>State *</label>
-          <input id="locationState" value="Karnataka" readonly>
+          <input id="locationState" name="state" value="Karnataka" required>
         </div>
 
         <div class="field full">
           <label>City / district *</label>
-          <input id="locationCity" value="Bengaluru" readonly>
+          <input id="locationCity" name="city" value="Bengaluru" required>
         </div>
 
         <div class="field full">
@@ -221,6 +221,9 @@ function setupLocationPicker() {
   let marker;
   let searchTimer;
 
+  let detectedLocationState = '';
+  let detectedLocationCity = '';
+
   const defaultPosition = [12.9716, 77.5946];
 
   function setHelp(message) {
@@ -250,6 +253,9 @@ function setupLocationPicker() {
 
     const state = props.state || 'Unknown state';
 
+    detectedLocationState = state;
+    detectedLocationCity = city;
+
     const labelParts = [name, city, state].filter(Boolean);
     const label = [...new Set(labelParts)].join(', ');
 
@@ -278,7 +284,7 @@ function setupLocationPicker() {
     closeSuggestions();
 
     setHelp(
-      'Location selected. You can move the marker on the map to adjust it.'
+      'Location selected. You can edit the State and City fields. They will be checked against the detected location when you submit.'
     );
   }
 
@@ -560,6 +566,14 @@ function previewPhoto(e) {
   img.style.display = 'block';
 }
 
+function normalizeLocation(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[.,]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 async function submitSuggestion(e) {
   e.preventDefault();
 
@@ -570,13 +584,52 @@ async function submitSuggestion(e) {
   const selectedArea =
     document.getElementById('selectedArea')?.value || '';
 
+  const enteredState =
+    document.getElementById('locationState')?.value.trim() || '';
+
+  const enteredCity =
+    document.getElementById('locationCity')?.value.trim() || '';
+
   if (!selectedArea) {
     toast('Please search and select a location on the map first.');
     return;
   }
 
-  // Save the selected location using the existing Flask area field.
+  if (!enteredState || !enteredCity) {
+    toast('Please enter both State and City / district.');
+    return;
+  }
+
+  const stateMismatch =
+    detectedLocationState &&
+    detectedLocationState !== 'Unknown state' &&
+    normalizeLocation(enteredState) !== normalizeLocation(detectedLocationState);
+
+  const cityMismatch =
+    detectedLocationCity &&
+    detectedLocationCity !== 'Unknown city' &&
+    normalizeLocation(enteredCity) !== normalizeLocation(detectedLocationCity);
+
+  if (stateMismatch || cityMismatch) {
+    const detectedText =
+      `${detectedLocationCity}, ${detectedLocationState}`;
+
+    const enteredText =
+      `${enteredCity}, ${enteredState}`;
+
+    const proceed = confirm(
+      `Your entered State / City does not match the location detected from the map.\n\n` +
+      `Map location: ${detectedText}\n` +
+      `Entered location: ${enteredText}\n\n` +
+      `Do you want to continue with the State and City you entered?`
+    );
+
+    if (!proceed) return;
+  }
+
   formData.set('area', selectedArea);
+  formData.set('state', enteredState);
+  formData.set('city', enteredCity);
 
   if (!photo || !photo.size) {
     toast('Photo upload is mandatory.');
@@ -841,7 +894,7 @@ function renderTracking(item, target) {
 
       <img
         class="result-photo"
-        src="${item.photoUrl}"
+        src="${escapeHtml(item.photoUrl)}"
         alt="Uploaded supporting photo"
       >
     </div>`;
@@ -907,7 +960,9 @@ async function loadAdmin() {
       <select id="adminFilter">
         <option value="">All statuses</option>
         ${statuses.map(status => `
-          <option ${s === status ? 'selected' : ''}>${status}</option>`).join('')}
+          <option value="${escapeHtml(status)}" ${s === status ? 'selected' : ''}>
+            ${escapeHtml(status)}
+          </option>`).join('')}
       </select>
 
       <button class="btn" id="refresh">Refresh</button>
@@ -957,7 +1012,7 @@ function adminCard(item) {
       <p>${escapeHtml(item.description)}</p>
 
       <img
-        src="${item.photoUrl}"
+        src="${escapeHtml(item.photoUrl)}"
         alt="Citizen uploaded photo"
         style="max-width:150px;max-height:100px;border-radius:9px"
       >
@@ -968,8 +1023,8 @@ function adminCard(item) {
 
           <select data-status="${escapeHtml(item.tracking_id)}">
             ${statuses.map(status => `
-              <option ${item.status === status ? 'selected' : ''}>
-                ${status}
+              <option value="${escapeHtml(status)}" ${item.status === status ? 'selected' : ''}>
+                ${escapeHtml(status)}
               </option>`).join('')}
           </select>
         </div>
