@@ -23,6 +23,9 @@ app.secret_key = os.environ.get(
     "change-this-secret-before-deployment"
 )
 
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+
 # No application-level photo size limit is set here.
 
 
@@ -75,7 +78,6 @@ def init_db():
             )
         """)
 
-        # Create the first admin account if it does not exist.
         admin_username = os.environ.get(
             "DSB_ADMIN_USER",
             "admin"
@@ -112,6 +114,13 @@ def is_admin():
     return session.get("role") == "admin"
 
 
+def is_citizen():
+    return (
+        session.get("role") == "citizen"
+        and session.get("user_id") is not None
+    )
+
+
 def row_to_dict(row):
     return {
         key: row[key]
@@ -120,17 +129,9 @@ def row_to_dict(row):
 
 
 def save_photo(photo):
-    """
-    Save the uploaded photo without checking its extension
-    or applying an application-level file size limit.
-    """
-
     original_name = secure_filename(photo.filename or "")
-
-    # Keep the supplied extension when available.
     extension = Path(original_name).suffix.lower()
 
-    # If the uploaded file has no extension, use .img.
     if not extension:
         extension = ".img"
 
@@ -167,9 +168,7 @@ def service_worker():
 @app.get("/api/session")
 def session_info():
     return jsonify({
-        "loggedIn": bool(
-            session.get("user_id") or is_admin()
-        ),
+        "loggedIn": is_citizen() or is_admin(),
         "role": session.get("role"),
         "name": session.get("name")
     })
@@ -177,6 +176,7 @@ def session_info():
 
 # --------------------------------------------------
 # CITIZEN REGISTRATION
+# Register only. Do NOT automatically log the user in.
 # --------------------------------------------------
 
 @app.post("/api/register")
@@ -198,8 +198,7 @@ def register():
 
     try:
         with db() as con:
-
-            cur = con.execute(
+            con.execute(
                 """
                 INSERT INTO users (name, email, password_hash)
                 VALUES (?, ?, ?)
@@ -211,20 +210,19 @@ def register():
                 )
             )
 
-            session.clear()
-
-            session.update(
-                user_id=cur.lastrowid,
-                role="citizen",
-                name=name
-            )
-
     except sqlite3.IntegrityError:
         return jsonify(
             error="An account with this email already exists."
         ), 409
 
-    return jsonify(ok=True)
+    # Important:
+    # Do not set session["user_id"] here.
+    # User must log in separately after registration.
+
+    return jsonify(
+        ok=True,
+        message="Account created. Please log in."
+    )
 
 
 # --------------------------------------------------
@@ -261,7 +259,10 @@ def login():
         name=user["name"]
     )
 
-    return jsonify(ok=True)
+    return jsonify(
+        ok=True,
+        message="Login successful."
+    )
 
 
 # --------------------------------------------------
@@ -306,35 +307,32 @@ def admin_login():
 
 @app.post("/api/logout")
 def logout():
-
     session.clear()
-
     return jsonify(ok=True)
 
 
 # --------------------------------------------------
 # SUBMIT SUGGESTION
-# PHOTO IS MANDATORY
-# NO APP-LEVEL FILE SIZE OR EXTENSION RESTRICTION
+# Citizen login is mandatory.
 # --------------------------------------------------
 
 @app.post("/api/suggestions")
 def create_suggestion():
 
-    # Citizen must be logged in.
-    if not session.get("user_id"):
+    if not is_citizen():
         return jsonify(
-            error="Please log in as a citizen before submitting."
+            error="Please login first to submit a suggestion."
         ), 401
 
     photo = request.files.get("photo")
 
     name = request.form.get("name", "").strip()
     category = request.form.get("category", "").strip()
+    state = request.form.get("state", "").strip()
+    city = request.form.get("city", "").strip()
     area = request.form.get("area", "").strip()
     description = request.form.get("description", "").strip()
 
-    # Photo and all text fields are mandatory.
     if (
         not photo
         or not photo.filename
@@ -347,7 +345,6 @@ def create_suggestion():
             error="All fields and a photo are mandatory."
         ), 400
 
-    # Save the photo without checking extension or size.
     try:
         filename = save_photo(photo)
 
@@ -356,14 +353,11 @@ def create_suggestion():
             error="Could not save the uploaded photo."
         ), 500
 
-    # Generate a unique tracking ID.
     tracking_id = (
         "DSB-" + uuid.uuid4().hex[:10].upper()
     )
 
-    # Save suggestion details in the database.
     with db() as con:
-
         con.execute(
             """
             INSERT INTO suggestions (
@@ -402,7 +396,6 @@ def create_suggestion():
 def track(tracking_id):
 
     with db() as con:
-
         row = con.execute(
             """
             SELECT
@@ -449,15 +442,8 @@ def admin_suggestions():
             error="Admin access required."
         ), 403
 
-    status = request.args.get(
-        "status",
-        ""
-    ).strip()
-
-    search = request.args.get(
-        "q",
-        ""
-    ).strip()
+    status = request.args.get("status", "").strip()
+    search = request.args.get("q", "").strip()
 
     sql = "SELECT * FROM suggestions WHERE 1=1"
     args = []
@@ -467,7 +453,6 @@ def admin_suggestions():
         args.append(status)
 
     if search:
-
         sql += """
             AND (
                 tracking_id LIKE ?
@@ -490,10 +475,7 @@ def admin_suggestions():
 
         rows = [
             row_to_dict(row)
-            for row in con.execute(
-                sql,
-                args
-            ).fetchall()
+            for row in con.execute(sql, args).fetchall()
         ]
 
         stats = {
@@ -501,7 +483,6 @@ def admin_suggestions():
                 "SELECT COUNT(*) FROM suggestions WHERE status = ?",
                 (status_name,)
             ).fetchone()[0]
-
             for status_name in [
                 "Submitted",
                 "Under Review",
@@ -515,7 +496,6 @@ def admin_suggestions():
         ).fetchone()[0]
 
     for row in rows:
-
         row["photoUrl"] = url_for(
             "static",
             filename="uploads/" + row.pop("photo")
@@ -528,7 +508,7 @@ def admin_suggestions():
 
 
 # --------------------------------------------------
-# ADMIN: UPDATE SUGGESTION STATUS
+# ADMIN: UPDATE SUGGESTION
 # --------------------------------------------------
 
 @app.patch("/api/admin/suggestions/<tracking_id>")
@@ -561,7 +541,6 @@ def update_suggestion(tracking_id):
         ), 400
 
     with db() as con:
-
         cur = con.execute(
             """
             UPDATE suggestions
@@ -615,7 +594,6 @@ def delete_suggestion(tracking_id):
             (tracking_id.upper(),)
         )
 
-    # Delete the uploaded photo from the uploads folder.
     try:
         photo_path = UPLOAD_DIR / row["photo"]
         photo_path.unlink(missing_ok=True)
@@ -632,7 +610,6 @@ def delete_suggestion(tracking_id):
 
 @app.errorhandler(413)
 def too_large(_):
-
     return jsonify(
         error=(
             "The uploaded file is too large for the server "
