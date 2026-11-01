@@ -1,1141 +1,1224 @@
 const appPanel = document.getElementById('panel');
 const toastEl = document.getElementById('toast');
-const statuses = ['Submitted', 'Under Review', 'In Progress', 'Resolved'];
+
+const statuses = [
+    'Submitted',
+    'Under Review',
+    'In Progress',
+    'Resolved'
+];
+
 let currentView = '';
 
 function toast(msg) {
-  if (!toastEl) return;
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-  setTimeout(() => toastEl.classList.remove('show'), 3200);
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+
+    setTimeout(() => {
+        toastEl.classList.remove('show');
+    }, 3200);
 }
 
 async function api(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.body instanceof FormData ? {} : { 'Content-Type': 'application/json' }),
-      ...(options.headers || {})
-    }
-  });
+    const res = await fetch(url, {
+        ...options,
+        headers: {
+            ...(options.body instanceof FormData
+                ? {}
+                : { 'Content-Type': 'application/json' }),
+            ...(options.headers || {})
+        }
+    });
 
-  let data = {};
-  try { data = await res.json(); } catch {}
-  if (!res.ok) throw new Error(data.error || 'Something went wrong.');
-  return data;
+    let data = {};
+
+    try {
+        data = await res.json();
+    } catch {}
+
+    if (!res.ok) {
+        throw new Error(data.error || 'Something went wrong.');
+    }
+
+    return data;
 }
 
 function view(name) {
-  currentView = name;
-  const views = {
-    submit: submitView,
-    login: loginView,
-    register: registerView,
-    'admin-login': adminLoginView,
-    track: trackView,
-    admin: adminView
-  };
-  (views[name] || homeView)();
+    currentView = name;
+
+    const views = {
+        'submit': submitView,
+        'login': loginView,
+        'register': registerView,
+        'admin-login': adminLoginView,
+        'track': trackView,
+        'admin': adminView
+    };
+
+    (views[name] || homeView)();
 }
 
 document.addEventListener('click', e => {
-  const button = e.target.closest('[data-view]');
-  if (button) {
-    e.preventDefault();
-    view(button.dataset.view);
-  }
+    const b = e.target.closest('[data-view]');
+
+    if (b) {
+        e.preventDefault();
+        view(b.dataset.view);
+    }
 });
 
 function shell(title, lead, body, wide = false) {
-  appPanel.innerHTML = `
-    <div class="panel ${wide ? 'wide' : ''}">
-      <button class="back" data-view="home">← Back to home</button>
-      <h2>${title}</h2>
-      <p class="lead">${lead}</p>
-      ${body}
-    </div>`;
-  appPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    appPanel.innerHTML = `
+        <div class="panel ${wide ? 'wide' : ''}">
+            <button class="back" data-view="home">
+                ← Back to home
+            </button>
+
+            <h2>${title}</h2>
+            <p class="lead">${lead}</p>
+
+            ${body}
+        </div>
+    `;
+
+    appPanel.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+    });
 }
 
 function homeView() {
-  appPanel.innerHTML = '';
+    appPanel.innerHTML = '';
 }
+
+
+// --------------------------------------------------
+// SUBMIT SUGGESTION
+// --------------------------------------------------
 
 function submitView() {
-  shell(
-    'Share a suggestion',
-    'Help improve your neighbourhood. All fields—including a photo—are required.',
-    `<form id="suggestionForm">
-      <div class="formgrid">
-        <div class="field">
-          <label>Full name *</label>
-          <input name="name" required maxlength="90" placeholder="Your name">
-        </div>
+    shell(
+        'Share a suggestion',
+        'Help improve your neighbourhood. All fields—including a photo—are required.',
+        `
+        <form id="suggestionForm">
 
-        <div class="field">
-          <label>Category *</label>
-          <select name="category" required>
-            <option value="">Choose category</option>
-            <option>Roads</option>
-            <option>Water supply</option>
-            <option>Waste management</option>
-            <option>Street lights</option>
-            <option>Public safety</option>
-            <option>Public transport</option>
-            <option>Other</option>
-          </select>
-        </div>
+            <div class="formgrid">
 
-        <div class="field full">
-          <label>State *</label>
-          <input id="locationState" name="state" value="Karnataka" required>
-        </div>
+                <div class="field">
+                    <label>Full name *</label>
+                    <input
+                        name="name"
+                        required
+                        maxlength="90"
+                        placeholder="Your name"
+                    >
+                </div>
 
-        <div class="field full">
-          <label>City / district *</label>
-          <input id="locationCity" name="city" value="Bengaluru" required>
-        </div>
+                <div class="field">
+                    <label>Category *</label>
 
-        <div class="field full">
-          <label>Search location / locality *</label>
+                    <select name="category" required>
+                        <option value="">Choose category</option>
+                        <option>Roads</option>
+                        <option>Water supply</option>
+                        <option>Waste management</option>
+                        <option>Street lights</option>
+                        <option>Public safety</option>
+                        <option>Public transport</option>
+                        <option>Other</option>
+                    </select>
+                </div>
 
-          <div class="location-search-wrap">
-            <input
-              id="locationSearch"
-              type="search"
-              autocomplete="off"
-              placeholder="Type an area, street, landmark or address"
-            >
+                <div class="field full">
+                    <label>Area / locality *</label>
 
-            <div
-              id="locationSuggestions"
-              class="autocomplete-list"
-              role="listbox"
-              hidden
-            ></div>
-          </div>
+                    <input
+                        name="area"
+                        required
+                        maxlength="120"
+                        placeholder="Neighbourhood or ward"
+                    >
+                </div>
 
-          <button
-            class="btn light location-button"
-            id="useCurrentLocation"
-            type="button"
-          >
-            Use my current location
-          </button>
+                <div class="field full">
+                    <label>
+                        Describe the issue or suggestion *
+                    </label>
 
-          <p class="hint" id="locationHelp">
-            Search and choose a place, or use your device location.
-          </p>
+                    <textarea
+                        name="description"
+                        required
+                        maxlength="2500"
+                        placeholder="Tell us what happened and what could improve..."
+                    ></textarea>
+                </div>
 
-          <div
-            id="locationMap"
-            class="location-map"
-            aria-label="Map for selecting location"
-          ></div>
+                <div class="field full">
+                    <label>Upload photo (mandatory) *</label>
 
-          <input type="hidden" name="area" id="selectedArea">
-          <input type="hidden" name="latitude" id="selectedLatitude">
-          <input type="hidden" name="longitude" id="selectedLongitude">
-        </div>
+                    <input
+                        id="photo"
+                        name="photo"
+                        type="file"
+                        accept="image/*"
+                        required
+                    >
 
-        <div class="field full">
-          <label>Describe the issue or suggestion *</label>
-          <textarea
-            name="description"
-            required
-            maxlength="2500"
-            placeholder="Tell us what happened and what could improve..."
-          ></textarea>
-        </div>
+                    <span class="hint">
+                        A photo is required. No app-level file size or image-extension restriction.
+                    </span>
 
-        <div class="field full">
-          <label>Upload photo (mandatory) *</label>
-          <input
-            id="photo"
-            name="photo"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            required
-          >
+                    <img
+                        id="preview"
+                        class="photo-preview"
+                        alt="Selected photo preview"
+                    >
+                </div>
 
-          <span class="hint">PNG, JPG, JPEG or WEBP · Maximum 5 MB</span>
-          <img id="preview" class="photo-preview" alt="Selected photo preview">
-        </div>
-      </div>
+            </div>
 
-      <div class="formfoot">
-        <button class="btn" type="submit">Submit suggestion →</button>
-        <span class="hint">Sign in first to submit a request.</span>
-      </div>
-    </form>
+            <div class="formfoot">
+                <button class="btn" type="submit">
+                    Submit suggestion →
+                </button>
 
-    <div id="submissionResult"></div>`
-  );
+                <span class="hint">
+                    Sign in first to submit a request.
+                </span>
+            </div>
 
-  document.getElementById('photo').addEventListener('change', previewPhoto);
-  document.getElementById('suggestionForm').addEventListener('submit', submitSuggestion);
+        </form>
 
-  setupLocationPicker();
-}
-
-function loadLeaflet() {
-  if (window.L) return Promise.resolve();
-  if (window.leafletLoading) return window.leafletLoading;
-
-  window.leafletLoading = new Promise((resolve, reject) => {
-    if (!document.getElementById('leaflet-css')) {
-      const css = document.createElement('link');
-      css.id = 'leaflet-css';
-      css.rel = 'stylesheet';
-      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(css);
-    }
-
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = resolve;
-    script.onerror = () => reject(
-      new Error('Map library could not load. Check your internet connection.')
+        <div id="submissionResult"></div>
+        `
     );
 
-    document.head.appendChild(script);
-  });
+    document
+        .getElementById('photo')
+        .addEventListener('change', previewPhoto);
 
-  return window.leafletLoading;
+    document
+        .getElementById('suggestionForm')
+        .addEventListener('submit', submitSuggestion);
+
+    setupAreaAutocomplete();
 }
 
-function setupLocationPicker() {
-  const search = document.getElementById('locationSearch');
-  const suggestions = document.getElementById('locationSuggestions');
-  const mapElement = document.getElementById('locationMap');
-  const help = document.getElementById('locationHelp');
-  const currentButton = document.getElementById('useCurrentLocation');
 
-  const selectedArea = document.getElementById('selectedArea');
-  const latitudeField = document.getElementById('selectedLatitude');
-  const longitudeField = document.getElementById('selectedLongitude');
+// --------------------------------------------------
+// BENGALURU AREA AUTOCOMPLETE
+// --------------------------------------------------
 
-  if (!search || !mapElement) return;
+const bengaluruAreas = [
+    "Bagalagunte, Bengaluru",
+    "Chikkabanavara, Bengaluru",
+    "T. Dasarahalli, Bengaluru",
+    "8th Mile, Bengaluru",
+    "Jalahalli, Bengaluru",
+    "Peenya, Bengaluru",
+    "Nagasandra, Bengaluru",
+    "Madanayakanahalli, Bengaluru",
+    "Anchepalya, Bengaluru",
+    "Lakshmipura, Bengaluru",
+    "Rajeshwari Nagar, Bengaluru",
+    "Yeshwanthpur, Bengaluru",
+    "Mathikere, Bengaluru",
+    "Vijayanagar, Bengaluru",
+    "Malleswaram, Bengaluru",
+    "Hebbal, Bengaluru",
+    "Majestic, Bengaluru",
+    "Yelahanka, Bengaluru",
+    "Hesaraghatta, Bengaluru",
+    "Nandini Layout, Bengaluru",
+    "Basaveshwaranagar, Bengaluru",
+    "Kengeri, Bengaluru",
+    "RR Nagar, Bengaluru",
+    "Jayanagar, Bengaluru",
+    "Banashankari, Bengaluru",
+    "Indiranagar, Bengaluru",
+    "Whitefield, Bengaluru",
+    "Electronic City, Bengaluru",
+    "Koramangala, Bengaluru",
+    "BTM Layout, Bengaluru",
+    "Marathahalli, Bengaluru",
+    "Bellandur, Bengaluru",
+    "Bommanahalli, Bengaluru",
+    "Hoodi, Bengaluru",
+    "Kalyan Nagar, Bengaluru",
+    "Sahakara Nagar, Bengaluru"
+];
 
-  let map;
-  let marker;
-  let searchTimer;
+function setupAreaAutocomplete() {
+    const input = document.querySelector('input[name="area"]');
 
-  let detectedLocationState = '';
-  let detectedLocationCity = '';
+    if (!input) return;
 
-  const defaultPosition = [12.9716, 77.5946];
+    input.setAttribute('autocomplete', 'off');
+    input.setAttribute('aria-autocomplete', 'list');
 
-  function setHelp(message) {
-    if (help) help.textContent = message;
-  }
+    input.placeholder = 'Start typing an area (e.g. Chikkabanavara)';
 
-  function closeSuggestions() {
-    suggestions.hidden = true;
-    suggestions.innerHTML = '';
-  }
+    const wrapper = document.createElement('div');
+    wrapper.className = 'autocomplete-wrap';
 
-  function setSelectedPlace(place, lat, lon) {
-    const props = place?.properties || {};
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.appendChild(input);
 
-    const name =
-      props.name ||
-      props.street ||
-      props.locality ||
-      'Selected location';
+    const list = document.createElement('div');
 
-    const city =
-      props.city ||
-      props.town ||
-      props.county ||
-      props.district ||
-      'Unknown city';
+    list.className = 'autocomplete-list';
+    list.hidden = true;
+    list.setAttribute('role', 'listbox');
 
-    const state = props.state || 'Unknown state';
+    wrapper.appendChild(list);
 
-    detectedLocationState = state;
-    detectedLocationCity = city;
-
-    const labelParts = [name, city, state].filter(Boolean);
-    const label = [...new Set(labelParts)].join(', ');
-
-    search.value = label;
-    selectedArea.value = label;
-
-    latitudeField.value = String(lat);
-    longitudeField.value = String(lon);
-
-    const stateInput = document.getElementById('locationState');
-    const cityInput = document.getElementById('locationCity');
-
-    if (stateInput) stateInput.value = state;
-    if (cityInput) cityInput.value = city;
-
-    if (map) {
-      map.setView([lat, lon], 16);
-
-      if (marker) {
-        marker.setLatLng([lat, lon]);
-      } else {
-        marker = window.L.marker([lat, lon]).addTo(map);
-      }
+    function close() {
+        list.hidden = true;
+        list.innerHTML = '';
     }
 
-    closeSuggestions();
+    function show() {
+        const q = input.value.trim().toLowerCase();
 
-    setHelp(
-      'Location selected. You can edit the State and City fields. They will be checked against the detected location when you submit.'
-    );
-  }
+        list.innerHTML = '';
 
-  function reverseGeocode(lat, lon) {
-    return fetch(
-      `https://photon.komoot.io/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&lang=en`
-    )
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Could not identify this location.');
+        if (q.length < 2) {
+            close();
+            return;
         }
 
-        return response.json();
-      })
-      .then(data => {
-        const feature = data.features && data.features[0];
+        const matches = bengaluruAreas
+            .filter(a => a.toLowerCase().includes(q))
+            .slice(0, 7);
 
-        if (feature) {
-          setSelectedPlace(feature, lat, lon);
-        } else {
-          setSelectedPlace(
-            {
-              properties: {
-                name: 'Pinned location',
-                city: 'Unknown city',
-                state: 'Unknown state'
-              }
-            },
-            lat,
-            lon
-          );
-        }
-      });
-  }
-
-  loadLeaflet()
-    .then(() => {
-      map = window.L.map(mapElement).setView(defaultPosition, 11);
-
-      window.L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-          attribution: '&copy; OpenStreetMap contributors',
-          maxZoom: 19
-        }
-      ).addTo(map);
-
-      map.on('click', event => {
-        const { lat, lng } = event.latlng;
-
-        if (marker) {
-          marker.setLatLng(event.latlng);
-        } else {
-          marker = window.L.marker(event.latlng).addTo(map);
+        if (!matches.length) {
+            close();
+            return;
         }
 
-        reverseGeocode(lat, lng).catch(() => {
-          setSelectedPlace(
-            {
-              properties: {
-                name: 'Pinned location',
-                city: 'Unknown city',
-                state: 'Unknown state'
-              }
-            },
-            lat,
-            lng
-          );
-        });
-      });
+        matches.forEach(area => {
+            const option = document.createElement('button');
 
-      setTimeout(() => map.invalidateSize(), 150);
-    })
-    .catch(err => setHelp(err.message));
+            option.type = 'button';
+            option.className = 'autocomplete-option';
+            option.setAttribute('role', 'option');
+            option.textContent = area;
 
-  async function searchPlaces() {
-    const query = search.value.trim();
+            option.addEventListener('click', () => {
+                input.value = area;
+                close();
+                input.focus();
+            });
 
-    closeSuggestions();
-
-    if (query.length < 2) return;
-
-    try {
-      const response = await fetch(
-        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=7&lang=en`
-      );
-
-      if (!response.ok) {
-        throw new Error('Location search is unavailable.');
-      }
-
-      const data = await response.json();
-      const features = data.features || [];
-
-      if (!features.length) {
-        setHelp(
-          'No matching places found. Try another spelling or select a point on the map.'
-        );
-        return;
-      }
-
-      features.forEach(feature => {
-        const props = feature.properties || {};
-
-        const label = [
-          props.name,
-          props.city || props.town || props.county || props.district,
-          props.state,
-          props.country
-        ]
-          .filter(Boolean)
-          .filter((value, index, array) => array.indexOf(value) === index)
-          .join(', ');
-
-        const option = document.createElement('button');
-
-        option.type = 'button';
-        option.className = 'autocomplete-option';
-        option.setAttribute('role', 'option');
-        option.textContent = label || 'Unnamed place';
-
-        option.addEventListener('click', () => {
-          const coords = feature.geometry?.coordinates;
-
-          if (!coords || coords.length < 2) return;
-
-          setSelectedPlace(feature, coords[1], coords[0]);
+            list.appendChild(option);
         });
 
-        suggestions.appendChild(option);
-      });
-
-      suggestions.hidden = false;
-      setHelp('Choose a result from the list.');
-    } catch (error) {
-      setHelp(error.message || 'Could not search locations right now.');
-    }
-  }
-
-  search.addEventListener('input', () => {
-    selectedArea.value = '';
-    latitudeField.value = '';
-    longitudeField.value = '';
-
-    clearTimeout(searchTimer);
-
-    searchTimer = setTimeout(searchPlaces, 350);
-  });
-
-  search.addEventListener('keydown', event => {
-    if (event.key === 'Escape') {
-      closeSuggestions();
-    }
-  });
-
-  document.addEventListener('click', event => {
-    if (
-      !search.parentElement.contains(event.target) &&
-      !suggestions.contains(event.target)
-    ) {
-      closeSuggestions();
-    }
-  });
-
-  currentButton.addEventListener('click', () => {
-    if (!navigator.geolocation) {
-      setHelp(
-        'Your browser does not support location access. Search for a place instead.'
-      );
-      return;
+        list.hidden = false;
     }
 
-    currentButton.disabled = true;
-    currentButton.textContent = 'Finding location…';
+    input.addEventListener('input', show);
+    input.addEventListener('focus', show);
 
-    setHelp('Allow location access in your browser if prompted.');
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            close();
+        }
+    });
 
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-
-        reverseGeocode(lat, lon).catch(() => {
-          setSelectedPlace(
-            {
-              properties: {
-                name: 'Current location',
-                city: 'Unknown city',
-                state: 'Unknown state'
-              }
-            },
-            lat,
-            lon
-          );
-        });
-
-        currentButton.disabled = false;
-        currentButton.textContent = 'Use my current location';
-      },
-
-      error => {
-        const message =
-          error.code === 1
-            ? 'Location permission was denied. Allow it in your browser settings or search manually.'
-            : 'Could not get your location. Try searching for the place instead.';
-
-        setHelp(message);
-
-        currentButton.disabled = false;
-        currentButton.textContent = 'Use my current location';
-      },
-
-      {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 60000
-      }
-    );
-  });
+    document.addEventListener('click', e => {
+        if (!wrapper.contains(e.target)) {
+            close();
+        }
+    });
 }
 
-const themeNames = ['light', 'dark', 'ocean', 'sunset', 'forest'];
+
+// --------------------------------------------------
+// THEMES
+// --------------------------------------------------
+
+const themeNames = [
+    'light',
+    'dark',
+    'ocean',
+    'sunset',
+    'forest'
+];
 
 function applyTheme(theme) {
-  if (!themeNames.includes(theme)) theme = 'light';
+    if (!themeNames.includes(theme)) {
+        theme = 'light';
+    }
 
-  document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.theme = theme;
 
-  const picker = document.getElementById('themeSelect');
+    const picker = document.getElementById('themeSelect');
 
-  if (picker) picker.value = theme;
+    if (picker) {
+        picker.value = theme;
+    }
 }
 
 function initializeTheme() {
-  let theme = 'light';
+    let theme = 'light';
 
-  try {
-    theme = localStorage.getItem('dsb-theme') || 'light';
-  } catch {}
+    try {
+        theme = localStorage.getItem('dsb-theme') || 'light';
+    } catch {}
 
-  applyTheme(theme);
+    applyTheme(theme);
 
-  const picker = document.getElementById('themeSelect');
+    const picker = document.getElementById('themeSelect');
 
-  if (picker) {
-    picker.addEventListener('change', () => {
-      applyTheme(picker.value);
+    if (picker) {
+        picker.addEventListener('change', () => {
+            applyTheme(picker.value);
 
-      try {
-        localStorage.setItem('dsb-theme', picker.value);
-      } catch {}
-    });
-  }
+            try {
+                localStorage.setItem('dsb-theme', picker.value);
+            } catch {}
+        });
+    }
 }
 
 initializeTheme();
 
+
+// --------------------------------------------------
+// PHOTO PREVIEW
+// No type or size restriction in JavaScript
+// --------------------------------------------------
+
 function previewPhoto(e) {
-  const file = e.target.files[0];
-  const img = document.getElementById('preview');
+    const file = e.target.files[0];
+    const img = document.getElementById('preview');
 
-  if (!file) {
-    img.style.display = 'none';
-    return;
-  }
+    if (!file) {
+        img.style.display = 'none';
+        img.removeAttribute('src');
+        return;
+    }
 
-  if (
-    !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
-    file.size > 5 * 1024 * 1024
-  ) {
-    e.target.value = '';
-    img.style.display = 'none';
-
-    toast('Choose a supported image up to 5 MB.');
-    return;
-  }
-
-  img.src = URL.createObjectURL(file);
-  img.style.display = 'block';
+    img.src = URL.createObjectURL(file);
+    img.style.display = 'block';
 }
 
-function normalizeLocation(value) {
-  return String(value || '')
-    .trim()
-    .toLowerCase()
-    .replace(/[.,]/g, '')
-    .replace(/\s+/g, ' ');
-}
+
+// --------------------------------------------------
+// SUBMIT SUGGESTION
+// --------------------------------------------------
 
 async function submitSuggestion(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  const form = e.currentTarget;
-  const formData = new FormData(form);
-  const photo = formData.get('photo');
+    const form = e.currentTarget;
+    const fd = new FormData(form);
 
-  const selectedArea =
-    document.getElementById('selectedArea')?.value || '';
+    const photo = fd.get('photo');
 
-  const enteredState =
-    document.getElementById('locationState')?.value.trim() || '';
-
-  const enteredCity =
-    document.getElementById('locationCity')?.value.trim() || '';
-
-  if (!selectedArea) {
-    toast('Please search and select a location on the map first.');
-    return;
-  }
-
-  if (!enteredState || !enteredCity) {
-    toast('Please enter both State and City / district.');
-    return;
-  }
-
-  const stateMismatch =
-    detectedLocationState &&
-    detectedLocationState !== 'Unknown state' &&
-    normalizeLocation(enteredState) !== normalizeLocation(detectedLocationState);
-
-  const cityMismatch =
-    detectedLocationCity &&
-    detectedLocationCity !== 'Unknown city' &&
-    normalizeLocation(enteredCity) !== normalizeLocation(detectedLocationCity);
-
-  if (stateMismatch || cityMismatch) {
-    const detectedText =
-      `${detectedLocationCity}, ${detectedLocationState}`;
-
-    const enteredText =
-      `${enteredCity}, ${enteredState}`;
-
-    const proceed = confirm(
-      `Your entered State / City does not match the location detected from the map.\n\n` +
-      `Map location: ${detectedText}\n` +
-      `Entered location: ${enteredText}\n\n` +
-      `Do you want to continue with the State and City you entered?`
-    );
-
-    if (!proceed) return;
-  }
-
-  formData.set('area', selectedArea);
-  formData.set('state', enteredState);
-  formData.set('city', enteredCity);
-
-  if (!photo || !photo.size) {
-    toast('Photo upload is mandatory.');
-    return;
-  }
-
-  try {
-    const data = await api('/api/suggestions', {
-      method: 'POST',
-      body: formData
-    });
-
-    document.getElementById('submissionResult').innerHTML = `
-      <div class="trackresult">
-        <span class="status-pill">Submitted successfully</span>
-        <p>Your tracking ID is:</p>
-        <h2>${escapeHtml(data.trackingId)}</h2>
-        <p class="hint">Save this ID to check the progress later.</p>
-        <button class="btn light" data-view="track">
-          Track this suggestion
-        </button>
-      </div>`;
-
-    form.reset();
-
-    document.getElementById('preview').style.display = 'none';
-    document.getElementById('selectedArea').value = '';
-    document.getElementById('selectedLatitude').value = '';
-    document.getElementById('selectedLongitude').value = '';
-
-    toast('Suggestion submitted.');
-  } catch (err) {
-    toast(err.message);
-
-    if (err.message.toLowerCase().includes('log in')) {
-      view('login');
+    if (!photo || !photo.size) {
+        toast('Photo upload is mandatory.');
+        return;
     }
-  }
+
+    try {
+        const data = await api('/api/suggestions', {
+            method: 'POST',
+            body: fd
+        });
+
+        document.getElementById('submissionResult').innerHTML = `
+            <div class="trackresult">
+
+                <span class="status-pill">
+                    Submitted successfully
+                </span>
+
+                <p>Your tracking ID is:</p>
+
+                <h2>${data.trackingId}</h2>
+
+                <p class="hint">
+                    Save this ID to check the progress later.
+                </p>
+
+                <button class="btn light" data-view="track">
+                    Track this suggestion
+                </button>
+
+            </div>
+        `;
+
+        form.reset();
+
+        document.getElementById('preview').style.display = 'none';
+
+        toast('Suggestion submitted.');
+
+    } catch (err) {
+        toast(err.message);
+
+        if (err.message.includes('log in')) {
+            view('login');
+        }
+    }
 }
+
+
+// --------------------------------------------------
+// CITIZEN LOGIN
+// --------------------------------------------------
 
 function loginView() {
-  shell(
-    'Citizen login',
-    'Sign in to submit a suggestion with a photo and manage your submissions.',
-    `<form id="loginForm">
-      <div class="field">
-        <label>Email address</label>
-        <input name="email" type="email" required placeholder="you@example.com">
-      </div>
+    shell(
+        'Citizen login',
+        'Sign in to submit a suggestion with a photo and manage your submissions.',
+        `
+        <form id="loginForm">
 
-      <div class="field">
-        <label>Password</label>
-        <input name="password" type="password" required minlength="8">
-      </div>
+            <div class="field">
+                <label>Email address</label>
 
-      <div class="formfoot">
-        <button class="btn">Sign in</button>
-        <button class="textlink" type="button" data-view="register">
-          Create account
-        </button>
-      </div>
-    </form>`
-  );
+                <input
+                    name="email"
+                    type="email"
+                    required
+                    placeholder="you@example.com"
+                >
+            </div>
 
-  document.getElementById('loginForm').addEventListener('submit', async e => {
-    e.preventDefault();
+            <div class="field">
+                <label>Password</label>
 
-    const form = new FormData(e.currentTarget);
+                <input
+                    name="password"
+                    type="password"
+                    required
+                    minlength="8"
+                >
+            </div>
 
-    try {
-      await api('/api/login', {
-        method: 'POST',
-        body: JSON.stringify(Object.fromEntries(form))
-      });
+            <div class="formfoot">
+                <button class="btn">
+                    Sign in
+                </button>
 
-      toast('Welcome back!');
-      view('submit');
-    } catch (err) {
-      toast(err.message);
-    }
-  });
+                <button
+                    class="textlink"
+                    type="button"
+                    data-view="register"
+                >
+                    Create account
+                </button>
+            </div>
+
+        </form>
+        `
+    );
+
+    document
+        .getElementById('loginForm')
+        .addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const f = new FormData(e.currentTarget);
+
+            try {
+                await api('/api/login', {
+                    method: 'POST',
+                    body: JSON.stringify(Object.fromEntries(f))
+                });
+
+                toast('Welcome back!');
+                view('submit');
+
+            } catch (err) {
+                toast(err.message);
+            }
+        });
 }
+
+
+// --------------------------------------------------
+// CITIZEN REGISTRATION
+// --------------------------------------------------
 
 function registerView() {
-  shell(
-    'Create citizen account',
-    'Create an account to submit and follow community suggestions.',
-    `<form id="registerForm">
-      <div class="field">
-        <label>Full name</label>
-        <input name="name" required maxlength="90">
-      </div>
+    shell(
+        'Create citizen account',
+        'Create an account to submit and follow community suggestions.',
+        `
+        <form id="registerForm">
 
-      <div class="field">
-        <label>Email address</label>
-        <input name="email" type="email" required>
-      </div>
+            <div class="field">
+                <label>Full name</label>
 
-      <div class="field">
-        <label>Password (at least 8 characters)</label>
-        <input name="password" type="password" required minlength="8">
-      </div>
+                <input
+                    name="name"
+                    required
+                    maxlength="90"
+                >
+            </div>
 
-      <div class="formfoot">
-        <button class="btn">Create account</button>
-        <button class="textlink" type="button" data-view="login">
-          I already have an account
-        </button>
-      </div>
-    </form>`
-  );
+            <div class="field">
+                <label>Email address</label>
 
-  document.getElementById('registerForm').addEventListener('submit', async e => {
-    e.preventDefault();
+                <input
+                    name="email"
+                    type="email"
+                    required
+                >
+            </div>
 
-    try {
-      await api('/api/register', {
-        method: 'POST',
-        body: JSON.stringify(
-          Object.fromEntries(new FormData(e.currentTarget))
-        )
-      });
+            <div class="field">
+                <label>Password (at least 8 characters)</label>
 
-      toast('Account created.');
-      view('submit');
-    } catch (err) {
-      toast(err.message);
-    }
-  });
+                <input
+                    name="password"
+                    type="password"
+                    required
+                    minlength="8"
+                >
+            </div>
+
+            <div class="formfoot">
+                <button class="btn">
+                    Create account
+                </button>
+
+                <button
+                    class="textlink"
+                    type="button"
+                    data-view="login"
+                >
+                    I already have an account
+                </button>
+            </div>
+
+        </form>
+        `
+    );
+
+    document
+        .getElementById('registerForm')
+        .addEventListener('submit', async e => {
+            e.preventDefault();
+
+            try {
+                await api('/api/register', {
+                    method: 'POST',
+                    body: JSON.stringify(
+                        Object.fromEntries(new FormData(e.currentTarget))
+                    )
+                });
+
+                toast('Account created.');
+                view('submit');
+
+            } catch (err) {
+                toast(err.message);
+            }
+        });
 }
+
+
+// --------------------------------------------------
+// ADMIN LOGIN
+// --------------------------------------------------
 
 function adminLoginView() {
-  shell(
-    'Administrator access',
-    'Sign in to review, update, and manage citizen suggestions.',
-    `<form id="adminForm">
-      <div class="field">
-        <label>Admin username</label>
-        <input name="username" required autocomplete="username">
-      </div>
+    shell(
+        'Administrator access',
+        'Sign in to review, update, and manage citizen suggestions.',
+        `
+        <form id="adminForm">
 
-      <div class="field">
-        <label>Password</label>
-        <input name="password" type="password" required autocomplete="current-password">
-      </div>
+            <div class="field">
+                <label>Admin username</label>
 
-      <button class="btn">Open dashboard</button>
-    </form>`
-  );
+                <input
+                    name="username"
+                    required
+                    autocomplete="username"
+                >
+            </div>
 
-  document.getElementById('adminForm').addEventListener('submit', async e => {
-    e.preventDefault();
+            <div class="field">
+                <label>Password</label>
 
-    try {
-      await api('/api/admin-login', {
-        method: 'POST',
-        body: JSON.stringify(
-          Object.fromEntries(new FormData(e.currentTarget))
-        )
-      });
+                <input
+                    name="password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
 
-      toast('Admin signed in.');
-      view('admin');
-    } catch (err) {
-      toast(err.message);
-    }
-  });
+            <button class="btn">
+                Open dashboard
+            </button>
+
+        </form>
+        `
+    );
+
+    document
+        .getElementById('adminForm')
+        .addEventListener('submit', async e => {
+            e.preventDefault();
+
+            try {
+                await api('/api/admin-login', {
+                    method: 'POST',
+                    body: JSON.stringify(
+                        Object.fromEntries(new FormData(e.currentTarget))
+                    )
+                });
+
+                toast('Admin signed in.');
+                view('admin');
+
+            } catch (err) {
+                toast(err.message);
+            }
+        });
 }
+
+
+// --------------------------------------------------
+// TRACK SUGGESTION
+// --------------------------------------------------
 
 function trackView() {
-  shell(
-    'Track your suggestion',
-    'Enter the unique tracking ID you received after submitting your suggestion.',
-    `<form id="trackForm">
-      <div class="formfoot">
-        <input
-          name="tracking"
-          required
-          placeholder="Example: DSB-1234ABCD"
-          style="flex:1;min-width:190px;border:1px solid var(--line);border-radius:11px;padding:13px"
-        >
-        <button class="btn">Check status</button>
-      </div>
-    </form>
+    shell(
+        'Track your suggestion',
+        'Enter the unique tracking ID you received after submitting your suggestion.',
+        `
+        <form id="trackForm">
 
-    <div id="trackResult"></div>`
-  );
+            <div class="formfoot">
 
-  document.getElementById('trackForm').addEventListener('submit', async e => {
-    e.preventDefault();
+                <input
+                    name="tracking"
+                    required
+                    placeholder="Example: DSB-1234ABCD"
+                    style="flex:1;min-width:190px;border:1px solid var(--line);border-radius:11px;padding:13px"
+                >
 
-    const id = new FormData(e.currentTarget).get('tracking');
+                <button class="btn">
+                    Check status
+                </button>
 
-    try {
-      const item = await api(
-        '/api/track/' + encodeURIComponent(id)
-      );
+            </div>
 
-      renderTracking(item, document.getElementById('trackResult'));
-    } catch (err) {
-      document.getElementById('trackResult').innerHTML =
-        `<p class="hint">${escapeHtml(err.message)}</p>`;
-    }
-  });
+        </form>
+
+        <div id="trackResult"></div>
+        `
+    );
+
+    document
+        .getElementById('trackForm')
+        .addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const id = new FormData(e.currentTarget).get('tracking');
+
+            try {
+                const item = await api(
+                    '/api/track/' + encodeURIComponent(id)
+                );
+
+                renderTracking(
+                    item,
+                    document.getElementById('trackResult')
+                );
+
+            } catch (err) {
+                document.getElementById('trackResult').innerHTML = `
+                    <p class="hint">
+                        ${escapeHtml(err.message)}
+                    </p>
+                `;
+            }
+        });
 }
+
+
+// --------------------------------------------------
+// TRACKING RESULT
+// --------------------------------------------------
 
 function renderTracking(item, target) {
-  const idx = statuses.indexOf(item.status);
+    const idx = statuses.indexOf(item.status);
 
-  target.innerHTML = `
-    <div class="trackresult">
-      <div class="suggestion-head">
-        <div>
-          <span class="hint">TRACKING ID</span>
-          <h3>${escapeHtml(item.tracking_id)}</h3>
+    target.innerHTML = `
+        <div class="trackresult">
+
+            <div class="suggestion-head">
+
+                <div>
+                    <span class="hint">TRACKING ID</span>
+
+                    <h3>
+                        ${escapeHtml(item.tracking_id)}
+                    </h3>
+                </div>
+
+                <span class="status-pill">
+                    ${escapeHtml(item.status)}
+                </span>
+
+            </div>
+
+            <div class="timeline">
+
+                ${statuses.map((s, i) => `
+                    <div class="stage ${
+                        i < idx
+                            ? 'done'
+                            : i === idx
+                                ? 'current'
+                                : ''
+                    }">
+
+                        <div class="dot">
+                            ${i < idx ? '✓' : i + 1}
+                        </div>
+
+                        ${s}
+
+                    </div>
+                `).join('')}
+
+            </div>
+
+            <div class="detailgrid">
+
+                <div class="detail">
+                    <small>Category</small>
+                    <strong>${escapeHtml(item.category)}</strong>
+                </div>
+
+                <div class="detail">
+                    <small>Area</small>
+                    <strong>${escapeHtml(item.area)}</strong>
+                </div>
+
+                <div class="detail">
+                    <small>Submitted</small>
+                    <strong>${escapeHtml(item.created_at)}</strong>
+                </div>
+
+                <div class="detail">
+                    <small>Last updated</small>
+                    <strong>${escapeHtml(item.updated_at)}</strong>
+                </div>
+
+            </div>
+
+            <div class="detail" style="margin-top:12px">
+                <small>Suggestion details</small>
+
+                <strong>
+                    ${escapeHtml(item.description)}
+                </strong>
+            </div>
+
+            <div class="detail" style="margin-top:12px">
+                <small>Administrator response</small>
+
+                <strong>
+                    ${escapeHtml(
+                        item.admin_response ||
+                        'No response has been added yet.'
+                    )}
+                </strong>
+            </div>
+
+            <img
+                class="result-photo"
+                src="${item.photoUrl}"
+                alt="Uploaded supporting photo"
+            >
+
         </div>
-
-        <span class="status-pill">${escapeHtml(item.status)}</span>
-      </div>
-
-      <div class="timeline">
-        ${statuses.map((status, i) => `
-          <div class="stage ${i < idx ? 'done' : i === idx ? 'current' : ''}">
-            <div class="dot">${i < idx ? '✓' : i + 1}</div>
-            ${status}
-          </div>`).join('')}
-      </div>
-
-      <div class="detailgrid">
-        <div class="detail">
-          <small>Category</small>
-          <strong>${escapeHtml(item.category)}</strong>
-        </div>
-
-        <div class="detail">
-          <small>Area</small>
-          <strong>${escapeHtml(item.area)}</strong>
-        </div>
-
-        <div class="detail">
-          <small>Submitted</small>
-          <strong>${escapeHtml(item.created_at)}</strong>
-        </div>
-
-        <div class="detail">
-          <small>Last updated</small>
-          <strong>${escapeHtml(item.updated_at)}</strong>
-        </div>
-      </div>
-
-      <div class="detail" style="margin-top:12px">
-        <small>Suggestion details</small>
-        <strong>${escapeHtml(item.description)}</strong>
-      </div>
-
-      <div class="detail" style="margin-top:12px">
-        <small>Administrator response</small>
-        <strong>
-          ${escapeHtml(item.admin_response || 'No response has been added yet.')}
-        </strong>
-      </div>
-
-      <img
-        class="result-photo"
-        src="${escapeHtml(item.photoUrl)}"
-        alt="Uploaded supporting photo"
-      >
-    </div>`;
+    `;
 }
+
+
+// --------------------------------------------------
+// ADMIN DASHBOARD
+// --------------------------------------------------
 
 async function adminView() {
-  appPanel.innerHTML = `
-    <div class="panel wide">
-      <h2>Admin dashboard</h2>
-      <p class="lead">
-        Review citizen requests, update progress, and respond transparently.
-      </p>
+    appPanel.innerHTML = `
+        <div class="panel wide">
 
-      <div id="adminContent">Loading…</div>
+            <h2>Admin dashboard</h2>
 
-      <div class="formfoot">
-        <button class="btn light" id="logout">Log out</button>
-      </div>
-    </div>`;
+            <p class="lead">
+                Review citizen requests, update progress,
+                and respond transparently.
+            </p>
 
-  document.getElementById('logout').onclick = async () => {
-    await api('/api/logout', { method: 'POST' });
+            <div id="adminContent">
+                Loading…
+            </div>
 
-    view('home');
-    toast('Signed out.');
-  };
+            <div class="formfoot">
+                <button class="btn light" id="logout">
+                    Log out
+                </button>
+            </div>
 
-  try {
-    await loadAdmin();
-  } catch (err) {
-    toast(err.message);
-    view('admin-login');
-  }
+        </div>
+    `;
+
+    document.getElementById('logout').onclick = async () => {
+        await api('/api/logout', {
+            method: 'POST'
+        });
+
+        view('home');
+        toast('Signed out.');
+    };
+
+    try {
+        await loadAdmin();
+
+    } catch (err) {
+        toast(err.message);
+        view('admin-login');
+    }
 }
+
+
+// --------------------------------------------------
+// LOAD ADMIN DATA
+// --------------------------------------------------
 
 async function loadAdmin() {
-  const q = document.getElementById('adminSearch')?.value || '';
-  const s = document.getElementById('adminFilter')?.value || '';
+    const q = document.getElementById('adminSearch')?.value || '';
+    const s = document.getElementById('adminFilter')?.value || '';
 
-  const data = await api(
-    '/api/admin/suggestions?q=' + encodeURIComponent(q) +
-    '&status=' + encodeURIComponent(s)
-  );
+    const data = await api(
+        '/api/admin/suggestions?q=' +
+        encodeURIComponent(q) +
+        '&status=' +
+        encodeURIComponent(s)
+    );
 
-  const target = document.getElementById('adminContent');
+    const target = document.getElementById('adminContent');
 
-  target.innerHTML = `
-    <div class="stats">
-      ${['Total', ...statuses].map(k => `
-        <div class="stat">
-          <small>${k}</small>
-          <b>${data.stats[k] || 0}</b>
-        </div>`).join('')}
-    </div>
+    target.innerHTML = `
+        <div class="stats">
 
-    <div class="toolbar">
-      <input
-        id="adminSearch"
-        placeholder="Search ID, name, area..."
-        value="${escapeHtml(q)}"
-      >
+            ${['Total', ...statuses].map(k => `
+                <div class="stat">
+                    <small>${k}</small>
+                    <b>${data.stats[k] || 0}</b>
+                </div>
+            `).join('')}
 
-      <select id="adminFilter">
-        <option value="">All statuses</option>
-        ${statuses.map(status => `
-          <option value="${escapeHtml(status)}" ${s === status ? 'selected' : ''}>
-            ${escapeHtml(status)}
-          </option>`).join('')}
-      </select>
+        </div>
 
-      <button class="btn" id="refresh">Refresh</button>
-    </div>
+        <div class="toolbar">
 
-    <div id="adminItems">
-      ${data.items.length
-        ? data.items.map(adminCard).join('')
-        : '<div class="empty">No suggestions match your search.</div>'}
-    </div>`;
+            <input
+                id="adminSearch"
+                placeholder="Search ID, name, area..."
+                value="${escapeHtml(q)}"
+            >
 
-  document.getElementById('adminSearch')
-    .addEventListener('input', debounce(loadAdmin, 300));
+            <select id="adminFilter">
 
-  document.getElementById('adminFilter')
-    .addEventListener('change', loadAdmin);
+                <option value="">
+                    All statuses
+                </option>
 
-  document.getElementById('refresh')
-    .addEventListener('click', loadAdmin);
+                ${statuses.map(st => `
+                    <option ${s === st ? 'selected' : ''}>
+                        ${st}
+                    </option>
+                `).join('')}
 
-  target.querySelectorAll('[data-save]')
-    .forEach(button => button.addEventListener('click', saveAdmin));
+            </select>
 
-  target.querySelectorAll('[data-delete]')
-    .forEach(button => button.addEventListener('click', deleteAdmin));
+            <button class="btn" id="refresh">
+                Refresh
+            </button>
+
+        </div>
+
+        <div id="adminItems">
+
+            ${
+                data.items.length
+                    ? data.items.map(adminCard).join('')
+                    : '<div class="empty">No suggestions match your search.</div>'
+            }
+
+        </div>
+    `;
+
+    document
+        .getElementById('adminSearch')
+        .addEventListener('input', debounce(loadAdmin, 300));
+
+    document
+        .getElementById('adminFilter')
+        .addEventListener('change', loadAdmin);
+
+    document
+        .getElementById('refresh')
+        .addEventListener('click', loadAdmin);
+
+    target
+        .querySelectorAll('[data-save]')
+        .forEach(b => b.addEventListener('click', saveAdmin));
+
+    target
+        .querySelectorAll('[data-delete]')
+        .forEach(b => b.addEventListener('click', deleteAdmin));
 }
 
-function adminCard(item) {
-  return `
-    <article class="suggestion">
-      <div class="suggestion-head">
-        <div>
-          <span class="hint">
-            ${escapeHtml(item.tracking_id)} · ${escapeHtml(item.created_at)}
-          </span>
 
-          <h3>
-            ${escapeHtml(item.name)} — ${escapeHtml(item.category)}
-          </h3>
+// --------------------------------------------------
+// ADMIN SUGGESTION CARD
+// --------------------------------------------------
 
-          <span class="hint">${escapeHtml(item.area)}</span>
-        </div>
+function adminCard(x) {
+    return `
+        <article class="suggestion">
 
-        <span class="status-pill">${escapeHtml(item.status)}</span>
-      </div>
+            <div class="suggestion-head">
 
-      <p>${escapeHtml(item.description)}</p>
+                <div>
 
-      <img
-        src="${escapeHtml(item.photoUrl)}"
-        alt="Citizen uploaded photo"
-        style="max-width:150px;max-height:100px;border-radius:9px"
-      >
+                    <span class="hint">
+                        ${escapeHtml(x.tracking_id)}
+                        ·
+                        ${escapeHtml(x.created_at)}
+                    </span>
 
-      <div class="formgrid">
-        <div class="field">
-          <label>Update status</label>
+                    <h3>
+                        ${escapeHtml(x.name)}
+                        —
+                        ${escapeHtml(x.category)}
+                    </h3>
 
-          <select data-status="${escapeHtml(item.tracking_id)}">
-            ${statuses.map(status => `
-              <option value="${escapeHtml(status)}" ${item.status === status ? 'selected' : ''}>
-                ${escapeHtml(status)}
-              </option>`).join('')}
-          </select>
-        </div>
+                    <span class="hint">
+                        ${escapeHtml(x.area)}
+                    </span>
 
-        <div class="field">
-          <label>Admin response</label>
+                </div>
 
-          <input
-            data-response="${escapeHtml(item.tracking_id)}"
-            value="${escapeHtml(item.admin_response || '')}"
-            placeholder="Write a short update"
-          >
-        </div>
-      </div>
+                <span class="status-pill">
+                    ${escapeHtml(x.status)}
+                </span>
 
-      <div class="suggestion-actions">
-        <button class="btn" data-save="${escapeHtml(item.tracking_id)}">
-          Save update
-        </button>
+            </div>
 
-        <button class="btn danger" data-delete="${escapeHtml(item.tracking_id)}">
-          Delete
-        </button>
-      </div>
-    </article>`;
+            <p>
+                ${escapeHtml(x.description)}
+            </p>
+
+            <img
+                src="${x.photoUrl}"
+                alt="Citizen uploaded photo"
+                style="max-width:150px;max-height:100px;border-radius:9px"
+            >
+
+            <div class="formgrid">
+
+                <div class="field">
+                    <label>Update status</label>
+
+                    <select data-status="${escapeHtml(x.tracking_id)}">
+
+                        ${statuses.map(s => `
+                            <option ${
+                                x.status === s ? 'selected' : ''
+                            }>
+                                ${s}
+                            </option>
+                        `).join('')}
+
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Admin response</label>
+
+                    <input
+                        data-response="${escapeHtml(x.tracking_id)}"
+                        value="${escapeHtml(x.admin_response || '')}"
+                        placeholder="Write a short update"
+                    >
+                </div>
+
+            </div>
+
+            <div class="suggestion-actions">
+
+                <button
+                    class="btn"
+                    data-save="${escapeHtml(x.tracking_id)}"
+                >
+                    Save update
+                </button>
+
+                <button
+                    class="btn danger"
+                    data-delete="${escapeHtml(x.tracking_id)}"
+                >
+                    Delete
+                </button>
+
+            </div>
+
+        </article>
+    `;
 }
+
+
+// --------------------------------------------------
+// ADMIN: SAVE STATUS AND RESPONSE
+// --------------------------------------------------
 
 async function saveAdmin(e) {
-  const id = e.currentTarget.dataset.save;
+    const id = e.currentTarget.dataset.save;
 
-  const status =
-    document.querySelector(`[data-status="${id}"]`).value;
+    const status = document.querySelector(
+        `[data-status="${id}"]`
+    ).value;
 
-  const admin_response =
-    document.querySelector(`[data-response="${id}"]`).value;
+    const admin_response = document.querySelector(
+        `[data-response="${id}"]`
+    ).value;
 
-  try {
-    await api('/api/admin/suggestions/' + encodeURIComponent(id), {
-      method: 'PATCH',
-      body: JSON.stringify({ status, admin_response })
-    });
+    try {
+        await api(
+            '/api/admin/suggestions/' + encodeURIComponent(id),
+            {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    status,
+                    admin_response
+                })
+            }
+        );
 
-    toast('Suggestion updated.');
-    await loadAdmin();
-  } catch (err) {
-    toast(err.message);
-  }
+        toast('Suggestion updated.');
+
+        await loadAdmin();
+
+    } catch (err) {
+        toast(err.message);
+    }
 }
+
+
+// --------------------------------------------------
+// ADMIN: DELETE SUGGESTION
+// --------------------------------------------------
 
 async function deleteAdmin(e) {
-  const id = e.currentTarget.dataset.delete;
+    const id = e.currentTarget.dataset.delete;
 
-  if (!confirm('Delete this suggestion and its uploaded photo?')) return;
+    if (!confirm('Delete this suggestion and its uploaded photo?')) {
+        return;
+    }
 
-  try {
-    await api('/api/admin/suggestions/' + encodeURIComponent(id), {
-      method: 'DELETE'
-    });
+    try {
+        await api(
+            '/api/admin/suggestions/' + encodeURIComponent(id),
+            {
+                method: 'DELETE'
+            }
+        );
 
-    toast('Suggestion deleted.');
-    await loadAdmin();
-  } catch (err) {
-    toast(err.message);
-  }
+        toast('Suggestion deleted.');
+
+        await loadAdmin();
+
+    } catch (err) {
+        toast(err.message);
+    }
 }
 
-function debounce(fn, wait) {
-  let timer;
 
-  return () => {
-    clearTimeout(timer);
-    timer = setTimeout(fn, wait);
-  };
+// --------------------------------------------------
+// HELPER FUNCTIONS
+// --------------------------------------------------
+
+function debounce(fn, wait) {
+    let timer;
+
+    return () => {
+        clearTimeout(timer);
+        timer = setTimeout(fn, wait);
+    };
 }
 
 function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char]));
+    return String(value ?? '').replace(
+        /[&<>"']/g,
+        c => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c])
+    );
 }
 
+
+// --------------------------------------------------
+// SESSION / NAVIGATION
+// --------------------------------------------------
+
 (async () => {
-  try {
-    const session = await api('/api/session');
+    try {
+        const s = await api('/api/session');
 
-    if (session.role === 'admin') {
-      const button = document.createElement('button');
+        if (s.role === 'admin') {
+            const n = document.createElement('button');
 
-      button.className = 'navlink';
-      button.dataset.view = 'admin';
-      button.textContent = 'Dashboard';
+            n.className = 'navlink';
+            n.dataset.view = 'admin';
+            n.textContent = 'Dashboard';
 
-      document.getElementById('nav').prepend(button);
-    } else if (session.role === 'citizen') {
-      const button = document.createElement('button');
+            document.getElementById('nav').prepend(n);
 
-      button.className = 'navlink';
-      button.dataset.view = 'submit';
-      button.textContent = 'Submit suggestion';
+        } else if (s.role === 'citizen') {
+            const n = document.createElement('button');
 
-      document.getElementById('nav').prepend(button);
-    }
-  } catch {}
+            n.className = 'navlink';
+            n.dataset.view = 'submit';
+            n.textContent = 'Submit suggestion';
+
+            document.getElementById('nav').prepend(n);
+        }
+
+    } catch {}
 })();
 
-if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
+
+// --------------------------------------------------
+// SERVICE WORKER
+// --------------------------------------------------
+
+if (
+    'serviceWorker' in navigator &&
+    location.protocol.startsWith('http')
+) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker
+            .register('/sw.js')
+            .catch(() => {});
+    });
 }
