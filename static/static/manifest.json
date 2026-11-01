@@ -1,0 +1,13 @@
+{
+  "name": "Digital Suggestion Box",
+  "short_name": "Suggestion Box",
+  "description": "Submit and track local community suggestions.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f5ed",
+  "theme_color": "#145b58",
+  "icons": [
+    {"src": "/static/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}
