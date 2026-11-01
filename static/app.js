@@ -20,10 +20,7 @@ async function api(url, options = {}) {
   });
 
   let data = {};
-  try {
-    data = await res.json();
-  } catch {}
-
+  try { data = await res.json(); } catch {}
   if (!res.ok) throw new Error(data.error || 'Something went wrong.');
   return data;
 }
@@ -74,6 +71,7 @@ function submitView() {
           <label>Full name *</label>
           <input name="name" required maxlength="90" placeholder="Your name">
         </div>
+
         <div class="field">
           <label>Category *</label>
           <select name="category" required>
@@ -87,144 +85,418 @@ function submitView() {
             <option>Other</option>
           </select>
         </div>
+
         <div class="field full">
-          <label>Area / locality *</label>
-          <input name="area" required maxlength="120" placeholder="Neighbourhood or ward">
+          <label>State *</label>
+          <input id="locationState" value="Karnataka" readonly>
         </div>
+
+        <div class="field full">
+          <label>City / district *</label>
+          <input id="locationCity" value="Bengaluru" readonly>
+        </div>
+
+        <div class="field full">
+          <label>Search location / locality *</label>
+
+          <div class="location-search-wrap">
+            <input
+              id="locationSearch"
+              type="search"
+              autocomplete="off"
+              placeholder="Type an area, street, landmark or address"
+            >
+
+            <div
+              id="locationSuggestions"
+              class="autocomplete-list"
+              role="listbox"
+              hidden
+            ></div>
+          </div>
+
+          <button
+            class="btn light location-button"
+            id="useCurrentLocation"
+            type="button"
+          >
+            Use my current location
+          </button>
+
+          <p class="hint" id="locationHelp">
+            Search and choose a place, or use your device location.
+          </p>
+
+          <div
+            id="locationMap"
+            class="location-map"
+            aria-label="Map for selecting location"
+          ></div>
+
+          <input type="hidden" name="area" id="selectedArea">
+          <input type="hidden" name="latitude" id="selectedLatitude">
+          <input type="hidden" name="longitude" id="selectedLongitude">
+        </div>
+
         <div class="field full">
           <label>Describe the issue or suggestion *</label>
-          <textarea name="description" required maxlength="2500"
-            placeholder="Tell us what happened and what could improve..."></textarea>
+          <textarea
+            name="description"
+            required
+            maxlength="2500"
+            placeholder="Tell us what happened and what could improve..."
+          ></textarea>
         </div>
+
         <div class="field full">
           <label>Upload photo (mandatory) *</label>
-          <input id="photo" name="photo" type="file"
-            accept="image/png,image/jpeg,image/webp" required>
+          <input
+            id="photo"
+            name="photo"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            required
+          >
+
           <span class="hint">PNG, JPG, JPEG or WEBP · Maximum 5 MB</span>
           <img id="preview" class="photo-preview" alt="Selected photo preview">
         </div>
       </div>
+
       <div class="formfoot">
         <button class="btn" type="submit">Submit suggestion →</button>
         <span class="hint">Sign in first to submit a request.</span>
       </div>
     </form>
+
     <div id="submissionResult"></div>`
   );
 
   document.getElementById('photo').addEventListener('change', previewPhoto);
   document.getElementById('suggestionForm').addEventListener('submit', submitSuggestion);
-  setupAreaAutocomplete();
+
+  setupLocationPicker();
 }
 
-const bengaluruAreas = [
-  'Bagalagunte, Bengaluru',
-  'Chikkabanavara, Bengaluru',
-  'T. Dasarahalli, Bengaluru',
-  '8th Mile, Bengaluru',
-  'Jalahalli, Bengaluru',
-  'Peenya, Bengaluru',
-  'Nagasandra, Bengaluru',
-  'Madanayakanahalli, Bengaluru',
-  'Anchepalya, Bengaluru',
-  'Lakshmipura, Bengaluru',
-  'Rajeshwari Nagar, Bengaluru',
-  'Yeshwanthpur, Bengaluru',
-  'Mathikere, Bengaluru',
-  'Vijayanagar, Bengaluru',
-  'Malleswaram, Bengaluru',
-  'Hebbal, Bengaluru',
-  'Majestic, Bengaluru',
-  'Yelahanka, Bengaluru',
-  'Hesaraghatta, Bengaluru',
-  'Nandini Layout, Bengaluru',
-  'Basaveshwaranagar, Bengaluru',
-  'Kengeri, Bengaluru',
-  'RR Nagar, Bengaluru',
-  'Jayanagar, Bengaluru',
-  'Banashankari, Bengaluru',
-  'Indiranagar, Bengaluru',
-  'Whitefield, Bengaluru',
-  'Electronic City, Bengaluru',
-  'Koramangala, Bengaluru',
-  'BTM Layout, Bengaluru',
-  'Marathahalli, Bengaluru',
-  'Bellandur, Bengaluru',
-  'Bommanahalli, Bengaluru',
-  'Hoodi, Bengaluru',
-  'Kalyan Nagar, Bengaluru',
-  'Sahakara Nagar, Bengaluru'
-];
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (window.leafletLoading) return window.leafletLoading;
 
-function setupAreaAutocomplete() {
-  const input = document.querySelector('input[name="area"]');
-  if (!input) return;
-
-  input.setAttribute('autocomplete', 'off');
-  input.setAttribute('aria-autocomplete', 'list');
-  input.placeholder = 'Start typing an area (e.g. Chikkabanavara)';
-
-  const wrapper = document.createElement('div');
-  wrapper.className = 'autocomplete-wrap';
-  input.parentNode.insertBefore(wrapper, input);
-  wrapper.appendChild(input);
-
-  const list = document.createElement('div');
-  list.className = 'autocomplete-list';
-  list.hidden = true;
-  list.setAttribute('role', 'listbox');
-  wrapper.appendChild(list);
-
-  function close() {
-    list.hidden = true;
-    list.innerHTML = '';
-  }
-
-  function show() {
-    const query = input.value.trim().toLowerCase();
-    list.innerHTML = '';
-
-    if (query.length < 2) {
-      close();
-      return;
+  window.leafletLoading = new Promise((resolve, reject) => {
+    if (!document.getElementById('leaflet-css')) {
+      const css = document.createElement('link');
+      css.id = 'leaflet-css';
+      css.rel = 'stylesheet';
+      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
     }
 
-    const matches = bengaluruAreas
-      .filter(area => area.toLowerCase().includes(query))
-      .slice(0, 7);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = resolve;
+    script.onerror = () => reject(
+      new Error('Map library could not load. Check your internet connection.')
+    );
 
-    if (!matches.length) {
-      close();
-      return;
-    }
-
-    matches.forEach(area => {
-      const option = document.createElement('button');
-      option.type = 'button';
-      option.className = 'autocomplete-option';
-      option.setAttribute('role', 'option');
-      option.textContent = area;
-
-      option.addEventListener('click', () => {
-        input.value = area;
-        close();
-        input.focus();
-      });
-
-      list.appendChild(option);
-    });
-
-    list.hidden = false;
-  }
-
-  input.addEventListener('input', show);
-  input.addEventListener('focus', show);
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') close();
+    document.head.appendChild(script);
   });
 
-  document.addEventListener('click', e => {
-    if (!wrapper.contains(e.target)) close();
+  return window.leafletLoading;
+}
+
+function setupLocationPicker() {
+  const search = document.getElementById('locationSearch');
+  const suggestions = document.getElementById('locationSuggestions');
+  const mapElement = document.getElementById('locationMap');
+  const help = document.getElementById('locationHelp');
+  const currentButton = document.getElementById('useCurrentLocation');
+
+  const selectedArea = document.getElementById('selectedArea');
+  const latitudeField = document.getElementById('selectedLatitude');
+  const longitudeField = document.getElementById('selectedLongitude');
+
+  if (!search || !mapElement) return;
+
+  let map;
+  let marker;
+  let searchTimer;
+
+  const defaultPosition = [12.9716, 77.5946];
+
+  function setHelp(message) {
+    if (help) help.textContent = message;
+  }
+
+  function closeSuggestions() {
+    suggestions.hidden = true;
+    suggestions.innerHTML = '';
+  }
+
+  function setSelectedPlace(place, lat, lon) {
+    const props = place?.properties || {};
+
+    const name =
+      props.name ||
+      props.street ||
+      props.locality ||
+      'Selected location';
+
+    const city =
+      props.city ||
+      props.town ||
+      props.county ||
+      props.district ||
+      'Unknown city';
+
+    const state = props.state || 'Unknown state';
+
+    const labelParts = [name, city, state].filter(Boolean);
+    const label = [...new Set(labelParts)].join(', ');
+
+    search.value = label;
+    selectedArea.value = label;
+
+    latitudeField.value = String(lat);
+    longitudeField.value = String(lon);
+
+    const stateInput = document.getElementById('locationState');
+    const cityInput = document.getElementById('locationCity');
+
+    if (stateInput) stateInput.value = state;
+    if (cityInput) cityInput.value = city;
+
+    if (map) {
+      map.setView([lat, lon], 16);
+
+      if (marker) {
+        marker.setLatLng([lat, lon]);
+      } else {
+        marker = window.L.marker([lat, lon]).addTo(map);
+      }
+    }
+
+    closeSuggestions();
+
+    setHelp(
+      'Location selected. You can move the marker on the map to adjust it.'
+    );
+  }
+
+  function reverseGeocode(lat, lon) {
+    return fetch(
+      `https://photon.komoot.io/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&lang=en`
+    )
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Could not identify this location.');
+        }
+
+        return response.json();
+      })
+      .then(data => {
+        const feature = data.features && data.features[0];
+
+        if (feature) {
+          setSelectedPlace(feature, lat, lon);
+        } else {
+          setSelectedPlace(
+            {
+              properties: {
+                name: 'Pinned location',
+                city: 'Unknown city',
+                state: 'Unknown state'
+              }
+            },
+            lat,
+            lon
+          );
+        }
+      });
+  }
+
+  loadLeaflet()
+    .then(() => {
+      map = window.L.map(mapElement).setView(defaultPosition, 11);
+
+      window.L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19
+        }
+      ).addTo(map);
+
+      map.on('click', event => {
+        const { lat, lng } = event.latlng;
+
+        if (marker) {
+          marker.setLatLng(event.latlng);
+        } else {
+          marker = window.L.marker(event.latlng).addTo(map);
+        }
+
+        reverseGeocode(lat, lng).catch(() => {
+          setSelectedPlace(
+            {
+              properties: {
+                name: 'Pinned location',
+                city: 'Unknown city',
+                state: 'Unknown state'
+              }
+            },
+            lat,
+            lng
+          );
+        });
+      });
+
+      setTimeout(() => map.invalidateSize(), 150);
+    })
+    .catch(err => setHelp(err.message));
+
+  async function searchPlaces() {
+    const query = search.value.trim();
+
+    closeSuggestions();
+
+    if (query.length < 2) return;
+
+    try {
+      const response = await fetch(
+        `https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=7&lang=en`
+      );
+
+      if (!response.ok) {
+        throw new Error('Location search is unavailable.');
+      }
+
+      const data = await response.json();
+      const features = data.features || [];
+
+      if (!features.length) {
+        setHelp(
+          'No matching places found. Try another spelling or select a point on the map.'
+        );
+        return;
+      }
+
+      features.forEach(feature => {
+        const props = feature.properties || {};
+
+        const label = [
+          props.name,
+          props.city || props.town || props.county || props.district,
+          props.state,
+          props.country
+        ]
+          .filter(Boolean)
+          .filter((value, index, array) => array.indexOf(value) === index)
+          .join(', ');
+
+        const option = document.createElement('button');
+
+        option.type = 'button';
+        option.className = 'autocomplete-option';
+        option.setAttribute('role', 'option');
+        option.textContent = label || 'Unnamed place';
+
+        option.addEventListener('click', () => {
+          const coords = feature.geometry?.coordinates;
+
+          if (!coords || coords.length < 2) return;
+
+          setSelectedPlace(feature, coords[1], coords[0]);
+        });
+
+        suggestions.appendChild(option);
+      });
+
+      suggestions.hidden = false;
+      setHelp('Choose a result from the list.');
+    } catch (error) {
+      setHelp(error.message || 'Could not search locations right now.');
+    }
+  }
+
+  search.addEventListener('input', () => {
+    selectedArea.value = '';
+    latitudeField.value = '';
+    longitudeField.value = '';
+
+    clearTimeout(searchTimer);
+
+    searchTimer = setTimeout(searchPlaces, 350);
+  });
+
+  search.addEventListener('keydown', event => {
+    if (event.key === 'Escape') {
+      closeSuggestions();
+    }
+  });
+
+  document.addEventListener('click', event => {
+    if (
+      !search.parentElement.contains(event.target) &&
+      !suggestions.contains(event.target)
+    ) {
+      closeSuggestions();
+    }
+  });
+
+  currentButton.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      setHelp(
+        'Your browser does not support location access. Search for a place instead.'
+      );
+      return;
+    }
+
+    currentButton.disabled = true;
+    currentButton.textContent = 'Finding location…';
+
+    setHelp('Allow location access in your browser if prompted.');
+
+    navigator.geolocation.getCurrentPosition(
+      position => {
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        reverseGeocode(lat, lon).catch(() => {
+          setSelectedPlace(
+            {
+              properties: {
+                name: 'Current location',
+                city: 'Unknown city',
+                state: 'Unknown state'
+              }
+            },
+            lat,
+            lon
+          );
+        });
+
+        currentButton.disabled = false;
+        currentButton.textContent = 'Use my current location';
+      },
+
+      error => {
+        const message =
+          error.code === 1
+            ? 'Location permission was denied. Allow it in your browser settings or search manually.'
+            : 'Could not get your location. Try searching for the place instead.';
+
+        setHelp(message);
+
+        currentButton.disabled = false;
+        currentButton.textContent = 'Use my current location';
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 12000,
+        maximumAge: 60000
+      }
+    );
   });
 }
 
@@ -236,6 +508,7 @@ function applyTheme(theme) {
   document.documentElement.dataset.theme = theme;
 
   const picker = document.getElementById('themeSelect');
+
   if (picker) picker.value = theme;
 }
 
@@ -278,6 +551,7 @@ function previewPhoto(e) {
   ) {
     e.target.value = '';
     img.style.display = 'none';
+
     toast('Choose a supported image up to 5 MB.');
     return;
   }
@@ -292,6 +566,17 @@ async function submitSuggestion(e) {
   const form = e.currentTarget;
   const formData = new FormData(form);
   const photo = formData.get('photo');
+
+  const selectedArea =
+    document.getElementById('selectedArea')?.value || '';
+
+  if (!selectedArea) {
+    toast('Please search and select a location on the map first.');
+    return;
+  }
+
+  // Save the selected location using the existing Flask area field.
+  formData.set('area', selectedArea);
 
   if (!photo || !photo.size) {
     toast('Photo upload is mandatory.');
@@ -310,15 +595,25 @@ async function submitSuggestion(e) {
         <p>Your tracking ID is:</p>
         <h2>${escapeHtml(data.trackingId)}</h2>
         <p class="hint">Save this ID to check the progress later.</p>
-        <button class="btn light" data-view="track">Track this suggestion</button>
+        <button class="btn light" data-view="track">
+          Track this suggestion
+        </button>
       </div>`;
 
     form.reset();
+
     document.getElementById('preview').style.display = 'none';
+    document.getElementById('selectedArea').value = '';
+    document.getElementById('selectedLatitude').value = '';
+    document.getElementById('selectedLongitude').value = '';
+
     toast('Suggestion submitted.');
   } catch (err) {
     toast(err.message);
-    if (err.message.toLowerCase().includes('log in')) view('login');
+
+    if (err.message.toLowerCase().includes('log in')) {
+      view('login');
+    }
   }
 }
 
@@ -331,13 +626,17 @@ function loginView() {
         <label>Email address</label>
         <input name="email" type="email" required placeholder="you@example.com">
       </div>
+
       <div class="field">
         <label>Password</label>
         <input name="password" type="password" required minlength="8">
       </div>
+
       <div class="formfoot">
         <button class="btn">Sign in</button>
-        <button class="textlink" type="button" data-view="register">Create account</button>
+        <button class="textlink" type="button" data-view="register">
+          Create account
+        </button>
       </div>
     </form>`
   );
@@ -370,17 +669,22 @@ function registerView() {
         <label>Full name</label>
         <input name="name" required maxlength="90">
       </div>
+
       <div class="field">
         <label>Email address</label>
         <input name="email" type="email" required>
       </div>
+
       <div class="field">
         <label>Password (at least 8 characters)</label>
         <input name="password" type="password" required minlength="8">
       </div>
+
       <div class="formfoot">
         <button class="btn">Create account</button>
-        <button class="textlink" type="button" data-view="login">I already have an account</button>
+        <button class="textlink" type="button" data-view="login">
+          I already have an account
+        </button>
       </div>
     </form>`
   );
@@ -391,7 +695,9 @@ function registerView() {
     try {
       await api('/api/register', {
         method: 'POST',
-        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))
+        body: JSON.stringify(
+          Object.fromEntries(new FormData(e.currentTarget))
+        )
       });
 
       toast('Account created.');
@@ -411,10 +717,12 @@ function adminLoginView() {
         <label>Admin username</label>
         <input name="username" required autocomplete="username">
       </div>
+
       <div class="field">
         <label>Password</label>
         <input name="password" type="password" required autocomplete="current-password">
       </div>
+
       <button class="btn">Open dashboard</button>
     </form>`
   );
@@ -425,7 +733,9 @@ function adminLoginView() {
     try {
       await api('/api/admin-login', {
         method: 'POST',
-        body: JSON.stringify(Object.fromEntries(new FormData(e.currentTarget)))
+        body: JSON.stringify(
+          Object.fromEntries(new FormData(e.currentTarget))
+        )
       });
 
       toast('Admin signed in.');
@@ -442,11 +752,16 @@ function trackView() {
     'Enter the unique tracking ID you received after submitting your suggestion.',
     `<form id="trackForm">
       <div class="formfoot">
-        <input name="tracking" required placeholder="Example: DSB-1234ABCD"
-          style="flex:1;min-width:190px;border:1px solid var(--line);border-radius:11px;padding:13px">
+        <input
+          name="tracking"
+          required
+          placeholder="Example: DSB-1234ABCD"
+          style="flex:1;min-width:190px;border:1px solid var(--line);border-radius:11px;padding:13px"
+        >
         <button class="btn">Check status</button>
       </div>
     </form>
+
     <div id="trackResult"></div>`
   );
 
@@ -456,7 +771,10 @@ function trackView() {
     const id = new FormData(e.currentTarget).get('tracking');
 
     try {
-      const item = await api('/api/track/' + encodeURIComponent(id));
+      const item = await api(
+        '/api/track/' + encodeURIComponent(id)
+      );
+
       renderTracking(item, document.getElementById('trackResult'));
     } catch (err) {
       document.getElementById('trackResult').innerHTML =
@@ -475,6 +793,7 @@ function renderTracking(item, target) {
           <span class="hint">TRACKING ID</span>
           <h3>${escapeHtml(item.tracking_id)}</h3>
         </div>
+
         <span class="status-pill">${escapeHtml(item.status)}</span>
       </div>
 
@@ -491,14 +810,17 @@ function renderTracking(item, target) {
           <small>Category</small>
           <strong>${escapeHtml(item.category)}</strong>
         </div>
+
         <div class="detail">
           <small>Area</small>
           <strong>${escapeHtml(item.area)}</strong>
         </div>
+
         <div class="detail">
           <small>Submitted</small>
           <strong>${escapeHtml(item.created_at)}</strong>
         </div>
+
         <div class="detail">
           <small>Last updated</small>
           <strong>${escapeHtml(item.updated_at)}</strong>
@@ -512,10 +834,16 @@ function renderTracking(item, target) {
 
       <div class="detail" style="margin-top:12px">
         <small>Administrator response</small>
-        <strong>${escapeHtml(item.admin_response || 'No response has been added yet.')}</strong>
+        <strong>
+          ${escapeHtml(item.admin_response || 'No response has been added yet.')}
+        </strong>
       </div>
 
-      <img class="result-photo" src="${item.photoUrl}" alt="Uploaded supporting photo">
+      <img
+        class="result-photo"
+        src="${item.photoUrl}"
+        alt="Uploaded supporting photo"
+      >
     </div>`;
 }
 
@@ -523,8 +851,12 @@ async function adminView() {
   appPanel.innerHTML = `
     <div class="panel wide">
       <h2>Admin dashboard</h2>
-      <p class="lead">Review citizen requests, update progress, and respond transparently.</p>
+      <p class="lead">
+        Review citizen requests, update progress, and respond transparently.
+      </p>
+
       <div id="adminContent">Loading…</div>
+
       <div class="formfoot">
         <button class="btn light" id="logout">Log out</button>
       </div>
@@ -532,6 +864,7 @@ async function adminView() {
 
   document.getElementById('logout').onclick = async () => {
     await api('/api/logout', { method: 'POST' });
+
     view('home');
     toast('Signed out.');
   };
@@ -565,12 +898,18 @@ async function loadAdmin() {
     </div>
 
     <div class="toolbar">
-      <input id="adminSearch" placeholder="Search ID, name, area..." value="${escapeHtml(q)}">
+      <input
+        id="adminSearch"
+        placeholder="Search ID, name, area..."
+        value="${escapeHtml(q)}"
+      >
+
       <select id="adminFilter">
         <option value="">All statuses</option>
         ${statuses.map(status => `
           <option ${s === status ? 'selected' : ''}>${status}</option>`).join('')}
       </select>
+
       <button class="btn" id="refresh">Refresh</button>
     </div>
 
@@ -580,17 +919,20 @@ async function loadAdmin() {
         : '<div class="empty">No suggestions match your search.</div>'}
     </div>`;
 
-  document.getElementById('adminSearch').addEventListener('input', debounce(loadAdmin, 300));
-  document.getElementById('adminFilter').addEventListener('change', loadAdmin);
-  document.getElementById('refresh').addEventListener('click', loadAdmin);
+  document.getElementById('adminSearch')
+    .addEventListener('input', debounce(loadAdmin, 300));
 
-  target.querySelectorAll('[data-save]').forEach(button =>
-    button.addEventListener('click', saveAdmin)
-  );
+  document.getElementById('adminFilter')
+    .addEventListener('change', loadAdmin);
 
-  target.querySelectorAll('[data-delete]').forEach(button =>
-    button.addEventListener('click', deleteAdmin)
-  );
+  document.getElementById('refresh')
+    .addEventListener('click', loadAdmin);
+
+  target.querySelectorAll('[data-save]')
+    .forEach(button => button.addEventListener('click', saveAdmin));
+
+  target.querySelectorAll('[data-delete]')
+    .forEach(button => button.addEventListener('click', deleteAdmin));
 }
 
 function adminCard(item) {
@@ -598,46 +940,71 @@ function adminCard(item) {
     <article class="suggestion">
       <div class="suggestion-head">
         <div>
-          <span class="hint">${escapeHtml(item.tracking_id)} · ${escapeHtml(item.created_at)}</span>
-          <h3>${escapeHtml(item.name)} — ${escapeHtml(item.category)}</h3>
+          <span class="hint">
+            ${escapeHtml(item.tracking_id)} · ${escapeHtml(item.created_at)}
+          </span>
+
+          <h3>
+            ${escapeHtml(item.name)} — ${escapeHtml(item.category)}
+          </h3>
+
           <span class="hint">${escapeHtml(item.area)}</span>
         </div>
+
         <span class="status-pill">${escapeHtml(item.status)}</span>
       </div>
 
       <p>${escapeHtml(item.description)}</p>
 
-      <img src="${item.photoUrl}" alt="Citizen uploaded photo"
-        style="max-width:150px;max-height:100px;border-radius:9px">
+      <img
+        src="${item.photoUrl}"
+        alt="Citizen uploaded photo"
+        style="max-width:150px;max-height:100px;border-radius:9px"
+      >
 
       <div class="formgrid">
         <div class="field">
           <label>Update status</label>
+
           <select data-status="${escapeHtml(item.tracking_id)}">
             ${statuses.map(status => `
-              <option ${item.status === status ? 'selected' : ''}>${status}</option>`).join('')}
+              <option ${item.status === status ? 'selected' : ''}>
+                ${status}
+              </option>`).join('')}
           </select>
         </div>
 
         <div class="field">
           <label>Admin response</label>
-          <input data-response="${escapeHtml(item.tracking_id)}"
+
+          <input
+            data-response="${escapeHtml(item.tracking_id)}"
             value="${escapeHtml(item.admin_response || '')}"
-            placeholder="Write a short update">
+            placeholder="Write a short update"
+          >
         </div>
       </div>
 
       <div class="suggestion-actions">
-        <button class="btn" data-save="${escapeHtml(item.tracking_id)}">Save update</button>
-        <button class="btn danger" data-delete="${escapeHtml(item.tracking_id)}">Delete</button>
+        <button class="btn" data-save="${escapeHtml(item.tracking_id)}">
+          Save update
+        </button>
+
+        <button class="btn danger" data-delete="${escapeHtml(item.tracking_id)}">
+          Delete
+        </button>
       </div>
     </article>`;
 }
 
 async function saveAdmin(e) {
   const id = e.currentTarget.dataset.save;
-  const status = document.querySelector(`[data-status="${id}"]`).value;
-  const admin_response = document.querySelector(`[data-response="${id}"]`).value;
+
+  const status =
+    document.querySelector(`[data-status="${id}"]`).value;
+
+  const admin_response =
+    document.querySelector(`[data-response="${id}"]`).value;
 
   try {
     await api('/api/admin/suggestions/' + encodeURIComponent(id), {
@@ -671,6 +1038,7 @@ async function deleteAdmin(e) {
 
 function debounce(fn, wait) {
   let timer;
+
   return () => {
     clearTimeout(timer);
     timer = setTimeout(fn, wait);
@@ -693,15 +1061,19 @@ function escapeHtml(value) {
 
     if (session.role === 'admin') {
       const button = document.createElement('button');
+
       button.className = 'navlink';
       button.dataset.view = 'admin';
       button.textContent = 'Dashboard';
+
       document.getElementById('nav').prepend(button);
     } else if (session.role === 'citizen') {
       const button = document.createElement('button');
+
       button.className = 'navlink';
       button.dataset.view = 'submit';
       button.textContent = 'Submit suggestion';
+
       document.getElementById('nav').prepend(button);
     }
   } catch {}
