@@ -48,11 +48,31 @@ def init_db():
                 photo TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'Submitted',
                 admin_response TEXT DEFAULT '',
+                latitude REAL,
+                longitude REAL,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
         """)
+
+        # Add location columns to existing databases safely.
+        columns = {
+            row["name"]
+            for row in con.execute(
+                "PRAGMA table_info(suggestions)"
+            ).fetchall()
+        }
+
+        if "latitude" not in columns:
+            con.execute(
+                "ALTER TABLE suggestions ADD COLUMN latitude REAL"
+            )
+
+        if "longitude" not in columns:
+            con.execute(
+                "ALTER TABLE suggestions ADD COLUMN longitude REAL"
+            )
 
         con.execute("""
             CREATE TABLE IF NOT EXISTS admins (
@@ -224,6 +244,25 @@ def create_suggestion():
     area = request.form.get("area", "").strip()
     description = request.form.get("description", "").strip()
 
+    latitude = request.form.get("latitude", "").strip()
+    longitude = request.form.get("longitude", "").strip()
+
+    # Validate coordinates if location was provided.
+    try:
+        latitude = float(latitude) if latitude else None
+        longitude = float(longitude) if longitude else None
+
+        if latitude is not None and not -90 <= latitude <= 90:
+            raise ValueError()
+
+        if longitude is not None and not -180 <= longitude <= 180:
+            raise ValueError()
+
+    except ValueError:
+        return jsonify(
+            error="Invalid location coordinates."
+        ), 400
+
     if not all([
         photo,
         photo.filename,
@@ -239,8 +278,7 @@ def create_suggestion():
     # Keep the uploaded filename safe.
     safe_original_name = secure_filename(photo.filename)
 
-    # Do not restrict the photo to only JPG, JPEG, PNG, or WEBP.
-    # Store it with a unique name to avoid filename conflicts.
+    # Store the photo with a unique filename.
     extension = Path(safe_original_name).suffix.lower()
 
     if not extension or len(extension) > 15:
@@ -269,9 +307,11 @@ def create_suggestion():
                     category,
                     area,
                     description,
-                    photo
+                    photo,
+                    latitude,
+                    longitude
                 )
-                VALUES(?, ?, ?, ?, ?, ?, ?)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     tracking_id,
@@ -280,7 +320,9 @@ def create_suggestion():
                     category,
                     area,
                     description,
-                    filename
+                    filename,
+                    latitude,
+                    longitude
                 )
             )
 
@@ -314,6 +356,8 @@ def track(tracking_id):
                 photo,
                 status,
                 admin_response,
+                latitude,
+                longitude,
                 created_at,
                 updated_at
             FROM suggestions
