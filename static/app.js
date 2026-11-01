@@ -47,12 +47,12 @@ function view(name) {
     currentView = name;
 
     const views = {
-        'submit': submitView,
-        'login': loginView,
-        'register': registerView,
+        submit: submitView,
+        login: loginView,
+        register: registerView,
         'admin-login': adminLoginView,
-        'track': trackView,
-        'admin': adminView
+        track: trackView,
+        admin: adminView
     };
 
     (views[name] || homeView)();
@@ -107,6 +107,7 @@ function submitView() {
 
                 <div class="field">
                     <label>Full name *</label>
+
                     <input
                         name="name"
                         required
@@ -130,17 +131,107 @@ function submitView() {
                     </select>
                 </div>
 
+                <!-- STATE -->
+                <div class="field">
+                    <label>State *</label>
+
+                    <select name="state" id="locationState" required>
+                        <option value="Karnataka" selected>
+                            Karnataka
+                        </option>
+                        <option>Andhra Pradesh</option>
+                        <option>Arunachal Pradesh</option>
+                        <option>Assam</option>
+                        <option>Bihar</option>
+                        <option>Chhattisgarh</option>
+                        <option>Goa</option>
+                        <option>Gujarat</option>
+                        <option>Haryana</option>
+                        <option>Himachal Pradesh</option>
+                        <option>Jharkhand</option>
+                        <option>Kerala</option>
+                        <option>Madhya Pradesh</option>
+                        <option>Maharashtra</option>
+                        <option>Manipur</option>
+                        <option>Meghalaya</option>
+                        <option>Mizoram</option>
+                        <option>Nagaland</option>
+                        <option>Odisha</option>
+                        <option>Punjab</option>
+                        <option>Rajasthan</option>
+                        <option>Sikkim</option>
+                        <option>Tamil Nadu</option>
+                        <option>Telangana</option>
+                        <option>Tripura</option>
+                        <option>Uttar Pradesh</option>
+                        <option>Uttarakhand</option>
+                        <option>West Bengal</option>
+                        <option>Delhi</option>
+                    </select>
+                </div>
+
+                <!-- CITY -->
+                <div class="field">
+                    <label>City *</label>
+
+                    <input
+                        name="city"
+                        id="locationCity"
+                        value="Bengaluru"
+                        required
+                        placeholder="Enter city"
+                    >
+                </div>
+
+                <!-- AREA -->
                 <div class="field full">
                     <label>Area / locality *</label>
 
                     <input
                         name="area"
+                        id="locationArea"
                         required
                         maxlength="120"
-                        placeholder="Neighbourhood or ward"
+                        placeholder="Start typing your area"
                     >
+
+                    <button
+                        type="button"
+                        class="btn light"
+                        id="openLocationMap"
+                        style="margin-top:10px"
+                    >
+                        📍 Choose location on map
+                    </button>
+
+                    <div
+                        id="locationMapBox"
+                        style="display:none;margin-top:12px"
+                    >
+                        <div
+                            id="locationMap"
+                            style="
+                                height:350px;
+                                width:100%;
+                                border-radius:12px;
+                            "
+                        ></div>
+
+                        <p class="hint">
+                            Click anywhere on the map to select your location.
+                        </p>
+
+                        <button
+                            type="button"
+                            class="btn light"
+                            id="useMyLocation"
+                        >
+                            Use my current location
+                        </button>
+                    </div>
                 </div>
 
+                <!-- DESCRIPTION -->
                 <div class="field full">
                     <label>
                         Describe the issue or suggestion *
@@ -154,6 +245,7 @@ function submitView() {
                     ></textarea>
                 </div>
 
+                <!-- PHOTO -->
                 <div class="field full">
                     <label>Upload photo (mandatory) *</label>
 
@@ -207,63 +299,119 @@ function submitView() {
 
 
 // --------------------------------------------------
-// BENGALURU AREA AUTOCOMPLETE
+// BENGALURU AREAS
 // --------------------------------------------------
 
 const bengaluruAreas = [
-    "Bagalagunte, Bengaluru",
-    "Chikkabanavara, Bengaluru",
-    "T. Dasarahalli, Bengaluru",
-    "8th Mile, Bengaluru",
-    "Jalahalli, Bengaluru",
-    "Peenya, Bengaluru",
-    "Nagasandra, Bengaluru",
-    "Madanayakanahalli, Bengaluru",
-    "Anchepalya, Bengaluru",
-    "Lakshmipura, Bengaluru",
-    "Rajeshwari Nagar, Bengaluru",
-    "Yeshwanthpur, Bengaluru",
-    "Mathikere, Bengaluru",
-    "Vijayanagar, Bengaluru",
-    "Malleswaram, Bengaluru",
-    "Hebbal, Bengaluru",
-    "Majestic, Bengaluru",
-    "Yelahanka, Bengaluru",
-    "Hesaraghatta, Bengaluru",
-    "Nandini Layout, Bengaluru",
-    "Basaveshwaranagar, Bengaluru",
-    "Kengeri, Bengaluru",
-    "RR Nagar, Bengaluru",
-    "Jayanagar, Bengaluru",
-    "Banashankari, Bengaluru",
-    "Indiranagar, Bengaluru",
-    "Whitefield, Bengaluru",
-    "Electronic City, Bengaluru",
-    "Koramangala, Bengaluru",
-    "BTM Layout, Bengaluru",
-    "Marathahalli, Bengaluru",
-    "Bellandur, Bengaluru",
-    "Bommanahalli, Bengaluru",
-    "Hoodi, Bengaluru",
-    "Kalyan Nagar, Bengaluru",
-    "Sahakara Nagar, Bengaluru"
+    'Bagalagunte, Bengaluru',
+    'Chikkabanavara, Bengaluru',
+    'T. Dasarahalli, Bengaluru',
+    '8th Mile, Bengaluru',
+    'Jalahalli, Bengaluru',
+    'Peenya, Bengaluru',
+    'Nagasandra, Bengaluru',
+    'Madanayakanahalli, Bengaluru',
+    'Anchepalya, Bengaluru',
+    'Lakshmipura, Bengaluru',
+    'Rajeshwari Nagar, Bengaluru',
+    'Yeshwanthpur, Bengaluru',
+    'Mathikere, Bengaluru',
+    'Vijayanagar, Bengaluru',
+    'Malleswaram, Bengaluru',
+    'Hebbal, Bengaluru',
+    'Majestic, Bengaluru',
+    'Yelahanka, Bengaluru',
+    'Hesaraghatta, Bengaluru',
+    'Nandini Layout, Bengaluru',
+    'Basaveshwaranagar, Bengaluru',
+    'Kengeri, Bengaluru',
+    'RR Nagar, Bengaluru',
+    'Jayanagar, Bengaluru',
+    'Banashankari, Bengaluru',
+    'Indiranagar, Bengaluru',
+    'Whitefield, Bengaluru',
+    'Electronic City, Bengaluru',
+    'Koramangala, Bengaluru',
+    'BTM Layout, Bengaluru',
+    'Marathahalli, Bengaluru',
+    'Bellandur, Bengaluru',
+    'Bommanahalli, Bengaluru',
+    'Hoodi, Bengaluru',
+    'Kalyan Nagar, Bengaluru',
+    'Sahakara Nagar, Bengaluru'
 ];
 
+
+// --------------------------------------------------
+// MAP LOCATION
+// --------------------------------------------------
+
+let locationMap = null;
+let locationMarker = null;
+let leafletLoading = null;
+
+function loadLeaflet() {
+    if (window.L) {
+        return Promise.resolve();
+    }
+
+    if (leafletLoading) {
+        return leafletLoading;
+    }
+
+    leafletLoading = new Promise((resolve, reject) => {
+        const css = document.createElement('link');
+
+        css.rel = 'stylesheet';
+        css.href =
+            'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+
+        document.head.appendChild(css);
+
+        const script = document.createElement('script');
+
+        script.src =
+            'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+
+        script.onload = resolve;
+
+        script.onerror = () => {
+            reject(
+                new Error(
+                    'Could not load the map. Check your internet connection.'
+                )
+            );
+        };
+
+        document.head.appendChild(script);
+    });
+
+    return leafletLoading;
+}
+
 function setupAreaAutocomplete() {
-    const input = document.querySelector('input[name="area"]');
+    const areaInput = document.getElementById('locationArea');
+    const mapBox = document.getElementById('locationMapBox');
+    const mapButton = document.getElementById('openLocationMap');
+    const currentButton = document.getElementById('useMyLocation');
 
-    if (!input) return;
+    if (!areaInput || !mapButton) {
+        return;
+    }
 
-    input.setAttribute('autocomplete', 'off');
-    input.setAttribute('aria-autocomplete', 'list');
+    // ----------------------------------------------
+    // AREA AUTOCOMPLETE
+    // ----------------------------------------------
 
-    input.placeholder = 'Start typing an area (e.g. Chikkabanavara)';
+    areaInput.setAttribute('autocomplete', 'off');
+    areaInput.setAttribute('aria-autocomplete', 'list');
 
     const wrapper = document.createElement('div');
+
     wrapper.className = 'autocomplete-wrap';
 
-    input.parentNode.insertBefore(wrapper, input);
-    wrapper.appendChild(input);
+    areaInput.parentNode.insertBefore(wrapper, areaInput);
+    wrapper.appendChild(areaInput);
 
     const list = document.createElement('div');
 
@@ -273,27 +421,27 @@ function setupAreaAutocomplete() {
 
     wrapper.appendChild(list);
 
-    function close() {
+    function closeList() {
         list.hidden = true;
         list.innerHTML = '';
     }
 
-    function show() {
-        const q = input.value.trim().toLowerCase();
+    function showSuggestions() {
+        const query = areaInput.value.trim().toLowerCase();
 
         list.innerHTML = '';
 
-        if (q.length < 2) {
-            close();
+        if (query.length < 2) {
+            closeList();
             return;
         }
 
         const matches = bengaluruAreas
-            .filter(a => a.toLowerCase().includes(q))
+            .filter(area => area.toLowerCase().includes(query))
             .slice(0, 7);
 
         if (!matches.length) {
-            close();
+            closeList();
             return;
         }
 
@@ -306,9 +454,9 @@ function setupAreaAutocomplete() {
             option.textContent = area;
 
             option.addEventListener('click', () => {
-                input.value = area;
-                close();
-                input.focus();
+                areaInput.value = area;
+                closeList();
+                areaInput.focus();
             });
 
             list.appendChild(option);
@@ -317,20 +465,223 @@ function setupAreaAutocomplete() {
         list.hidden = false;
     }
 
-    input.addEventListener('input', show);
-    input.addEventListener('focus', show);
+    areaInput.addEventListener('input', showSuggestions);
+    areaInput.addEventListener('focus', showSuggestions);
 
-    input.addEventListener('keydown', e => {
+    areaInput.addEventListener('keydown', e => {
         if (e.key === 'Escape') {
-            close();
+            closeList();
         }
     });
 
     document.addEventListener('click', e => {
         if (!wrapper.contains(e.target)) {
-            close();
+            closeList();
         }
     });
+
+    // ----------------------------------------------
+    // OPEN MAP
+    // ----------------------------------------------
+
+    mapButton.addEventListener('click', async () => {
+        mapBox.style.display = 'block';
+
+        try {
+            await loadLeaflet();
+
+            if (!locationMap) {
+                locationMap = L.map('locationMap').setView(
+                    [13.0827, 77.5877],
+                    12
+                );
+
+                L.tileLayer(
+                    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    {
+                        maxZoom: 19,
+                        attribution:
+                            '&copy; OpenStreetMap contributors'
+                    }
+                ).addTo(locationMap);
+
+                locationMap.on('click', async event => {
+                    const lat = event.latlng.lat;
+                    const lon = event.latlng.lng;
+
+                    if (locationMarker) {
+                        locationMarker.setLatLng(event.latlng);
+                    } else {
+                        locationMarker = L.marker(event.latlng)
+                            .addTo(locationMap);
+                    }
+
+                    await fillAddressFromCoordinates(lat, lon);
+                });
+            }
+
+            setTimeout(() => {
+                locationMap.invalidateSize();
+            }, 200);
+
+        } catch (err) {
+            toast(err.message);
+        }
+    });
+
+    // ----------------------------------------------
+    // USE CURRENT LOCATION
+    // ----------------------------------------------
+
+    currentButton.addEventListener('click', async () => {
+        if (!navigator.geolocation) {
+            toast(
+                'Location access is not supported by this browser.'
+            );
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            async position => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                mapBox.style.display = 'block';
+
+                try {
+                    await loadLeaflet();
+
+                    // Initialize map if not already initialized.
+                    if (!locationMap) {
+                        locationMap = L.map('locationMap').setView(
+                            [lat, lon],
+                            16
+                        );
+
+                        L.tileLayer(
+                            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            {
+                                maxZoom: 19,
+                                attribution:
+                                    '&copy; OpenStreetMap contributors'
+                            }
+                        ).addTo(locationMap);
+
+                        locationMap.on('click', async event => {
+                            const clickedLat = event.latlng.lat;
+                            const clickedLon = event.latlng.lng;
+
+                            if (locationMarker) {
+                                locationMarker.setLatLng(event.latlng);
+                            } else {
+                                locationMarker = L.marker(event.latlng)
+                                    .addTo(locationMap);
+                            }
+
+                            await fillAddressFromCoordinates(
+                                clickedLat,
+                                clickedLon
+                            );
+                        });
+                    }
+
+                    const point = [lat, lon];
+
+                    locationMap.setView(point, 16);
+
+                    if (locationMarker) {
+                        locationMarker.setLatLng(point);
+                    } else {
+                        locationMarker = L.marker(point)
+                            .addTo(locationMap);
+                    }
+
+                    setTimeout(() => {
+                        locationMap.invalidateSize();
+                    }, 200);
+
+                    await fillAddressFromCoordinates(lat, lon);
+
+                } catch (err) {
+                    toast(err.message);
+                }
+            },
+
+            () => {
+                toast(
+                    'Please allow location access in your browser.'
+                );
+            }
+        );
+    });
+}
+
+
+// --------------------------------------------------
+// REVERSE GEOCODING
+// Converts map coordinates into address details
+// --------------------------------------------------
+
+async function fillAddressFromCoordinates(lat, lon) {
+    const areaInput = document.getElementById('locationArea');
+    const cityInput = document.getElementById('locationCity');
+    const stateInput = document.getElementById('locationState');
+
+    try {
+        const url =
+            'https://nominatim.openstreetmap.org/reverse' +
+            '?format=jsonv2' +
+            '&lat=' + encodeURIComponent(lat) +
+            '&lon=' + encodeURIComponent(lon);
+
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            throw new Error('Address lookup failed.');
+        }
+
+        const data = await response.json();
+        const address = data.address || {};
+
+        areaInput.value =
+            address.suburb ||
+            address.neighbourhood ||
+            address.village ||
+            address.town ||
+            address.city_district ||
+            address.residential ||
+            data.display_name ||
+            `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
+        cityInput.value =
+            address.city ||
+            address.town ||
+            address.village ||
+            address.county ||
+            cityInput.value;
+
+        if (address.state) {
+            const stateOption = Array.from(stateInput.options)
+                .find(option =>
+                    option.value.toLowerCase() ===
+                    address.state.toLowerCase()
+                );
+
+            if (stateOption) {
+                stateInput.value = stateOption.value;
+            }
+        }
+
+        toast('Location selected.');
+
+    } catch {
+        areaInput.value =
+            `${lat.toFixed(5)}, ${lon.toFixed(5)}`;
+
+        toast(
+            'Map point selected. Address lookup was unavailable.'
+        );
+    }
 }
 
 
@@ -376,7 +727,10 @@ function initializeTheme() {
             applyTheme(picker.value);
 
             try {
-                localStorage.setItem('dsb-theme', picker.value);
+                localStorage.setItem(
+                    'dsb-theme',
+                    picker.value
+                );
             } catch {}
         });
     }
@@ -387,7 +741,7 @@ initializeTheme();
 
 // --------------------------------------------------
 // PHOTO PREVIEW
-// No type or size restriction in JavaScript
+// No app-level type or size restriction
 // --------------------------------------------------
 
 function previewPhoto(e) {
@@ -437,7 +791,7 @@ async function submitSuggestion(e) {
 
                 <p>Your tracking ID is:</p>
 
-                <h2>${data.trackingId}</h2>
+                <h2>${escapeHtml(data.trackingId)}</h2>
 
                 <p class="hint">
                     Save this ID to check the progress later.
@@ -527,7 +881,9 @@ function loginView() {
             try {
                 await api('/api/login', {
                     method: 'POST',
-                    body: JSON.stringify(Object.fromEntries(f))
+                    body: JSON.stringify(
+                        Object.fromEntries(f)
+                    )
                 });
 
                 toast('Welcome back!');
@@ -609,7 +965,9 @@ function registerView() {
                 await api('/api/register', {
                     method: 'POST',
                     body: JSON.stringify(
-                        Object.fromEntries(new FormData(e.currentTarget))
+                        Object.fromEntries(
+                            new FormData(e.currentTarget)
+                        )
                     )
                 });
 
@@ -672,7 +1030,9 @@ function adminLoginView() {
                 await api('/api/admin-login', {
                     method: 'POST',
                     body: JSON.stringify(
-                        Object.fromEntries(new FormData(e.currentTarget))
+                        Object.fromEntries(
+                            new FormData(e.currentTarget)
+                        )
                     )
                 });
 
@@ -703,7 +1063,13 @@ function trackView() {
                     name="tracking"
                     required
                     placeholder="Example: DSB-1234ABCD"
-                    style="flex:1;min-width:190px;border:1px solid var(--line);border-radius:11px;padding:13px"
+                    style="
+                        flex:1;
+                        min-width:190px;
+                        border:1px solid var(--line);
+                        border-radius:11px;
+                        padding:13px
+                    "
                 >
 
                 <button class="btn">
@@ -723,7 +1089,8 @@ function trackView() {
         .addEventListener('submit', async e => {
             e.preventDefault();
 
-            const id = new FormData(e.currentTarget).get('tracking');
+            const id = new FormData(e.currentTarget)
+                .get('tracking');
 
             try {
                 const item = await api(
@@ -798,22 +1165,30 @@ function renderTracking(item, target) {
 
                 <div class="detail">
                     <small>Category</small>
-                    <strong>${escapeHtml(item.category)}</strong>
+                    <strong>
+                        ${escapeHtml(item.category)}
+                    </strong>
                 </div>
 
                 <div class="detail">
                     <small>Area</small>
-                    <strong>${escapeHtml(item.area)}</strong>
+                    <strong>
+                        ${escapeHtml(item.area)}
+                    </strong>
                 </div>
 
                 <div class="detail">
                     <small>Submitted</small>
-                    <strong>${escapeHtml(item.created_at)}</strong>
+                    <strong>
+                        ${escapeHtml(item.created_at)}
+                    </strong>
                 </div>
 
                 <div class="detail">
                     <small>Last updated</small>
-                    <strong>${escapeHtml(item.updated_at)}</strong>
+                    <strong>
+                        ${escapeHtml(item.updated_at)}
+                    </strong>
                 </div>
 
             </div>
@@ -839,7 +1214,7 @@ function renderTracking(item, target) {
 
             <img
                 class="result-photo"
-                src="${item.photoUrl}"
+                src="${escapeHtml(item.photoUrl || '')}"
                 alt="Uploaded supporting photo"
             >
 
@@ -900,8 +1275,11 @@ async function adminView() {
 // --------------------------------------------------
 
 async function loadAdmin() {
-    const q = document.getElementById('adminSearch')?.value || '';
-    const s = document.getElementById('adminFilter')?.value || '';
+    const q =
+        document.getElementById('adminSearch')?.value || '';
+
+    const s =
+        document.getElementById('adminFilter')?.value || '';
 
     const data = await api(
         '/api/admin/suggestions?q=' +
@@ -939,7 +1317,9 @@ async function loadAdmin() {
                 </option>
 
                 ${statuses.map(st => `
-                    <option ${s === st ? 'selected' : ''}>
+                    <option ${
+                        s === st ? 'selected' : ''
+                    }>
                         ${st}
                     </option>
                 `).join('')}
@@ -977,11 +1357,15 @@ async function loadAdmin() {
 
     target
         .querySelectorAll('[data-save]')
-        .forEach(b => b.addEventListener('click', saveAdmin));
+        .forEach(b => {
+            b.addEventListener('click', saveAdmin);
+        });
 
     target
         .querySelectorAll('[data-delete]')
-        .forEach(b => b.addEventListener('click', deleteAdmin));
+        .forEach(b => {
+            b.addEventListener('click', deleteAdmin);
+        });
 }
 
 
@@ -1026,9 +1410,13 @@ function adminCard(x) {
             </p>
 
             <img
-                src="${x.photoUrl}"
+                src="${escapeHtml(x.photoUrl || '')}"
                 alt="Citizen uploaded photo"
-                style="max-width:150px;max-height:100px;border-radius:9px"
+                style="
+                    max-width:150px;
+                    max-height:100px;
+                    border-radius:9px
+                "
             >
 
             <div class="formgrid">
@@ -1128,7 +1516,9 @@ async function saveAdmin(e) {
 async function deleteAdmin(e) {
     const id = e.currentTarget.dataset.delete;
 
-    if (!confirm('Delete this suggestion and its uploaded photo?')) {
+    if (!confirm(
+        'Delete this suggestion and its uploaded photo?'
+    )) {
         return;
     }
 
