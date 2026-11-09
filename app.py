@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request, jsonify, session, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -56,7 +57,6 @@ def init_db():
             )
         """)
 
-        # Add location columns to existing databases safely.
         columns = {
             row["name"]
             for row in con.execute(
@@ -131,13 +131,13 @@ def session_info():
 def register():
     data = request.get_json(silent=True) or {}
 
-    name = data.get("name", "").strip()
-    email = data.get("email", "").strip().lower()
+    name = str(data.get("name") or "").strip()
+    email = str(data.get("email") or "").strip().lower()
     password = data.get("password", "")
 
-    if not name or not email or len(password) < 8:
+    if not email or len(password) < 8:
         return jsonify(
-            error="Enter your name, valid email, and a password of at least 8 characters."
+            error="Enter a valid email and a password of at least 8 characters."
         ), 400
 
     try:
@@ -154,7 +154,7 @@ def register():
             session.update(
                 user_id=cur.lastrowid,
                 role="citizen",
-                name=name
+                name=name or email.split("@", 1)[0]
             )
 
     except sqlite3.IntegrityError:
@@ -239,7 +239,7 @@ def create_suggestion():
 
     photo = request.files.get("photo")
 
-    name = request.form.get("name", "").strip()
+    name = request.form.get("name", "").strip() or "Anonymous citizen"
     category = request.form.get("category", "").strip()
     area = request.form.get("area", "").strip()
     description = request.form.get("description", "").strip()
@@ -247,7 +247,6 @@ def create_suggestion():
     latitude = request.form.get("latitude", "").strip()
     longitude = request.form.get("longitude", "").strip()
 
-    # Validate coordinates if location was provided.
     try:
         latitude = float(latitude) if latitude else None
         longitude = float(longitude) if longitude else None
@@ -266,19 +265,15 @@ def create_suggestion():
     if not all([
         photo,
         photo.filename,
-        name,
         category,
         area,
         description
     ]):
         return jsonify(
-            error="All fields and a photo are mandatory."
+            error="Category, area, description, and a photo are mandatory."
         ), 400
 
-    # Keep the uploaded filename safe.
     safe_original_name = secure_filename(photo.filename)
-
-    # Store the photo with a unique filename.
     extension = Path(safe_original_name).suffix.lower()
 
     if not extension or len(extension) > 15:
