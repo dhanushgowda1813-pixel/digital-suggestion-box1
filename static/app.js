@@ -18,9 +18,12 @@ async function api(url,options={}){
       ...(options.headers||{})
     }
   });
+
   let data={};
   try{data=await res.json()}catch{}
+
   if(!res.ok)throw new Error(data.error||'Something went wrong.');
+
   return data
 }
 
@@ -57,8 +60,10 @@ async function view(name){
 
 document.addEventListener('click',e=>{
   const toggle=e.target.closest('[data-toggle-password]');
+
   if(toggle){
     const input=document.getElementById(toggle.dataset.togglePassword);
+
     if(input){
       const showing=input.type==='password';
       input.type=showing?'text':'password';
@@ -66,12 +71,14 @@ document.addEventListener('click',e=>{
       toggle.setAttribute('aria-label',showing?'Hide password':'Show password');
       toggle.title=showing?'Hide password':'Show password';
     }
+
     return;
   }
 });
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-view]');
+
   if(b){
     e.preventDefault();
     view(b.dataset.view)
@@ -86,6 +93,7 @@ function shell(title,lead,body,wide=false){
       <p class="lead">${lead}</p>
       ${body}
     </div>`;
+
   appPanel.scrollIntoView({behavior:'smooth',block:'start'})
 }
 
@@ -322,55 +330,87 @@ function setupAreaAutocomplete(){
 function setupCurrentLocation(){
   const button=document.getElementById('getLocation');
   if(!button)return;
+
   button.addEventListener('click',()=>{
     const status=document.getElementById('locationStatus');
     const details=document.getElementById('locationDetails');
+
     if(!navigator.geolocation){
       status.textContent='Your browser does not support location access.';
       return;
     }
+
     button.disabled=true;
     status.textContent='Finding your current location…';
     details.hidden=true;
+
     navigator.geolocation.getCurrentPosition(async position=>{
       const lat=position.coords.latitude;
       const lon=position.coords.longitude;
       const accuracy=Math.round(position.coords.accuracy);
+
       document.querySelector('input[name="latitude"]').value=lat;
       document.querySelector('input[name="longitude"]').value=lon;
+
       document.getElementById('locAccuracy').textContent=`Approximately ${accuracy} metres`;
+
       document.getElementById('locationMap').src=
         `https://www.openstreetmap.org/export/embed.html?bbox=${lon-0.01}%2C${lat-0.01}%2C${lon+0.01}%2C${lat+0.01}&layer=mapnik&marker=${lat}%2C${lon}`;
-      document.getElementById('locationMapLink').href=`https://www.google.com/maps?q=${lat},${lon}`;
+
+      document.getElementById('locationMapLink').href=
+        `https://www.google.com/maps?q=${lat},${lon}`;
+
       status.textContent='Coordinates received. Looking up address…';
+
       try{
-        const response=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`);
+        const response=await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`
+        );
+
         if(!response.ok)throw new Error('Address lookup failed');
+
         const place=await response.json();
         const a=place.address||{};
+
         const city=a.city||a.town||a.village||a.municipality||a.city_district||'';
         const area=a.neighbourhood||a.suburb||a.residential||a.quarter||a.hamlet||'';
         const district=a.state_district||a.county||'';
         const state=a.state||'';
         const pin=a.postcode||'';
+
         document.getElementById('locFullAddress').textContent=place.display_name||'Not available';
         document.getElementById('locArea').textContent=area||'Not available';
         document.getElementById('locCity').textContent=city||'Not available';
         document.getElementById('locDistrict').textContent=district||'Not available';
         document.getElementById('locState').textContent=state||'Not available';
         document.getElementById('locPin').textContent=pin||'Not available';
+
         const areaInput=document.querySelector('input[name="area"]');
-        if(areaInput&&area)areaInput.value=[area,city].filter(Boolean).join(', ');
+
+        if(areaInput&&area){
+          areaInput.value=[area,city].filter(Boolean).join(', ')
+        }
+
         details.hidden=false;
         status.textContent='Location fetched. Check the address and map below.';
+
       }catch(error){
         details.hidden=false;
         status.textContent='Coordinates fetched, but address lookup failed. You can still view the map.';
       }
+
       button.disabled=false;
+
     },error=>{
-      status.textContent=error.code===1?'Location permission denied. Allow location access in browser settings.':error.code===2?'Location unavailable. Turn on device location and try again.':'Location timed out. Try again outdoors or near a window.';
+      status.textContent=
+        error.code===1
+          ?'Location permission denied. Allow location access in browser settings.'
+          :error.code===2
+            ?'Location unavailable. Turn on device location and try again.'
+            :'Location timed out. Try again outdoors or near a window.';
+
       button.disabled=false;
+
     },{enableHighAccuracy:true,timeout:30000,maximumAge:0});
   });
 }
@@ -455,7 +495,7 @@ async function submitSuggestion(e){
       <div class="trackresult">
         <span class="status-pill">Submitted successfully</span>
         <p>Your tracking ID is:</p>
-        <h2>${data.trackingId}</h2>
+        <h2>${escapeHtml(data.trackingId)}</h2>
         <p class="hint">Save this ID to check the progress later.</p>
         <button class="btn light" data-view="track">Track this suggestion</button>
       </div>`;
@@ -463,6 +503,7 @@ async function submitSuggestion(e){
     form.reset();
     document.getElementById('preview').style.display='none';
     toast('Suggestion submitted.')
+
   }catch(err){
     toast(err.message);
 
@@ -516,6 +557,7 @@ function loginView(){
       }catch{}
 
       view(next)
+
     }catch(err){
       toast(err.message)
     }
@@ -571,6 +613,7 @@ function registerView(){
       }catch{}
 
       view(next)
+
     }catch(err){
       toast(err.message)
     }
@@ -610,42 +653,60 @@ function adminLoginView(){
 
       toast('Admin signed in.');
       view('admin')
+
     }catch(err){
       toast(err.message)
     }
   })
 }
 
+/* -------------------- FIXED TRACKING FORM -------------------- */
+
 function trackView(){
   shell(
     'Track your suggestion',
     'Enter the unique tracking ID you received after submitting your suggestion.',
     `<form id="trackForm">
-      <div class="formfoot">
+      <div class="tracking-form-row">
         <input
+          class="tracking-input"
           name="tracking"
+          type="text"
           required
-          placeholder="Example: DSB-1234ABCD"
-          style="flex:1;min-width:190px;border:1px solid var(--line);border-radius:11px;padding:13px">
+          autocomplete="off"
+          placeholder="Enter your tracking ID (e.g. DSB-1234ABCD)">
 
-        <button class="btn">Check status</button>
+        <button class="btn tracking-submit" type="submit">
+          Check status →
+        </button>
       </div>
     </form>
 
-    <div id="trackResult"></div>`
+    <div id="trackResult" aria-live="polite"></div>`
   );
 
-  document.getElementById('trackForm').addEventListener('submit',async e=>{
+  const form=document.getElementById('trackForm');
+
+  form.addEventListener('submit',async e=>{
     e.preventDefault();
 
-    const id=new FormData(e.currentTarget).get('tracking');
+    const id=new FormData(e.currentTarget).get('tracking').trim();
+
+    if(!id){
+      toast('Please enter your tracking ID.');
+      return
+    }
+
+    const result=document.getElementById('trackResult');
+
+    result.innerHTML='<p class="hint">Checking your suggestion status…</p>';
 
     try{
       const item=await api('/api/track/'+encodeURIComponent(id));
-      renderTracking(item,document.getElementById('trackResult'))
+      renderTracking(item,result)
+
     }catch(err){
-      document.getElementById('trackResult').innerHTML=
-        `<p class="hint">${escapeHtml(err.message)}</p>`
+      result.innerHTML=`<p class="hint">${escapeHtml(err.message)}</p>`
     }
   })
 }
@@ -660,14 +721,18 @@ function renderTracking(item,target){
           <span class="hint">TRACKING ID</span>
           <h3>${escapeHtml(item.tracking_id)}</h3>
         </div>
+
         <span class="status-pill">${escapeHtml(item.status)}</span>
       </div>
 
       <div class="timeline">
         ${statuses.map((s,i)=>`
-          <div class="stage ${i<idx?'done':i===idx?'current':''}">
+          <div class="stage ${i<idx?'done':i===idx?'active':''}">
             <div class="dot">${i<idx?'✓':i+1}</div>
-            ${s}
+            <div>
+              <strong>${escapeHtml(s)}</strong>
+              <small>${i===idx?'Current status':i<idx?'Completed':'Pending'}</small>
+            </div>
           </div>
         `).join('')}
       </div>
@@ -704,7 +769,11 @@ function renderTracking(item,target){
         <strong>${escapeHtml(item.admin_response||'No response has been added yet.')}</strong>
       </div>
 
-      <img class="result-photo" src="${item.photoUrl}" alt="Uploaded supporting photo">
+      ${item.photoUrl?`
+        <img class="result-photo"
+             src="${escapeHtml(item.photoUrl)}"
+             alt="Uploaded supporting photo">
+      `:''}
     </div>`
 }
 
@@ -727,6 +796,7 @@ async function adminView(){
 
   try{
     await loadAdmin()
+
   }catch(err){
     toast(err.message);
     view('admin-login')
@@ -796,7 +866,7 @@ function adminCard(x){
       <p>${escapeHtml(x.description)}</p>
 
       <img
-        src="${x.photoUrl}"
+        src="${escapeHtml(x.photoUrl)}"
         alt="Citizen uploaded photo"
         style="max-width:150px;max-height:100px;border-radius:9px">
 
@@ -839,6 +909,7 @@ async function saveAdmin(e){
 
     toast('Suggestion updated.');
     await loadAdmin()
+
   }catch(err){
     toast(err.message)
   }
@@ -856,6 +927,7 @@ async function deleteAdmin(e){
 
     toast('Suggestion deleted.');
     await loadAdmin()
+
   }catch(err){
     toast(err.message)
   }
@@ -863,6 +935,7 @@ async function deleteAdmin(e){
 
 function debounce(fn,wait){
   let timer;
+
   return()=>{
     clearTimeout(timer);
     timer=setTimeout(fn,wait)
@@ -889,6 +962,7 @@ function escapeHtml(value){
       n.dataset.view='admin';
       n.textContent='Dashboard';
       document.getElementById('nav').prepend(n)
+
     }else if(s.role==='citizen'){
       const n=document.createElement('button');
       n.className='navlink';
@@ -896,6 +970,7 @@ function escapeHtml(value){
       n.textContent='Submit suggestion';
       document.getElementById('nav').prepend(n)
     }
+
   }catch{}
 })();
 
