@@ -1,12 +1,12 @@
 
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#12345a">
-  <meta name="description" content="A citizen feedback portal for sharing local issues and suggestions and tracking their progress.">
-  <title>Digital Citizen Feedback System | Local Governance</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#8b1e24">
+  <meta name="description" content="Digital Citizen Feedback System for Local Government">
+  <title>Digital Citizen Feedback System | Karnataka</title>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -14,199 +14,309 @@
 
 <body>
 
-  <div class="gov-strip">
-    <div class="gov-strip-inner">
-      <span>Citizen participation portal</span>
-      <span class="gov-strip-right">
-        A transparent way to improve our communities
-      </span>
+  <!-- Karnataka-inspired identity strip -->
+  <div class="top-strip">
+    <div class="top-strip-inner">
+      <span>ಕರ್ನಾಟಕ | KARNATAKA</span>
+      <span>Citizen Participation • Local Governance</span>
     </div>
   </div>
 
-  <header class="top">
+  <!-- Indian tricolour accent -->
+  <div class="tricolour">
+    <span class="saffron"></span>
+    <span class="white"></span>
+    <span class="green"></span>
+  </div>
 
-    <a class="brand" href="#home" aria-label="Digital Citizen Feedback System home">
-      <span class="logo" aria-hidden="true">✦</span>
+  <!-- Main government-style header -->
+  <header class="government-header">
 
-      <span class="brand-copy">
-        <strong>Digital Citizen Feedback System</strong>
-        <small>Local governance • Citizen services</small>
-      </span>
+    <a href="#home" class="identity" aria-label="Citizen Feedback System home">
+
+      <div class="civic-seal" aria-hidden="true">
+        <div class="seal-inner">
+          <span class="seal-symbol">ಕರ್ನಾಟಕ</span>
+          <span class="seal-leaf">✦</span>
+          <span class="seal-caption">CITIZEN SERVICES</span>
+        </div>
+      </div>
+
+      <div class="identity-text">
+        <span class="identity-kannada">ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ</span>
+        <h1>Digital Citizen Feedback System</h1>
+        <p>For Local Government & Public Participation</p>
+      </div>
+
     </a>
 
-    <nav id="nav" aria-label="Main navigation">
+    <div class="header-right">
+      <span class="header-label">PUBLIC SERVICE PORTAL</span>
+      <span class="header-subtitle">Your Voice • Our Community</span>
+    </div>
 
-      <button class="navlink" data-view="track">
-        Track application
-      </button>
-
-      <button class="navlink" data-view="submit">
-        Submit feedback
-      </button>
-
-      <button class="navlink" data-view="login">
-        Citizen login
-      </button>
-
-      <button class="navlink nav-admin" data-view="admin-login">
-        Admin
-      </button>
-
-      <label class="theme-picker" for="themeSelect">
-        <span>Theme</span>
-
-        <select id="themeSelect" aria-label="Choose colour theme">
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-          <option value="ocean">Ocean</option>
-          <option value="sunset">Sunset</option>
-          <option value="forest">Forest</option>
-        </select>
-      </label>
-
-    </nav>
   </header>
+
+  <!-- Navigation -->
+  <nav class="main-nav" id="nav" aria-label="Main navigation">
+
+    <button class="navlink" data-view="home">
+      Home
+    </button>
+
+    <button class="navlink" data-view="submit">
+      Submit Feedback
+    </button>
+
+    <button class="navlink" data-view="track">
+      Track Application
+    </button>
+
+    <button class="navlink" data-view="login">
+      Citizen Login
+    </button>
+
+    <button class="navlink" data-view="admin-login">
+      Administrator
+    </button>
+
+    <label class="theme-picker">
+      <span>Theme</span>
+      <select id="themeSelect" aria-label="Choose website theme">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+        <option value="ocean">Ocean</option>
+        <option value="sunset">Sunset</option>
+        <option value="forest">Forest</option>
+      </select>
+    </label>
+
+  </nav>
 
   <main id="app">
 
-    <section class="hero" id="home">
+    <!-- Welcome banner -->
+    <section class="welcome-banner" id="home">
 
-      <div class="hero-copy">
+      <div class="welcome-content">
 
-        <span class="eyebrow">
-          <span class="eyebrow-mark"></span>
-          CITIZEN-CENTRIC LOCAL GOVERNANCE
+        <span class="welcome-tag">
+          <span class="live-dot"></span>
+          DIGITAL CITIZEN SERVICES
         </span>
 
-        <h1>
-          Your voice matters.<br>
-          <em>Let’s improve our community.</em>
-        </h1>
-
-        <p>
-          Share local issues and constructive suggestions with your
-          community administration. Follow every submitted request
-          with a unique tracking ID.
-        </p>
-
-        <div class="actions">
-
-          <button class="primary" data-view="submit">
-            Submit feedback
-            <span aria-hidden="true">→</span>
-          </button>
-
-          <button class="secondary" data-view="track">
-            Track an application
-          </button>
-
-        </div>
-
-        <div class="trust">
-          <span>✓ Easy online submission</span>
-          <span>✓ Transparent status updates</span>
-          <span>✓ Track with a unique ID</span>
-        </div>
-
-      </div>
-
-      <aside class="hero-side" aria-label="Portal information">
-
-        <div class="hero-side-top">
-          <span class="hero-side-icon">⌂</span>
-          <span class="hero-side-label">COMMUNITY SERVICES</span>
-        </div>
-
         <h2>
-          One portal.<br>
-          Every voice counts.
+          A better community<br>
+          begins with <span>your voice.</span>
         </h2>
 
         <p>
-          Help bring attention to the issues that matter in your locality.
+          Share your local concerns, submit constructive suggestions
+          and follow their progress through a simple and transparent
+          digital platform.
         </p>
 
-        <div class="hero-side-rule"></div>
+        <div class="welcome-actions">
 
-        <div class="hero-side-bottom">
-          <span class="hero-side-check">✓</span>
-          <span>Submit · Track · Improve</span>
+          <button class="government-button" data-view="submit">
+            Submit Your Feedback
+            <span>→</span>
+          </button>
+
+          <button class="outline-button" data-view="track">
+            Track Application
+          </button>
+
         </div>
 
-        <div class="hero-watermark">CIVIC</div>
+        <div class="welcome-points">
+          <span>✓ Citizen participation</span>
+          <span>✓ Transparent updates</span>
+          <span>✓ Easy tracking</span>
+        </div>
 
-      </aside>
+      </div>
+
+      <div class="welcome-illustration">
+
+        <div class="illustration-circle">
+          <div class="illustration-building">
+            <div class="building-roof"></div>
+            <div class="building-top"></div>
+
+            <div class="building-columns">
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <div class="building-base"></div>
+          </div>
+        </div>
+
+        <div class="illustration-caption">
+          <strong>PEOPLE FIRST</strong>
+          <span>Participative Local Governance</span>
+        </div>
+
+      </div>
 
     </section>
 
-    <section class="section-heading">
+    <!-- Service heading -->
+    <section class="services-heading">
 
       <div>
-        <span class="section-kicker">HOW IT WORKS</span>
-        <h2>Citizen services made simple</h2>
+        <span class="section-eyebrow">CITIZEN SERVICES</span>
+        <h2>How can we help you?</h2>
+        <p>Choose a service to get started.</p>
       </div>
 
-      <p>
-        Follow three simple steps to share an idea and stay informed.
-      </p>
-
-    </section>
-
-    <section class="feature-row">
-
-      <div class="feature-card">
-        <span class="feature-number">01</span>
-        <span class="feature-icon">✎</span>
-
-        <span class="feature-text">
-          <strong>Submit feedback</strong>
-          <small>
-            Describe a local issue and attach a supporting photo.
-          </small>
-        </span>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-number">02</span>
-        <span class="feature-icon">⌕</span>
-
-        <span class="feature-text">
-          <strong>Track application</strong>
-          <small>
-            Use your unique tracking ID to check the latest status.
-          </small>
-        </span>
-      </div>
-
-      <div class="feature-card">
-        <span class="feature-number">03</span>
-        <span class="feature-icon">✓</span>
-
-        <span class="feature-text">
-          <strong>See the progress</strong>
-          <small>
-            Follow updates from review through resolution.
-          </small>
-        </span>
+      <div class="service-heading-note">
+        ಸೇವೆಯೇ ನಮ್ಮ ಧ್ಯೇಯ
+        <small>Service is our commitment</small>
       </div>
 
     </section>
 
+    <!-- Service cards -->
+    <section class="service-grid">
+
+      <button class="service-card" data-view="submit">
+
+        <span class="service-icon submit-icon">✎</span>
+
+        <span class="service-card-content">
+          <strong>Submit Feedback</strong>
+          <small>
+            Report a local issue or share a suggestion with the
+            local administration.
+          </small>
+          <span class="service-link">Submit now →</span>
+        </span>
+
+      </button>
+
+      <button class="service-card" data-view="track">
+
+        <span class="service-icon track-icon">⌕</span>
+
+        <span class="service-card-content">
+          <strong>Track Application</strong>
+          <small>
+            Check the current status of your submitted feedback
+            using your tracking ID.
+          </small>
+          <span class="service-link">Track now →</span>
+        </span>
+
+      </button>
+
+      <button class="service-card" data-view="login">
+
+        <span class="service-icon citizen-icon">♙</span>
+
+        <span class="service-card-content">
+          <strong>Citizen Login</strong>
+          <small>
+            Access your citizen account and submit feedback
+            through the portal.
+          </small>
+          <span class="service-link">Login →</span>
+        </span>
+
+      </button>
+
+      <button class="service-card" data-view="admin-login">
+
+        <span class="service-icon admin-icon">▤</span>
+
+        <span class="service-card-content">
+          <strong>Administrator</strong>
+          <small>
+            Review submissions, manage requests and update
+            application progress.
+          </small>
+          <span class="service-link">Admin access →</span>
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- Process information -->
+    <section class="process-section">
+
+      <div class="process-heading">
+        <span class="section-eyebrow">SIMPLE & TRANSPARENT</span>
+        <h2>How the system works</h2>
+      </div>
+
+      <div class="process-grid">
+
+        <div class="process-item">
+          <span class="process-number">01</span>
+          <div>
+            <strong>Submit</strong>
+            <p>Share your issue with the required details and photo.</p>
+          </div>
+        </div>
+
+        <div class="process-item">
+          <span class="process-number">02</span>
+          <div>
+            <strong>Review</strong>
+            <p>Your submission can be reviewed by the administrator.</p>
+          </div>
+        </div>
+
+        <div class="process-item">
+          <span class="process-number">03</span>
+          <div>
+            <strong>Resolve</strong>
+            <p>Follow progress and check the latest status online.</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Dynamic application area -->
     <section class="panel-wrap" id="panel"></section>
 
-    <footer>
-      <strong>Digital Citizen Feedback System</strong>
-
-      <span>
-        Academic project for citizen participation and local governance.
-      </span>
-
-      <small>
-        This is a demonstration project and is not an official government website.
-      </small>
-    </footer>
-
   </main>
+
+  <!-- Government-style footer -->
+  <footer class="government-footer">
+
+    <div class="footer-main">
+
+      <div class="footer-brand">
+        <strong>Digital Citizen Feedback System</strong>
+        <span>Local Governance & Citizen Participation</span>
+        <small>ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ</small>
+      </div>
+
+      <div class="footer-purpose">
+        <strong>Citizen participation matters.</strong>
+        <span>Every suggestion is an opportunity to improve our community.</span>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <span>Academic Project | Karnataka-inspired public service portal</span>
+      <span>© Digital Citizen Feedback System</span>
+    </div>
+
+    <p class="disclaimer">
+      This is an academic demonstration project. It is not an official
+      Karnataka Government or Government of India website.
+    </p>
+
+  </footer>
 
   <div id="toast" role="status" aria-live="polite"></div>
 
