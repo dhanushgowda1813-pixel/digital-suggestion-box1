@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
-  <meta name="theme-color" content="#851b25">
+  <meta name="theme-color" content="#174b86">
   <meta name="description" content="Digital Citizen Feedback System for Local Governance and Public Participation">
 
   <meta name="mobile-web-app-capable" content="yes">
@@ -36,7 +36,6 @@
   </div>
 
   <header class="government-header">
-
     <a href="#home" class="identity" aria-label="Citizen Feedback System home">
 
       <div class="civic-seal" aria-hidden="true">
@@ -59,7 +58,6 @@
       <span class="header-label">CITIZEN SERVICE PORTAL</span>
       <span class="header-subtitle">Your Voice • Better Communities</span>
     </div>
-
   </header>
 
   <nav class="main-nav" id="nav" aria-label="Main navigation">
@@ -85,6 +83,8 @@
 
   <main id="app">
 
+    <!-- MAIN HERO SECTION -->
+
     <section class="welcome-banner" id="home">
 
       <div class="welcome-content">
@@ -106,6 +106,7 @@
         </p>
 
         <div class="welcome-actions">
+
           <button class="government-button" data-view="submit">
             Submit Your Feedback <span>→</span>
           </button>
@@ -113,6 +114,7 @@
           <button class="outline-button" data-view="track">
             Track Application
           </button>
+
         </div>
 
         <div class="welcome-points">
@@ -123,7 +125,6 @@
 
       </div>
 
-      <!-- Original civic illustration: no unauthorised government insignia -->
       <div class="welcome-illustration">
 
         <div class="illustration-heading">
@@ -131,61 +132,11 @@
           <strong>People. Participation. Progress.</strong>
         </div>
 
-        <svg class="civic-scene" viewBox="0 0 520 350"
-             xmlns="http://www.w3.org/2000/svg"
-             role="img"
-             aria-label="Citizens and civic workers improving their neighbourhood">
-
-          <circle cx="270" cy="175" r="158" fill="#fff4e4" opacity=".95"/>
-          <circle cx="270" cy="175" r="130" fill="#f8e4c8"/>
-
-          <!-- Trees -->
-          <rect x="55" y="192" width="12" height="72" rx="4" fill="#80502f"/>
-          <circle cx="61" cy="172" r="34" fill="#47845a"/>
-          <circle cx="42" cy="185" r="20" fill="#65a66b"/>
-          <circle cx="80" cy="188" r="19" fill="#37784c"/>
-
-          <rect x="446" y="190" width="12" height="74" rx="4" fill="#80502f"/>
-          <circle cx="452" cy="167" r="35" fill="#47845a"/>
-          <circle cx="432" cy="184" r="19" fill="#65a66b"/>
-          <circle cx="470" cy="184" r="20" fill="#37784c"/>
-
-          <!-- Public building -->
-          <rect x="155" y="95" width="220" height="135" rx="5" fill="#fffaf1"/>
-          <path d="M140 98 L265 38 L390 98 Z" fill="#8c2930"/>
-          <rect x="165" y="106" width="200" height="10" fill="#d9ad71"/>
-
-          <rect x="188" y="125" width="27" height="65" fill="#c5d9d4"/>
-          <rect x="239" y="125" width="27" height="65" fill="#c5d9d4"/>
-          <rect x="290" y="125" width="27" height="65" fill="#c5d9d4"/>
-          <rect x="341" y="125" width="17" height="65" fill="#c5d9d4"/>
-
-          <rect x="245" y="180" width="42" height="50" fill="#8c2930"/>
-          <rect x="150" y="230" width="230" height="10" fill="#d4a15e"/>
-
-          <!-- Road -->
-          <path d="M0 285 Q260 265 520 285 L520 350 L0 350 Z" fill="#aab1b4"/>
-          <path d="M0 314 Q260 300 520 314" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="18 16"/>
-
-          <!-- Citizen 1 -->
-          <circle cx="117" cy="235" r="17" fill="#a96842"/>
-          <path d="M100 256 Q117 245 134 256 L143 305 L92 305 Z" fill="#9b3440"/>
-          <path d="M105 305 L102 337 M131 305 L135 337" stroke="#39404b" stroke-width="10" stroke-linecap="round"/>
-          <path d="M98 266 L77 289 M136 267 L151 278" stroke="#a96842" stroke-width="8" stroke-linecap="round"/>
-
-          <!-- Civic worker -->
-          <circle cx="405" cy="235" r="17" fill="#a96842"/>
-          <path d="M387 255 Q405 245 423 255 L430 306 L380 306 Z" fill="#e4a32e"/>
-          <path d="M390 305 L386 337 M418 305 L423 337" stroke="#39404b" stroke-width="10" stroke-linecap="round"/>
-          <path d="M388 267 L369 285 M422 267 L442 280" stroke="#a96842" stroke-width="8" stroke-linecap="round"/>
-          <path d="M388 218 Q405 198 423 218 L420 225 L391 225 Z" fill="#e5a12b"/>
-
-          <!-- Suggestion board -->
-          <rect x="170" y="252" width="115" height="36" rx="7" fill="#fff" stroke="#8c2930" stroke-width="2"/>
-          <path d="M187 269 L199 280 L220 258" fill="none" stroke="#24834b" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M230 266 H270 M230 276 H260" stroke="#8c2930" stroke-width="3" stroke-linecap="round"/>
-
-        </svg>
+        <img
+          class="civic-main-image"
+          src="{{ url_for('static', filename='civic-banner-main.png') }}"
+          alt="Citizens and local communities working together for better public services"
+          fetchpriority="high">
 
         <div class="illustration-caption">
           <strong>PEOPLE FIRST</strong>
@@ -195,6 +146,8 @@
       </div>
 
     </section>
+
+    <!-- CITIZEN SERVICES -->
 
     <section class="services-heading">
 
@@ -214,42 +167,100 @@
     <section class="service-grid">
 
       <button class="service-card" data-view="submit">
+
         <span class="service-icon submit-icon">✎</span>
+
         <span class="service-card-content">
           <strong>Submit Feedback</strong>
-          <small>Report a local issue or share a suggestion with the local administration.</small>
+          <small>
+            Report a local issue or share a suggestion with the local administration.
+          </small>
           <span class="service-link">Submit now →</span>
         </span>
+
       </button>
 
       <button class="service-card" data-view="track">
+
         <span class="service-icon track-icon">⌕</span>
+
         <span class="service-card-content">
           <strong>Track Application</strong>
-          <small>Check the status of your submitted feedback using your tracking ID.</small>
+          <small>
+            Check the status of your submitted feedback using your tracking ID.
+          </small>
           <span class="service-link">Track now →</span>
         </span>
+
       </button>
 
       <button class="service-card" data-view="login">
+
         <span class="service-icon citizen-icon">♙</span>
+
         <span class="service-card-content">
           <strong>Citizen Login</strong>
-          <small>Access your citizen account and submit feedback through the portal.</small>
+          <small>
+            Access your citizen account and submit feedback through the portal.
+          </small>
           <span class="service-link">Login →</span>
         </span>
+
       </button>
 
       <button class="service-card" data-view="admin-login">
+
         <span class="service-icon admin-icon">▤</span>
+
         <span class="service-card-content">
           <strong>Administrator</strong>
-          <small>Review submissions, manage requests and update application progress.</small>
+          <small>
+            Review submissions, manage requests and update application progress.
+          </small>
           <span class="service-link">Admin access →</span>
         </span>
+
       </button>
 
     </section>
+
+    <!-- COMMUNITY PARTICIPATION IMAGE -->
+
+    <section class="civic-features-section">
+
+      <div class="civic-features-content">
+
+        <span class="section-eyebrow">COMMUNITY DEVELOPMENT</span>
+
+        <h2>Building better communities together</h2>
+
+        <p>
+          Citizen participation helps identify local problems,
+          improve public facilities and encourage transparent
+          communication between people and local administration.
+        </p>
+
+        <div class="civic-feature-points">
+          <span>✓ Report neighbourhood issues</span>
+          <span>✓ Share ideas and suggestions</span>
+          <span>✓ Follow application progress</span>
+        </div>
+
+      </div>
+
+      <div class="civic-features-image-wrap">
+
+        <img
+          class="civic-features-image"
+          src="{{ url_for('static', filename='civic-banner-features.png') }}"
+          alt="Community participation and improvement of local public facilities"
+          loading="lazy">
+
+      </div>
+
+    </section>
+
+    <!-- HOW THE SYSTEM WORKS -->
 
     <section class="process-section">
 
@@ -286,11 +297,42 @@
 
       </div>
 
+      <div class="citizen-help-section">
+
+        <div class="citizen-help-image-wrap">
+
+          <img
+            class="citizen-help-image"
+            src="{{ url_for('static', filename='citizen-help-illustration.webp') }}"
+            alt="Illustration representing citizens helping their community"
+            loading="lazy">
+
+        </div>
+
+        <div class="citizen-help-content">
+          <span class="section-eyebrow">YOUR VOICE MATTERS</span>
+          <h3>Small suggestions can create meaningful change.</h3>
+          <p>
+            Participate in improving your neighbourhood by sharing
+            concerns, ideas and suggestions through this digital platform.
+          </p>
+
+          <button class="government-button" data-view="submit">
+            Share Your Feedback →
+          </button>
+        </div>
+
+      </div>
+
     </section>
+
+    <!-- DYNAMIC APPLICATION PANEL -->
 
     <section class="panel-wrap" id="panel"></section>
 
   </main>
+
+  <!-- FOOTER -->
 
   <footer class="government-footer">
 
@@ -304,7 +346,9 @@
 
       <div class="footer-purpose">
         <strong>Citizen participation matters.</strong>
-        <span>Every suggestion is an opportunity to improve our community.</span>
+        <span>
+          Every suggestion is an opportunity to improve our community.
+        </span>
       </div>
 
     </div>
