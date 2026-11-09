@@ -1,41 +1,61 @@
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#12345a">
+  <meta name="description" content="A citizen feedback portal for sharing local issues and suggestions and tracking their progress.">
+  <title>Digital Citizen Feedback System | Local Governance</title>
 
-  <title>Digital Suggestion Box | Local Governance</title>
-
-  <link rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}">
-
-  <link rel="manifest"
-        href="{{ url_for('static', filename='manifest.json') }}">
-
-  <meta name="theme-color" content="#145b58">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
 </head>
 
 <body>
-  <header class="top">
-    <a class="brand" href="#home">
-      <span class="logo">✦</span>
 
-      <span>
-        Digital Suggestion Box
-        <small>Citizen feedback • Local governance</small>
+  <div class="gov-strip">
+    <div class="gov-strip-inner">
+      <span>Citizen participation portal</span>
+      <span class="gov-strip-right">
+        A transparent way to improve our communities
+      </span>
+    </div>
+  </div>
+
+  <header class="top">
+
+    <a class="brand" href="#home" aria-label="Digital Citizen Feedback System home">
+      <span class="logo" aria-hidden="true">✦</span>
+
+      <span class="brand-copy">
+        <strong>Digital Citizen Feedback System</strong>
+        <small>Local governance • Citizen services</small>
       </span>
     </a>
 
-    <nav id="nav">
-      <button class="navlink" data-view="track">Track</button>
-      <button class="navlink" data-view="submit">Submit</button>
-      <button class="navlink" data-view="login">Citizen login</button>
-      <button class="navlink" data-view="admin-login">Admin</button>
+    <nav id="nav" aria-label="Main navigation">
+
+      <button class="navlink" data-view="track">
+        Track application
+      </button>
+
+      <button class="navlink" data-view="submit">
+        Submit feedback
+      </button>
+
+      <button class="navlink" data-view="login">
+        Citizen login
+      </button>
+
+      <button class="navlink nav-admin" data-view="admin-login">
+        Admin
+      </button>
 
       <label class="theme-picker" for="themeSelect">
-        Theme
+        <span>Theme</span>
 
-        <select id="themeSelect" aria-label="Choose color theme">
+        <select id="themeSelect" aria-label="Choose colour theme">
           <option value="light">Light</option>
           <option value="dark">Dark</option>
           <option value="ocean">Ocean</option>
@@ -43,101 +63,154 @@
           <option value="forest">Forest</option>
         </select>
       </label>
+
     </nav>
   </header>
 
   <main id="app">
+
     <section class="hero" id="home">
+
       <div class="hero-copy">
-        <span class="eyebrow">YOUR VOICE. YOUR COMMUNITY.</span>
+
+        <span class="eyebrow">
+          <span class="eyebrow-mark"></span>
+          CITIZEN-CENTRIC LOCAL GOVERNANCE
+        </span>
 
         <h1>
-          Small ideas can<br>
-          <em>make a big change.</em>
+          Your voice matters.<br>
+          <em>Let’s improve our community.</em>
         </h1>
 
         <p>
-          Share a suggestion or report a local issue.
-          Follow its progress transparently from submission to resolution.
+          Share local issues and constructive suggestions with your
+          community administration. Follow every submitted request
+          with a unique tracking ID.
         </p>
 
         <div class="actions">
+
           <button class="primary" data-view="submit">
-            Share a suggestion ↗
+            Submit feedback
+            <span aria-hidden="true">→</span>
           </button>
 
           <button class="secondary" data-view="track">
-            Track a request
+            Track an application
           </button>
+
         </div>
 
         <div class="trust">
-          <span>✓ Simple and accessible</span>
-          <span>✓ Trackable updates</span>
-        </div>
-      </div>
-
-      <div class="hero-art">
-        <div class="sun"></div>
-
-        <div class="art-card">
-          <div class="art-icon">✉</div>
-
-          <strong>Make your voice heard</strong>
-
-          <p>
-            Every thoughtful suggestion brings us one step closer
-            to a better neighbourhood.
-          </p>
-
-          <div class="art-line"></div>
-          <div class="art-line short"></div>
-
-          <span class="art-check">✓</span>
+          <span>✓ Easy online submission</span>
+          <span>✓ Transparent status updates</span>
+          <span>✓ Track with a unique ID</span>
         </div>
 
-        <div class="art-leaf">✳</div>
       </div>
+
+      <aside class="hero-side" aria-label="Portal information">
+
+        <div class="hero-side-top">
+          <span class="hero-side-icon">⌂</span>
+          <span class="hero-side-label">COMMUNITY SERVICES</span>
+        </div>
+
+        <h2>
+          One portal.<br>
+          Every voice counts.
+        </h2>
+
+        <p>
+          Help bring attention to the issues that matter in your locality.
+        </p>
+
+        <div class="hero-side-rule"></div>
+
+        <div class="hero-side-bottom">
+          <span class="hero-side-check">✓</span>
+          <span>Submit · Track · Improve</span>
+        </div>
+
+        <div class="hero-watermark">CIVIC</div>
+
+      </aside>
+
+    </section>
+
+    <section class="section-heading">
+
+      <div>
+        <span class="section-kicker">HOW IT WORKS</span>
+        <h2>Citizen services made simple</h2>
+      </div>
+
+      <p>
+        Follow three simple steps to share an idea and stay informed.
+      </p>
+
     </section>
 
     <section class="feature-row">
-      <div>
-        <b>01</b>
 
-        <span>
-          <strong>Submit</strong>
-          <small>Tell us what needs attention</small>
+      <div class="feature-card">
+        <span class="feature-number">01</span>
+        <span class="feature-icon">✎</span>
+
+        <span class="feature-text">
+          <strong>Submit feedback</strong>
+          <small>
+            Describe a local issue and attach a supporting photo.
+          </small>
         </span>
       </div>
 
-      <div>
-        <b>02</b>
+      <div class="feature-card">
+        <span class="feature-number">02</span>
+        <span class="feature-icon">⌕</span>
 
-        <span>
-          <strong>Track</strong>
-          <small>See progress with your ID</small>
+        <span class="feature-text">
+          <strong>Track application</strong>
+          <small>
+            Use your unique tracking ID to check the latest status.
+          </small>
         </span>
       </div>
 
-      <div>
-        <b>03</b>
+      <div class="feature-card">
+        <span class="feature-number">03</span>
+        <span class="feature-icon">✓</span>
 
-        <span>
-          <strong>Improve</strong>
-          <small>Help make your area better</small>
+        <span class="feature-text">
+          <strong>See the progress</strong>
+          <small>
+            Follow updates from review through resolution.
+          </small>
         </span>
       </div>
+
     </section>
 
     <section class="panel-wrap" id="panel"></section>
 
     <footer>
-      Built for community participation · Digital Suggestion Box
+      <strong>Digital Citizen Feedback System</strong>
+
+      <span>
+        Academic project for citizen participation and local governance.
+      </span>
+
+      <small>
+        This is a demonstration project and is not an official government website.
+      </small>
     </footer>
+
   </main>
 
-  <div id="toast" role="status"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="{{ url_for('static', filename='app.js') }}"></script>
+
 </body>
 </html>
