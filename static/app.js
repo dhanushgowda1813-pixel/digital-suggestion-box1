@@ -1,3 +1,4 @@
+
 const appPanel=document.getElementById('panel');
 const toastEl=document.getElementById('toast');
 const statuses=['Submitted','Under Review','In Progress','Resolved'];
@@ -55,6 +56,21 @@ async function view(name){
 }
 
 document.addEventListener('click',e=>{
+  const toggle=e.target.closest('[data-toggle-password]');
+  if(toggle){
+    const input=document.getElementById(toggle.dataset.togglePassword);
+    if(input){
+      const showing=input.type==='password';
+      input.type=showing?'text':'password';
+      toggle.textContent='👁';
+      toggle.setAttribute('aria-label',showing?'Hide password':'Show password');
+      toggle.title=showing?'Hide password':'Show password';
+    }
+    return;
+  }
+});
+
+document.addEventListener('click',e=>{
   const b=e.target.closest('[data-view]');
   if(b){
     e.preventDefault();
@@ -80,13 +96,13 @@ function homeView(){
 function submitView(){
   shell(
     'Share a suggestion',
-    'Help improve your neighbourhood. All fields—including a photo—are required.',
+    'Help improve your neighbourhood. Your name is optional; a supporting photo is required.',
     `<form id="suggestionForm">
       <div class="formgrid">
 
         <div class="field">
-          <label>Full name *</label>
-          <input name="name" required maxlength="90" placeholder="Your name">
+          <label>Full name <span class="optional-label">(optional)</span></label>
+          <input name="name" maxlength="90" placeholder="You may leave this blank">
         </div>
 
         <div class="field">
@@ -466,7 +482,10 @@ function loginView(){
 
       <div class="field">
         <label>Password</label>
-        <input name="password" type="password" required minlength="8">
+        <div class="password-wrap">
+          <input id="citizenLoginPassword" name="password" type="password" required minlength="8" autocomplete="current-password">
+          <button class="password-toggle" type="button" data-toggle-password="citizenLoginPassword" aria-label="Show password" title="Show password">👁</button>
+        </div>
       </div>
 
       <div class="formfoot">
@@ -509,8 +528,8 @@ function registerView(){
     'Create an account to submit and follow community suggestions.',
     `<form id="registerForm">
       <div class="field">
-        <label>Full name</label>
-        <input name="name" required maxlength="90">
+        <label>Full name <span class="optional-label">(optional)</span></label>
+        <input name="name" maxlength="90" placeholder="You may leave this blank">
       </div>
 
       <div class="field">
@@ -520,7 +539,10 @@ function registerView(){
 
       <div class="field">
         <label>Password (at least 8 characters)</label>
-        <input name="password" type="password" required minlength="8">
+        <div class="password-wrap">
+          <input id="registerPassword" name="password" type="password" required minlength="8" autocomplete="new-password">
+          <button class="password-toggle" type="button" data-toggle-password="registerPassword" aria-label="Show password" title="Show password">👁</button>
+        </div>
       </div>
 
       <div class="formfoot">
@@ -567,7 +589,10 @@ function adminLoginView(){
 
       <div class="field">
         <label>Password</label>
-        <input name="password" type="password" required autocomplete="current-password">
+        <div class="password-wrap">
+          <input id="adminLoginPassword" name="password" type="password" required autocomplete="current-password">
+          <button class="password-toggle" type="button" data-toggle-password="adminLoginPassword" aria-label="Show password" title="Show password">👁</button>
+        </div>
       </div>
 
       <button class="btn">Open dashboard</button>
@@ -761,7 +786,7 @@ function adminCard(x){
       <div class="suggestion-head">
         <div>
           <span class="hint">${escapeHtml(x.tracking_id)} · ${escapeHtml(x.created_at)}</span>
-          <h3>${escapeHtml(x.name)} — ${escapeHtml(x.category)}</h3>
+          <h3>${escapeHtml(x.name||"Anonymous citizen")} — ${escapeHtml(x.category)}</h3>
           <span class="hint">${escapeHtml(x.area)}</span>
         </div>
 
