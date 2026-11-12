@@ -1437,3 +1437,368 @@ button,
     transition-duration: .01ms !important;
   }
 }
+
+/* =========================================================
+   JANASETU UPDATES
+   Header logo, APK layout, GPS, area autocomplete,
+   password visibility and improved responsive controls
+   ========================================================= */
+
+/* ==================== JANASETU LOGO ==================== */
+
+.janasetu-logo {
+  width: 76px;
+  height: 76px;
+  min-width: 76px;
+  object-fit: contain;
+  object-position: center;
+  display: block;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 3px;
+  border: 1px solid var(--border);
+}
+
+.footer-brand {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.footer-logo {
+  width: 58px;
+  height: 58px;
+  flex-shrink: 0;
+  object-fit: contain;
+  object-position: center;
+  background: #ffffff;
+  padding: 3px;
+  border-radius: 11px;
+}
+
+/* ==================== HAMBURGER MENU ==================== */
+
+.menu-toggle {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1002;
+}
+
+.menu-toggle span {
+  width: 23px;
+  height: 2px;
+  display: block;
+  border-radius: 5px;
+  background: #ffffff;
+}
+
+.menu-toggle[aria-expanded="true"] {
+  background: rgba(255,255,255,.15);
+}
+
+/* ==================== PASSWORD VISIBILITY ==================== */
+
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 52px !important;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 19px;
+  z-index: 2;
+}
+
+.password-toggle:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ==================== LOCATION / GPS ==================== */
+
+.location-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.location-controls input {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.location-button {
+  min-height: 44px;
+  padding: 10px 15px;
+  border: 1px solid var(--primary);
+  border-radius: 9px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.location-button:hover {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.location-message {
+  display: block;
+  width: 100%;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+/* ==================== AREA AUTOCOMPLETE ==================== */
+
+.area-autocomplete,
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.area-suggestions,
+.autocomplete-suggestions {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 1500;
+  max-height: 230px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+
+.area-suggestion,
+.autocomplete-option {
+  width: 100%;
+  display: block;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.area-suggestion:last-child,
+.autocomplete-option:last-child {
+  border-bottom: 0;
+}
+
+.area-suggestion:hover,
+.autocomplete-option:hover,
+.area-suggestion:focus,
+.autocomplete-option:focus {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ==================== MAP PREVIEW ==================== */
+
+.location-map,
+.map-preview {
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  margin-top: 12px;
+}
+
+.location-map iframe,
+.map-preview iframe {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  border: 0;
+}
+
+/* ==================== PHOTO UPLOAD ==================== */
+
+.photo-preview {
+  width: 100%;
+  align-items: flex-start;
+}
+
+.photo-preview img {
+  width: auto;
+  max-width: 100%;
+  max-height: 320px;
+  height: auto;
+  object-fit: contain;
+  object-position: center;
+  background: var(--surface-soft);
+}
+
+.form-field input[type="file"] {
+  width: 100%;
+  min-height: 48px;
+  overflow: hidden;
+}
+
+.admin-photo img,
+.tracking-photo img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 10px;
+}
+
+/* ==================== ADMIN RESPONSIVE ELEMENTS ==================== */
+
+.admin-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.admin-table-wrap table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+}
+
+.admin-table-wrap th,
+.admin-table-wrap td {
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  color: var(--text);
+}
+
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.admin-status,
+.admin-response {
+  width: 100%;
+  min-width: 0;
+}
+
+.save-admin,
+.delete-admin {
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.save-admin {
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  color: #ffffff;
+}
+
+.delete-admin {
+  background: var(--danger);
+  border: 1px solid var(--danger);
+  color: #ffffff;
+}
+
+/* ==================== OPTIONAL FIELD LABELS ==================== */
+
+.optional-label {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ==================== MOBILE LOGO ==================== */
+
+@media (max-width: 600px) {
+  .janasetu-logo {
+    width: 53px;
+    height: 53px;
+    min-width: 53px;
+    border-radius: 10px;
+  }
+
+  .identity {
+    gap: 10px;
+  }
+
+  .footer-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .footer-brand {
+    align-items: center;
+  }
+
+  .location-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .location-controls input,
+  .location-button {
+    width: 100%;
+  }
+
+  .location-map,
+  .map-preview,
+  .location-map iframe,
+  .map-preview iframe {
+    min-height: 190px;
+  }
+
+  .password-toggle {
+    width: 42px;
+    height: 42px;
+  }
+
+  .photo-preview img {
+    max-height: 260px;
+  }
+}
+
+/* ==================== ANDROID SAFE AREA ==================== */
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .government-footer {
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  #toast {
+    bottom: max(25px, env(safe-area-inset-bottom));
+  }
+}
+
