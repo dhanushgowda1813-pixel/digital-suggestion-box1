@@ -1,47 +1,43 @@
 
 /* =========================================================
-   DIGITAL CITIZEN FEEDBACK SYSTEM
+   JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
-   Responsive Web Application + Android APK
-   Compatible with the existing Flask backend
+   Compatible with Flask app.py
+   Web Application + Android APK
    ========================================================= */
 
 "use strict";
 
-/* -------------------- GLOBAL VARIABLES -------------------- */
+const API = "/api";
 
-const appPanel = document.getElementById("panel");
-const toastEl = document.getElementById("toast");
-
-const statuses = [
-  "Submitted",
-  "Under Review",
-  "In Progress",
-  "Resolved"
-];
-
-let currentView = "";
 let currentUser = null;
-let adminItems = [];
-let activePhotoURL = null;
+let currentRole = null;
+let suggestionsCache = [];
+let photoPreviewURL = null;
 
-/* -------------------- COMMON FUNCTIONS -------------------- */
+/* =========================================================
+   1. GENERAL HELPERS
+   ========================================================= */
 
-function toast(message) {
-  if (!toastEl) return;
+async function api(url, options = {}) {
+  const response = await fetch(API + url, {
+    credentials: "same-origin",
+    ...options
+  });
 
-  toastEl.textContent = message;
-  toastEl.classList.add("show");
+  const data = await response.json().catch(() => ({}));
 
-  clearTimeout(toastEl.toastTimer);
+  if (!response.ok) {
+    throw new Error(
+      data.error || data.message || "Something went wrong."
+    );
+  }
 
-  toastEl.toastTimer = setTimeout(() => {
-    toastEl.classList.remove("show");
-  }, 3200);
+  return data;
 }
 
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
+function escapeHTML(value = "") {
+  return String(value).replace(/[&<>"']/g, char => ({
     "&": "&amp;",
     "<": "&lt;",
     ">": "&gt;",
@@ -50,1345 +46,1611 @@ function escapeHTML(value) {
   })[char]);
 }
 
-function safeImageURL(value) {
-  const url = String(value || "").trim();
+function toast(message, type = "success") {
+  let element = document.getElementById("toast");
 
-  if (
-    url.startsWith("/") ||
-    url.startsWith("./") ||
-    url.startsWith("https://") ||
-    url.startsWith("http://")
-  ) {
-    return escapeHTML(url);
+  if (!element) {
+    element = document.createElement("div");
+    element.id = "toast";
+    element.setAttribute("role", "status");
+    document.body.appendChild(element);
   }
 
-  return "";
+  element.textContent = message;
+  element.className = "toast " + type;
+  element.hidden = false;
+
+  clearTimeout(element._toastTimer);
+
+  element._toastTimer = setTimeout(() => {
+    element.hidden = true;
+  }, 3500);
 }
 
-async function api(url, options = {}) {
-  const headers = {
-    ...(options.body instanceof FormData
-      ? {}
-      : { "Content-Type": "application/json" }),
-    ...(options.headers || {})
-  };
+function setPanel(html) {
+  const panel = document.getElementById("panel");
 
-  let response;
-
-  try {
-    response = await fetch(url, {
-      ...options,
-      headers
+  if (panel) {
+    panel.innerHTML = html;
+    panel.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
     });
-  } catch {
-    throw new Error(
-      "Unable to connect. Please check your internet connection."
-    );
   }
-
-  let data = {};
-
-  try {
-    data = await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Something went wrong. Please try again."
-    );
-  }
-
-  return data;
 }
 
-function setLoading(button, loading, originalText = "Submit") {
-  if (!button) return;
-
-  button.disabled = loading;
-  button.textContent = loading
-    ? "Please wait..."
-    : originalText;
-}
-
-function shell(title, lead, body, wide = false) {
-  if (!appPanel) return;
-
-  appPanel.innerHTML = `
-    <div class="panel ${wide ? "wide" : ""}">
-
-      <button class="back" data-view="home">
-        ← Back to home
-      </button>
-
+function shell(title, content) {
+  setPanel(`
+    <section class="app-panel">
       <h2>${escapeHTML(title)}</h2>
-
-      <p class="lead">
-        ${escapeHTML(lead)}
-      </p>
-
-      ${body}
-
-    </div>
-  `;
-
-  appPanel.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
+      ${content}
+    </section>
+  `);
 }
 
 function formField(label, name, type = "text", required = true) {
   return `
     <label class="form-field">
-
       <span>${escapeHTML(label)}</span>
-
       <input
-        type="${escapeHTML(type)}"
-        name="${escapeHTML(name)}"
+        type="${type}"
+        name="${name}"
         ${required ? "required" : ""}
-        autocomplete="off"
+        autocomplete="${type === "password" ? "current-password" : "on"}"
       >
-
     </label>
   `;
 }
 
-function statusBadge(status) {
+function passwordField(label, name) {
   return `
-    <span class="status-badge">
-      ${escapeHTML(status)}
-    </span>
-  `;
-}
+    <label class="form-field">
+      <span>${escapeHTML(label)}</span>
 
-function releasePhotoPreview() {
-  if (activePhotoURL) {
-    URL.revokeObjectURL(activePhotoURL);
-    activePhotoURL = null;
-  }
-}
-
-/* -------------------- NAVIGATION -------------------- */
-
-function closeMenu() {
-  const menu = document.getElementById("navMenu");
-  const toggle = document.getElementById("menuToggle");
-
-  if (menu) {
-    menu.hidden = true;
-  }
-
-  if (toggle) {
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute(
-      "aria-label",
-      "Open navigation menu"
-    );
-  }
-}
-
-function view(name) {
-  releasePhotoPreview();
-
-  currentView = name;
-
-  closeMenu();
-
-  const views = {
-    home: homeView,
-    submit: submitView,
-    login: loginView,
-    register: registerView,
-    "admin-login": adminLoginView,
-    track: trackView,
-    admin: adminView
-  };
-
-  (views[name] || homeView)();
-}
-
-document.addEventListener("click", event => {
-  const button = event.target.closest("[data-view]");
-
-  if (button) {
-    event.preventDefault();
-    view(button.dataset.view);
-  }
-});
-
-/* -------------------- HAMBURGER MENU -------------------- */
-
-const menuToggle = document.getElementById("menuToggle");
-const navMenu = document.getElementById("navMenu");
-
-if (menuToggle && navMenu) {
-  menuToggle.addEventListener("click", () => {
-    const isOpen = !navMenu.hidden;
-
-    navMenu.hidden = isOpen;
-
-    menuToggle.setAttribute(
-      "aria-expanded",
-      String(!isOpen)
-    );
-
-    menuToggle.setAttribute(
-      "aria-label",
-      isOpen
-        ? "Open navigation menu"
-        : "Close navigation menu"
-    );
-  });
-}
-
-/* -------------------- THEME SELECTOR -------------------- */
-
-const themeSelect = document.getElementById("themeSelect");
-
-function applyTheme(theme) {
-  const selectedTheme =
-    theme === "dark" ? "dark" : "light";
-
-  document.body.dataset.theme = selectedTheme;
-
-  if (themeSelect) {
-    themeSelect.value = selectedTheme;
-  }
-
-  try {
-    localStorage.setItem(
-      "citizenTheme",
-      selectedTheme
-    );
-  } catch {
-    console.warn("Theme preference could not be saved.");
-  }
-}
-
-try {
-  const savedTheme = localStorage.getItem("citizenTheme");
-
-  applyTheme(savedTheme || "light");
-
-} catch {
-  applyTheme("light");
-}
-
-if (themeSelect) {
-  themeSelect.addEventListener("change", event => {
-    applyTheme(event.target.value);
-  });
-}
-
-/* -------------------- HOME PAGE -------------------- */
-
-function homeView() {
-  if (appPanel) {
-    appPanel.innerHTML = "";
-  }
-
-  currentView = "home";
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth"
-  });
-}
-
-/* -------------------- CITIZEN REGISTRATION -------------------- */
-
-function registerView() {
-  shell(
-    "Create Citizen Account",
-    "Register to submit feedback and participate in improving your community.",
-    `
-      <form id="registerForm" class="app-form">
-
-        ${formField("Full Name", "name")}
-
-        ${formField("Email Address", "email", "email")}
-
-        ${formField(
-          "Password (minimum 8 characters)",
-          "password",
-          "password"
-        )}
-
-        ${formField(
-          "Confirm Password",
-          "confirmPassword",
-          "password"
-        )}
-
-        <button type="submit" class="government-button">
-          Create Account
-        </button>
-
-        <p class="form-note">
-          Already registered?
-
-          <button
-            type="button"
-            class="text-button"
-            data-view="login"
-          >
-            Login here
-          </button>
-        </p>
-
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  const form = document.getElementById("registerForm");
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
-
-    const name = formData.get("name").trim();
-    const email = formData.get("email").trim();
-    const password = formData.get("password");
-    const confirmPassword = formData.get("confirmPassword");
-
-    if (!name || !email) {
-      toast("Please complete all required fields.");
-      return;
-    }
-
-    if (password.length < 8) {
-      toast("Password must contain at least 8 characters.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      toast("Passwords do not match.");
-      return;
-    }
-
-    setLoading(button, true, "Create Account");
-
-    try {
-      await api("/api/register", {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          email,
-          password
-        })
-      });
-
-      toast("Account created successfully!");
-
-      await loadSession();
-
-      view("submit");
-
-    } catch (error) {
-      toast(error.message);
-
-    } finally {
-      setLoading(button, false, "Create Account");
-    }
-  });
-}
-
-/* -------------------- CITIZEN LOGIN -------------------- */
-
-function loginView() {
-  shell(
-    "Citizen Login",
-    "Login to submit your feedback to the local administration.",
-    `
-      <form id="loginForm" class="app-form">
-
-        ${formField("Email Address", "email", "email")}
-
-        ${formField("Password", "password", "password")}
-
-        <button type="submit" class="government-button">
-          Login
-        </button>
-
-        <p class="form-note">
-          Don't have an account?
-
-          <button
-            type="button"
-            class="text-button"
-            data-view="register"
-          >
-            Create Account
-          </button>
-        </p>
-
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  const form = document.getElementById("loginForm");
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
-
-    setLoading(button, true, "Login");
-
-    try {
-      await api("/api/login", {
-        method: "POST",
-        body: JSON.stringify({
-          email: formData.get("email").trim(),
-          password: formData.get("password")
-        })
-      });
-
-      toast("Login successful!");
-
-      await loadSession();
-
-      view("submit");
-
-    } catch (error) {
-      toast(error.message);
-
-    } finally {
-      setLoading(button, false, "Login");
-    }
-  });
-}
-
-/* -------------------- ADMIN LOGIN -------------------- */
-
-function adminLoginView() {
-  shell(
-    "Administrator Login",
-    "Authorized administrators can manage citizen feedback.",
-    `
-      <form id="adminLoginForm" class="app-form">
-
-        ${formField("Admin Username", "username")}
-
-        ${formField("Password", "password", "password")}
-
-        <button type="submit" class="government-button">
-          Administrator Login
-        </button>
-
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  const form = document.getElementById("adminLoginForm");
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
-
-    setLoading(button, true, "Administrator Login");
-
-    try {
-      await api("/api/admin-login", {
-        method: "POST",
-        body: JSON.stringify({
-          username: formData.get("username").trim(),
-          password: formData.get("password")
-        })
-      });
-
-      toast("Administrator login successful!");
-
-      await loadSession();
-
-      view("admin");
-
-    } catch (error) {
-      toast(error.message);
-
-    } finally {
-      setLoading(button, false, "Administrator Login");
-    }
-  });
-}
-
-/* -------------------- PHOTO VALIDATION -------------------- */
-
-function validatePhoto(file) {
-  if (!file) {
-    return "Please upload a photo.";
-  }
-
-  return "";
-}
-
-/* -------------------- SUBMIT FEEDBACK -------------------- */
-
-function submitView() {
-  if (!currentUser || currentUser.role !== "citizen") {
-    shell(
-      "Citizen Login Required",
-      "Please login to your citizen account before submitting feedback.",
-      `
-        <div class="action-buttons">
-
-          <button
-            class="government-button"
-            data-view="login"
-          >
-            Citizen Login
-          </button>
-
-          <button
-            class="outline-button"
-            data-view="register"
-          >
-            Create Account
-          </button>
-
-        </div>
-      `
-    );
-
-    return;
-  }
-
-  shell(
-    "Submit Your Feedback",
-    "Describe the local issue and upload a photograph as evidence.",
-    `
-      <form id="suggestionForm" class="app-form">
-
-        ${formField("Your Name (optional)", "name", "text", false)}
-
-        <label class="form-field">
-
-          <span>Feedback Category *</span>
-
-          <select name="category" required>
-
-            <option value="">Select a category</option>
-
-            <option value="Roads and Infrastructure">
-              Roads and Infrastructure
-            </option>
-
-            <option value="Water Supply">
-              Water Supply
-            </option>
-
-            <option value="Waste Management">
-              Waste Management
-            </option>
-
-            <option value="Street Lights">
-              Street Lights
-            </option>
-
-            <option value="Drainage">
-              Drainage
-            </option>
-
-            <option value="Public Facilities">
-              Public Facilities
-            </option>
-
-            <option value="Sanitation">
-              Sanitation
-            </option>
-
-            <option value="Other">
-              Other
-            </option>
-
-          </select>
-
-        </label>
-
-        ${formField("Area / Locality", "area")}
-
-        <label class="form-field">
-
-          <span>Describe Your Issue *</span>
-
-          <textarea
-            name="description"
-            rows="5"
-            placeholder="Explain the problem or suggestion..."
-            required
-          ></textarea>
-
-        </label>
-
-        <label class="form-field">
-
-          <span>Upload Photo *</span>
-
-          <input
-            type="file"
-            name="photo"
-            id="photoInput"
-            accept="image/*"
-            required
-          >
-
-          <small class="form-note">
-            Select a photo from your device or camera.
-          </small>
-
-        </label>
-
-        <div id="photoPreview" class="photo-preview"></div>
-
-        <button type="submit" class="government-button">
-          Submit Feedback
-        </button>
-
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  const form = document.getElementById("suggestionForm");
-  const photoInput = document.getElementById("photoInput");
-  const preview = document.getElementById("photoPreview");
-
-  photoInput.addEventListener("change", () => {
-    preview.innerHTML = "";
-    releasePhotoPreview();
-
-    const file = photoInput.files[0];
-
-    if (!file) return;
-
-    const validationError = validatePhoto(file);
-
-    if (validationError) {
-      photoInput.value = "";
-      toast(validationError);
-      return;
-    }
-
-    activePhotoURL = URL.createObjectURL(file);
-
-    const image = document.createElement("img");
-
-    image.src = activePhotoURL;
-    image.alt = "Selected feedback photo";
-
-    image.style.width = "100%";
-    image.style.maxWidth = "260px";
-    image.style.height = "auto";
-    image.style.maxHeight = "220px";
-    image.style.objectFit = "contain";
-    image.style.borderRadius = "12px";
-
-    preview.appendChild(image);
-  });
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const file = photoInput.files[0];
-    const validationError = validatePhoto(file);
-
-    if (validationError) {
-      toast(validationError);
-      return;
-    }
-
-    const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
-
-    setLoading(button, true, "Submit Feedback");
-
-    try {
-      const result = await api("/api/suggestions", {
-        method: "POST",
-        body: formData
-      });
-
-      const trackingId = result.trackingId;
-
-      releasePhotoPreview();
-
-      shell(
-        "Feedback Submitted Successfully!",
-        "Your feedback has been recorded. Save your tracking ID.",
-        `
-          <div class="success-panel">
-
-            <h3>Your Tracking ID</h3>
-
-            <div class="tracking-code" id="newTrackingId">
-              ${escapeHTML(trackingId)}
-            </div>
-
-            <button
-              type="button"
-              class="outline-button"
-              id="copyTrackingButton"
-            >
-              Copy Tracking ID
-            </button>
-
-            <p>
-              Use this tracking ID to check the progress
-              of your feedback.
-            </p>
-
-            <button
-              type="button"
-              class="government-button"
-              id="trackNewButton"
-            >
-              Track Your Feedback
-            </button>
-
-          </div>
-        `
-      );
-
-      document.getElementById("copyTrackingButton")
-        .addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(trackingId);
-            toast("Tracking ID copied!");
-
-          } catch {
-            toast("Please copy the tracking ID manually.");
-          }
-        });
-
-      document.getElementById("trackNewButton")
-        .addEventListener("click", () => {
-          view("track");
-
-          const input = document.getElementById("trackingInput");
-
-          if (input) {
-            input.value = trackingId;
-          }
-        });
-
-    } catch (error) {
-      toast(error.message);
-
-    } finally {
-      const currentButton = document.querySelector(
-        "#suggestionForm button[type='submit']"
-      );
-
-      if (currentButton) {
-        setLoading(
-          currentButton,
-          false,
-          "Submit Feedback"
-        );
-      }
-    }
-  });
-}
-
-/* -------------------- TRACK FEEDBACK -------------------- */
-
-function trackView() {
-  shell(
-    "Track Your Feedback",
-    "Enter your tracking ID to check the current status of your application.",
-    `
-      <form id="trackForm" class="app-form">
-
-        <label class="form-field">
-
-          <span>Tracking ID</span>
-
-          <input
-            type="text"
-            id="trackingInput"
-            name="trackingId"
-            placeholder="Example: DSB-XXXXXXXXXX"
-            required
-          >
-
-        </label>
-
-        <button type="submit" class="government-button">
-          Track Application
-        </button>
-
-      </form>
-
-      <div id="trackingResult"></div>
-    `
-  );
-
-  const form = document.getElementById("trackForm");
-
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
-
-    const input = document.getElementById("trackingInput");
-    const resultBox = document.getElementById("trackingResult");
-    const button = form.querySelector('[type="submit"]');
-
-    const trackingId = input.value.trim().toUpperCase();
-
-    if (!trackingId) {
-      toast("Please enter your tracking ID.");
-      return;
-    }
-
-    setLoading(button, true, "Track Application");
-
-    resultBox.innerHTML = "";
-
-    try {
-      const data = await api(
-        `/api/track/${encodeURIComponent(trackingId)}`
-      );
-
-      showTrackingResult(data, resultBox);
-
-    } catch (error) {
-      resultBox.innerHTML = `
-        <div class="error-panel">
-          ${escapeHTML(error.message)}
-        </div>
-      `;
-
-    } finally {
-      setLoading(button, false, "Track Application");
-    }
-  });
-}
-
-function showTrackingResult(data, container) {
-  const currentIndex = statuses.indexOf(data.status);
-
-  const timeline = statuses.map((status, index) => `
-    <div class="timeline-item ${index <= currentIndex ? "completed" : ""}">
-
-      <span class="timeline-dot"></span>
-
-      <div>
-        <strong>${escapeHTML(status)}</strong>
-      </div>
-
-    </div>
-  `).join("");
-
-  const photoURL = safeImageURL(data.photoUrl);
-
-  container.innerHTML = `
-    <div class="tracking-result">
-
-      <h3>Feedback Details</h3>
-
-      <p>
-        <strong>Tracking ID:</strong>
-        ${escapeHTML(data.tracking_id)}
-      </p>
-
-      <p>
-        <strong>Name:</strong>
-        ${escapeHTML(data.name)}
-      </p>
-
-      <p>
-        <strong>Category:</strong>
-        ${escapeHTML(data.category)}
-      </p>
-
-      <p>
-        <strong>Area:</strong>
-        ${escapeHTML(data.area)}
-      </p>
-
-      <p>
-        <strong>Description:</strong>
-        ${escapeHTML(data.description)}
-      </p>
-
-      <p>
-        <strong>Current Status:</strong>
-        ${statusBadge(data.status)}
-      </p>
-
-      <h3>Application Progress</h3>
-
-      <div class="status-timeline">
-        ${timeline}
-      </div>
-
-      <h3>Administrator Response</h3>
-
-      <p>
-        ${escapeHTML(
-          data.admin_response ||
-          "No response has been added yet."
-        )}
-      </p>
-
-      ${
-        photoURL
-          ? `
-            <h3>Uploaded Photo</h3>
-
-            <img
-              src="${photoURL}"
-              alt="Uploaded feedback"
-              class="tracking-photo"
-              loading="lazy"
-            >
-          `
-          : ""
-      }
-
-      <p class="small-text">
-        Last updated:
-        ${escapeHTML(data.updated_at || "Not available")}
-      </p>
-
-    </div>
-  `;
-}
-
-/* -------------------- ADMIN DASHBOARD -------------------- */
-
-function adminView() {
-  if (!currentUser || currentUser.role !== "admin") {
-    shell(
-      "Administrator Login Required",
-      "Please login with administrator credentials.",
-      `
-        <button
-          class="government-button"
-          data-view="admin-login"
-        >
-          Administrator Login
-        </button>
-      `
-    );
-
-    return;
-  }
-
-  shell(
-    "Administrator Dashboard",
-    "Manage citizen feedback and update application progress.",
-    `
-      <div class="admin-toolbar">
-
+      <div class="password-wrapper">
         <input
-          type="search"
-          id="adminSearch"
-          placeholder="Search by ID, name, area or category..."
+          type="password"
+          name="${name}"
+          required
+          autocomplete="current-password"
         >
-
-        <select id="adminStatusFilter">
-
-          <option value="">All Statuses</option>
-
-          ${statuses.map(status => `
-            <option value="${escapeHTML(status)}">
-              ${escapeHTML(status)}
-            </option>
-          `).join("")}
-
-        </select>
 
         <button
           type="button"
-          class="outline-button"
-          id="refreshAdmin"
-        >
-          Refresh
+          class="password-toggle"
+          aria-label="Show password"
+          title="Show password"
+        >👁</button>
+      </div>
+    </label>
+  `;
+}
+
+function button(label, type = "submit") {
+  return `
+    <button class="primary-button" type="${type}">
+      ${escapeHTML(label)}
+    </button>
+  `;
+}
+
+function formatDate(value) {
+  if (!value) return "Not available";
+
+  const date = new Date(value.replace(" ", "T") + "Z");
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleString("en-IN");
+}
+
+function getTrackingId(item) {
+  return item.tracking_id || item.trackingId || "";
+}
+
+function getAdminResponse(item) {
+  return item.admin_response || item.response || "";
+}
+
+/* =========================================================
+   2. PHOTO PREVIEW
+   ========================================================= */
+
+function photoPreview(input, previewId) {
+  const preview = document.getElementById(previewId);
+  const file = input.files?.[0];
+
+  if (!preview) return;
+
+  if (photoPreviewURL) {
+    URL.revokeObjectURL(photoPreviewURL);
+    photoPreviewURL = null;
+  }
+
+  preview.innerHTML = "";
+
+  if (!file) return;
+
+  photoPreviewURL = URL.createObjectURL(file);
+
+  const image = document.createElement("img");
+
+  image.src = photoPreviewURL;
+  image.alt = "Selected feedback photo";
+  image.style.maxWidth = "100%";
+  image.style.maxHeight = "240px";
+  image.style.objectFit = "contain";
+
+  preview.appendChild(image);
+}
+
+/* =========================================================
+   3. HOME PAGE
+   ========================================================= */
+
+function showHome() {
+  shell("Welcome to JanaSetu", `
+    <section class="welcome-panel">
+
+      <h2>Your Voice Matters</h2>
+
+      <p>
+        Share your suggestions and complaints.
+        Help improve your community through JanaSetu.
+      </p>
+
+      <div class="home-actions">
+
+        <button class="primary-button"
+          onclick="showRegister()">
+          Citizen Registration
+        </button>
+
+        <button class="primary-button"
+          onclick="showLogin()">
+          Citizen Login
+        </button>
+
+        <button class="secondary-button"
+          onclick="showSubmitForm()">
+          Submit Feedback
+        </button>
+
+        <button class="secondary-button"
+          onclick="showTracking()">
+          Track Feedback
+        </button>
+
+        <button class="secondary-button"
+          onclick="showAdminLogin()">
+          Admin Login
         </button>
 
       </div>
 
-      <div id="adminStats" class="stats-grid"></div>
-
-      <div id="adminTable" class="admin-table-wrap">
-        Loading feedback...
-      </div>
-
-      <button
-        type="button"
-        class="outline-button"
-        id="logoutButton"
-      >
-        Logout
-      </button>
-    `,
-    true
-  );
-
-  document.getElementById("adminSearch")
-    .addEventListener("input", renderAdminTable);
-
-  document.getElementById("adminStatusFilter")
-    .addEventListener("change", renderAdminTable);
-
-  document.getElementById("refreshAdmin")
-    .addEventListener("click", loadAdminData);
-
-  document.getElementById("logoutButton")
-    .addEventListener("click", logout);
-
-  loadAdminData();
+    </section>
+  `);
 }
 
-/* -------------------- LOAD ADMIN DATA -------------------- */
+/* =========================================================
+   4. CITIZEN REGISTRATION
+   ========================================================= */
 
-async function loadAdminData() {
-  const table = document.getElementById("adminTable");
+function showRegister() {
+  shell("Citizen Registration", `
+    <form id="registerForm">
 
-  if (table) {
-    table.textContent = "Loading feedback...";
-  }
+      ${formField(
+        "Full Name (Optional)",
+        "name",
+        "text",
+        false
+      )}
 
-  try {
-    const data = await api("/api/admin/suggestions");
+      ${formField(
+        "Email Address",
+        "email",
+        "email"
+      )}
 
-    adminItems = data.items || [];
+      ${passwordField(
+        "Create Password (Minimum 8 Characters)",
+        "password"
+      )}
 
-    const stats = data.stats || {};
-    const statsBox = document.getElementById("adminStats");
+      ${button("Create Account")}
 
-    if (statsBox) {
-      const statNames = [
-        "Total",
-        "Submitted",
-        "Under Review",
-        "In Progress",
-        "Resolved"
-      ];
+    </form>
 
-      statsBox.innerHTML = statNames.map(name => `
-        <div class="stat-card">
+    <p>
+      Already registered?
+      <a href="#" onclick="showLogin(); return false;">
+        Login here
+      </a>
+    </p>
+  `);
+}
 
-          <span>${escapeHTML(name)}</span>
+/* =========================================================
+   5. CITIZEN LOGIN
+   ========================================================= */
 
-          <strong>${Number(stats[name] || 0)}</strong>
+function showLogin() {
+  shell("Citizen Login", `
+    <form id="loginForm">
 
-        </div>
-      `).join("");
+      ${formField(
+        "Email Address",
+        "email",
+        "email"
+      )}
+
+      ${passwordField(
+        "Password",
+        "password"
+      )}
+
+      ${button("Login")}
+
+    </form>
+
+    <p>
+      New citizen?
+      <a href="#" onclick="showRegister(); return false;">
+        Register here
+      </a>
+    </p>
+  `);
+}
+
+/* =========================================================
+   6. ADMIN LOGIN
+   ========================================================= */
+
+function showAdminLogin() {
+  shell("Admin Login", `
+    <form id="adminLoginForm">
+
+      ${formField(
+        "Admin Username",
+        "username"
+      )}
+
+      ${passwordField(
+        "Password",
+        "password"
+      )}
+
+      ${button("Admin Login")}
+
+    </form>
+  `);
+}
+
+/* =========================================================
+   7. PASSWORD SHOW / HIDE
+   ========================================================= */
+
+document.addEventListener("click", event => {
+  const toggle = event.target.closest(".password-toggle");
+
+  if (!toggle) return;
+
+  const wrapper = toggle.parentElement;
+  const input = wrapper.querySelector("input");
+
+  if (!input) return;
+
+  const visible = input.type === "password";
+
+  input.type = visible ? "text" : "password";
+  toggle.textContent = visible ? "🙈" : "👁";
+
+  toggle.setAttribute(
+    "aria-label",
+    visible ? "Hide password" : "Show password"
+  );
+});
+
+/* =========================================================
+   8. AREA AUTOCOMPLETE
+   ========================================================= */
+
+const areas = [
+  "Bengaluru",
+  "Rajeshwari Nagar",
+  "Madanayakanahalli",
+  "Bagalagunte",
+  "T Dasarahalli",
+  "Chikkabanavara",
+  "Anchepalya",
+  "Lakshmipura",
+  "Madhavara",
+  "Yeshwanthpur",
+  "Peenya",
+  "Nagasandra",
+  "Nelamangala",
+  "Jalahalli",
+  "Malleshwaram",
+  "Vijayanagar",
+  "Basaveshwaranagar",
+  "Mandya",
+  "Mysuru",
+  "Tumakuru",
+  "Ramanagara",
+  "Kolar",
+  "Chikkaballapur",
+  "Davanagere",
+  "Hassan",
+  "Shivamogga",
+  "Hubballi",
+  "Belagavi",
+  "Ballari"
+];
+
+function setupAreaAutocomplete() {
+  const input = document.getElementById("areaInput");
+  const list = document.getElementById("areaSuggestions");
+
+  if (!input || !list) return;
+
+  input.addEventListener("input", () => {
+    const value = input.value.trim().toLowerCase();
+
+    list.innerHTML = "";
+
+    if (!value) {
+      list.hidden = true;
+      return;
     }
 
-    renderAdminTable();
+    const matches = areas.filter(area =>
+      area.toLowerCase().includes(value)
+    ).slice(0, 8);
+
+    matches.forEach(area => {
+      const item = document.createElement("button");
+
+      item.type = "button";
+      item.className = "area-suggestion";
+      item.textContent = area;
+
+      item.addEventListener("click", () => {
+        input.value = area;
+        list.hidden = true;
+      });
+
+      list.appendChild(item);
+    });
+
+    list.hidden = matches.length === 0;
+  });
+
+  input.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      list.hidden = true;
+    }
+  });
+
+  document.addEventListener("click", event => {
+    if (!event.target.closest(".area-autocomplete")) {
+      list.hidden = true;
+    }
+  });
+}
+
+/* =========================================================
+   9. GPS LOCATION AND MAP
+   ========================================================= */
+
+function setupLocation() {
+  const locationButton =
+    document.getElementById("getLocationButton");
+
+  if (!locationButton) return;
+
+  locationButton.addEventListener("click", () => {
+    const message =
+      document.getElementById("locationMessage");
+
+    if (!navigator.geolocation) {
+      if (message) {
+        message.textContent =
+          "Location is not supported by this device.";
+      }
+
+      return;
+    }
+
+    locationButton.disabled = true;
+    locationButton.textContent = "Getting location...";
+
+    navigator.geolocation.getCurrentPosition(
+      async position => {
+
+        const lat = position.coords.latitude;
+        const lon = position.coords.longitude;
+
+        const latitudeInput =
+          document.getElementById("latitudeInput");
+
+        const longitudeInput =
+          document.getElementById("longitudeInput");
+
+        if (latitudeInput) latitudeInput.value = lat;
+        if (longitudeInput) longitudeInput.value = lon;
+
+        if (message) {
+          message.textContent =
+            "Location captured successfully.";
+        }
+
+        const map =
+          document.getElementById("locationMap");
+
+        if (map) {
+          map.hidden = false;
+
+          map.innerHTML = `
+            <iframe
+              title="Selected location map"
+              width="100%"
+              height="220"
+              loading="lazy"
+              style="border:0;border-radius:12px"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01}%2C${lat - 0.01}%2C${lon + 0.01}%2C${lat + 0.01}&layer=mapnik&marker=${lat}%2C${lon}">
+            </iframe>
+
+            <a
+              target="_blank"
+              rel="noopener"
+              href="https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}">
+              Open Map
+            </a>
+          `;
+        }
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}`
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            const address = result.address || {};
+
+            const area =
+              address.suburb ||
+              address.neighbourhood ||
+              address.village ||
+              address.town ||
+              address.city ||
+              address.county;
+
+            const areaInput =
+              document.getElementById("areaInput");
+
+            if (area && areaInput && !areaInput.value.trim()) {
+              areaInput.value = area;
+            }
+          }
+
+        } catch (error) {
+          console.log("Address lookup unavailable:", error);
+        }
+
+        locationButton.disabled = false;
+        locationButton.textContent =
+          "Use My Current Location";
+
+      },
+
+      error => {
+        if (message) {
+          message.textContent =
+            "Unable to get location. Please allow location permission or enter your area manually.";
+        }
+
+        locationButton.disabled = false;
+        locationButton.textContent =
+          "Use My Current Location";
+      },
+
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  });
+}
+
+/* =========================================================
+   10. SUBMIT FEEDBACK FORM
+   ========================================================= */
+
+function showSubmitForm() {
+
+  if (currentRole !== "citizen") {
+    toast("Please login as a citizen first.", "error");
+    showLogin();
+    return;
+  }
+
+  shell("Submit Feedback", `
+
+    <form id="suggestionForm">
+
+      <label class="form-field">
+        <span>Feedback Category</span>
+
+        <select name="category" required>
+          <option value="">Select Category</option>
+          <option>Road and Infrastructure</option>
+          <option>Water Supply</option>
+          <option>Street Lights</option>
+          <option>Sanitation and Cleanliness</option>
+          <option>Drainage</option>
+          <option>Public Safety</option>
+          <option>Waste Management</option>
+          <option>Public Facilities</option>
+          <option>Other</option>
+        </select>
+      </label>
+
+      <div class="area-autocomplete form-field">
+
+        <span>Area / Location</span>
+
+        <input
+          id="areaInput"
+          name="area"
+          placeholder="Enter your area"
+          autocomplete="off"
+          required
+        >
+
+        <div
+          id="areaSuggestions"
+          class="area-suggestions"
+          hidden>
+        </div>
+
+      </div>
+
+      <div class="location-controls">
+
+        <button
+          type="button"
+          id="getLocationButton"
+          class="secondary-button">
+          Use My Current Location
+        </button>
+
+        <p id="locationMessage"></p>
+
+        <div
+          id="locationMap"
+          class="location-map"
+          hidden>
+        </div>
+
+      </div>
+
+      <input
+        type="hidden"
+        name="latitude"
+        id="latitudeInput"
+      >
+
+      <input
+        type="hidden"
+        name="longitude"
+        id="longitudeInput"
+      >
+
+      <label class="form-field">
+        <span>Describe Your Feedback</span>
+
+        <textarea
+          name="description"
+          rows="5"
+          placeholder="Explain the issue or suggestion..."
+          required>
+        </textarea>
+      </label>
+
+      <label class="form-field">
+        <span>Upload Photo (Required)</span>
+
+        <input
+          type="file"
+          id="photoInput"
+          name="photo"
+          accept="image/*"
+          required
+        >
+      </label>
+
+      <div
+        id="photoPreview"
+        class="photo-preview">
+      </div>
+
+      ${button("Submit Feedback")}
+
+    </form>
+  `);
+
+  setupAreaAutocomplete();
+  setupLocation();
+
+  document.getElementById("photoInput")
+    ?.addEventListener("change", event => {
+      photoPreview(event.target, "photoPreview");
+    });
+}
+
+/* =========================================================
+   11. FEEDBACK TRACKING
+   ========================================================= */
+
+function showTracking() {
+
+  shell("Track Your Feedback", `
+
+    <form id="trackingForm">
+
+      ${formField(
+        "Enter Your Tracking ID",
+        "trackingId"
+      )}
+
+      ${button("Track Feedback")}
+
+    </form>
+
+    <div id="trackingResult"></div>
+
+  `);
+}
+
+async function trackFeedback(trackingId) {
+
+  const result =
+    document.getElementById("trackingResult");
+
+  if (!result) return;
+
+  if (!trackingId || !trackingId.trim()) {
+    result.innerHTML =
+      "<p>Please enter a tracking ID.</p>";
+    return;
+  }
+
+  result.innerHTML =
+    "<p>Loading feedback details...</p>";
+
+  try {
+
+    const data = await api(
+      "/track/" + encodeURIComponent(trackingId.trim())
+    );
+
+    const item = data.suggestion || data;
+
+    const statuses = [
+      "Submitted",
+      "Under Review",
+      "In Progress",
+      "Resolved"
+    ];
+
+    const currentIndex =
+      statuses.indexOf(item.status);
+
+    const response = getAdminResponse(item);
+
+    result.innerHTML = `
+
+      <div class="tracking-card">
+
+        <h3>Feedback Details</h3>
+
+        <p>
+          <strong>Tracking ID:</strong>
+          ${escapeHTML(getTrackingId(item) || trackingId)}
+        </p>
+
+        <p>
+          <strong>Category:</strong>
+          ${escapeHTML(item.category || "")}
+        </p>
+
+        <p>
+          <strong>Area:</strong>
+          ${escapeHTML(item.area || "")}
+        </p>
+
+        <p>
+          <strong>Status:</strong>
+          ${escapeHTML(item.status || "Submitted")}
+        </p>
+
+        <p>
+          <strong>Description:</strong>
+          ${escapeHTML(item.description || "")}
+        </p>
+
+        <p>
+          <strong>Submitted:</strong>
+          ${escapeHTML(formatDate(item.created_at))}
+        </p>
+
+        <div class="status-timeline">
+
+          ${statuses.map((status, index) => `
+            <div class="timeline-step ${
+              index <= currentIndex ? "active" : ""
+            }">
+              ${escapeHTML(status)}
+            </div>
+          `).join("")}
+
+        </div>
+
+        ${response ? `
+          <div class="admin-response">
+            <strong>Admin Response</strong>
+            <p>${escapeHTML(response)}</p>
+          </div>
+        ` : ""}
+
+        ${item.photoUrl ? `
+          <div class="tracking-photo">
+            <img
+              src="${escapeHTML(item.photoUrl)}"
+              alt="Uploaded feedback photo"
+              loading="lazy"
+            >
+          </div>
+        ` : ""}
+
+      </div>
+
+    `;
 
   } catch (error) {
-    if (table) {
-      table.innerHTML = `
-        <div class="error-panel">
-          ${escapeHTML(error.message)}
+
+    result.innerHTML = `
+      <p class="error-message">
+        ${escapeHTML(error.message)}
+      </p>
+    `;
+  }
+}
+
+/* =========================================================
+   12. ADMIN DASHBOARD
+   ========================================================= */
+
+async function showAdminDashboard() {
+
+  currentRole = "admin";
+
+  shell("Admin Dashboard", `
+
+    <div class="admin-toolbar">
+
+      <input
+        id="adminSearch"
+        placeholder="Search feedback..."
+      >
+
+      <select id="statusFilter">
+        <option value="">All Statuses</option>
+        <option>Submitted</option>
+        <option>Under Review</option>
+        <option>In Progress</option>
+        <option>Resolved</option>
+      </select>
+
+      <button
+        class="secondary-button"
+        type="button"
+        onclick="loadAdminDashboard()">
+        Refresh
+      </button>
+
+    </div>
+
+    <div
+      id="adminStats"
+      class="admin-stats">
+    </div>
+
+    <div id="adminList">
+      Loading feedback...
+    </div>
+
+    <button
+      class="secondary-button"
+      type="button"
+      onclick="logout()">
+      Logout
+    </button>
+
+  `);
+
+  document.getElementById("adminSearch")
+    ?.addEventListener("input", renderAdminList);
+
+  document.getElementById("statusFilter")
+    ?.addEventListener("change", renderAdminList);
+
+  await loadAdminDashboard();
+}
+
+async function loadAdminDashboard() {
+
+  try {
+
+    const data = await api("/admin/suggestions");
+
+    suggestionsCache =
+      data.items || data.suggestions || [];
+
+    const stats = data.stats || {};
+
+    const statsBox =
+      document.getElementById("adminStats");
+
+    if (statsBox) {
+
+      statsBox.innerHTML = `
+
+        <div class="stat-card">
+          <strong>${stats.Total ?? stats.total ?? suggestionsCache.length}</strong>
+          <span>Total</span>
         </div>
+
+        <div class="stat-card">
+          <strong>${stats.Submitted ?? stats.submitted ?? 0}</strong>
+          <span>Submitted</span>
+        </div>
+
+        <div class="stat-card">
+          <strong>${stats["Under Review"] ?? stats.underReview ?? 0}</strong>
+          <span>Under Review</span>
+        </div>
+
+        <div class="stat-card">
+          <strong>${stats["In Progress"] ?? stats.inProgress ?? 0}</strong>
+          <span>In Progress</span>
+        </div>
+
+        <div class="stat-card">
+          <strong>${stats.Resolved ?? stats.resolved ?? 0}</strong>
+          <span>Resolved</span>
+        </div>
+
+      `;
+    }
+
+    renderAdminList();
+
+  } catch (error) {
+
+    const list =
+      document.getElementById("adminList");
+
+    if (list) {
+      list.innerHTML = `
+        <p class="error-message">
+          ${escapeHTML(error.message)}
+        </p>
       `;
     }
   }
 }
 
-/* -------------------- RENDER ADMIN RECORDS -------------------- */
+/* =========================================================
+   13. ADMIN SEARCH AND FILTER
+   ========================================================= */
 
-function renderAdminTable() {
-  const table = document.getElementById("adminTable");
+function renderAdminList() {
 
-  if (!table) return;
+  const list =
+    document.getElementById("adminList");
+
+  if (!list) return;
 
   const search = (
     document.getElementById("adminSearch")?.value || ""
   ).toLowerCase();
 
-  const filter = (
-    document.getElementById("adminStatusFilter")?.value || ""
-  );
+  const filter =
+    document.getElementById("statusFilter")?.value || "";
 
-  const filtered = adminItems.filter(item => {
-    const matchesSearch = [
-      item.tracking_id,
+  const items = suggestionsCache.filter(item => {
+
+    const text = [
+      getTrackingId(item),
       item.name,
+      item.category,
       item.area,
-      item.category
-    ].some(value =>
-      String(value || "").toLowerCase().includes(search)
+      item.description,
+      item.status
+    ].join(" ").toLowerCase();
+
+    return (
+      text.includes(search) &&
+      (!filter || item.status === filter)
     );
-
-    const matchesStatus =
-      !filter || item.status === filter;
-
-    return matchesSearch && matchesStatus;
   });
 
-  if (!filtered.length) {
-    table.innerHTML = `
-      <div class="empty-state">
-        No feedback records found.
-      </div>
-    `;
-
+  if (!items.length) {
+    list.innerHTML = "<p>No feedback found.</p>";
     return;
   }
 
-  table.innerHTML = `
-    <div class="admin-record-list">
+  list.innerHTML = items.map(item => {
 
-      ${filtered.map(item => {
-        const photoURL = safeImageURL(item.photoUrl);
+    const trackingId = getTrackingId(item);
+    const safeId = escapeHTML(trackingId);
 
-        return `
-          <article class="admin-record">
+    return `
 
-            <div class="admin-record-header">
+      <article class="admin-card">
 
-              <strong>
-                ${escapeHTML(item.tracking_id)}
-              </strong>
+        <h3>${escapeHTML(item.category || "Feedback")}</h3>
 
-              ${statusBadge(item.status)}
+        <p>
+          <strong>Tracking ID:</strong>
+          ${safeId}
+        </p>
 
-            </div>
+        <p>
+          <strong>Citizen:</strong>
+          ${escapeHTML(item.name || "Citizen")}
+        </p>
 
-            <p>
-              <strong>Name:</strong>
-              ${escapeHTML(item.name)}
-            </p>
+        <p>
+          <strong>Area:</strong>
+          ${escapeHTML(item.area || "")}
+        </p>
 
-            <p>
-              <strong>Category:</strong>
-              ${escapeHTML(item.category)}
-            </p>
+        <p>
+          <strong>Description:</strong>
+          ${escapeHTML(item.description || "")}
+        </p>
 
-            <p>
-              <strong>Area:</strong>
-              ${escapeHTML(item.area)}
-            </p>
+        <p>
+          <strong>Submitted:</strong>
+          ${escapeHTML(formatDate(item.created_at))}
+        </p>
 
-            <p>
-              <strong>Description:</strong>
-              ${escapeHTML(item.description)}
-            </p>
+        ${item.latitude != null && item.longitude != null ? `
+          <p>
+            <a
+              target="_blank"
+              rel="noopener"
+              href="https://www.openstreetmap.org/?mlat=${Number(item.latitude)}&mlon=${Number(item.longitude)}">
+              View Submitted Location
+            </a>
+          </p>
+        ` : ""}
 
-            ${
-              photoURL
-                ? `
-                  <img
-                    src="${photoURL}"
-                    alt="Feedback photo"
-                    class="admin-photo"
-                    loading="lazy"
-                  >
-                `
-                : ""
-            }
+        ${item.photoUrl ? `
+          <div class="admin-photo">
+            <img
+              src="${escapeHTML(item.photoUrl)}"
+              alt="Feedback photo"
+              loading="lazy"
+            >
+          </div>
+        ` : ""}
 
-            <label class="form-field">
+        <label class="form-field">
+          <span>Update Status</span>
 
-              <span>Update Status</span>
+          <select id="status-${safeId}">
+            ${[
+              "Submitted",
+              "Under Review",
+              "In Progress",
+              "Resolved"
+            ].map(status => `
+              <option
+                value="${status}"
+                ${item.status === status ? "selected" : ""}>
+                ${status}
+              </option>
+            `).join("")}
+          </select>
+        </label>
 
-              <select
-                class="admin-status"
-                data-id="${escapeHTML(item.tracking_id)}"
-              >
+        <label class="form-field">
+          <span>Admin Response</span>
 
-                ${statuses.map(status => `
-                  <option
-                    value="${escapeHTML(status)}"
-                    ${item.status === status ? "selected" : ""}
-                  >
-                    ${escapeHTML(status)}
-                  </option>
-                `).join("")}
+          <textarea
+            id="response-${safeId}"
+            rows="3"
+            placeholder="Enter response to citizen..."
+          >${escapeHTML(getAdminResponse(item))}</textarea>
+        </label>
 
-              </select>
+        <div class="admin-actions">
 
-            </label>
+          <button
+            class="primary-button"
+            type="button"
+            onclick="updateFeedback('${safeId}')">
+            Save Changes
+          </button>
 
-            <label class="form-field">
+          <button
+            class="danger-button"
+            type="button"
+            onclick="deleteFeedback('${safeId}')">
+            Delete
+          </button>
 
-              <span>Administrator Response</span>
+        </div>
 
-              <textarea
-                class="admin-response"
-                data-id="${escapeHTML(item.tracking_id)}"
-                rows="3"
-                placeholder="Write your response..."
-              >${escapeHTML(item.admin_response || "")}</textarea>
+      </article>
 
-            </label>
-
-            <div class="admin-actions">
-
-              <button
-                type="button"
-                class="government-button save-admin"
-                data-id="${escapeHTML(item.tracking_id)}"
-              >
-                Save Update
-              </button>
-
-              <button
-                type="button"
-                class="danger-button delete-admin"
-                data-id="${escapeHTML(item.tracking_id)}"
-              >
-                Delete
-              </button>
-
-            </div>
-
-          </article>
-        `;
-      }).join("")}
-
-    </div>
-  `;
-
-  table.querySelectorAll(".save-admin").forEach(button => {
-    button.addEventListener("click", () => {
-      updateAdminRecord(button.dataset.id);
-    });
-  });
-
-  table.querySelectorAll(".delete-admin").forEach(button => {
-    button.addEventListener("click", () => {
-      deleteAdminRecord(button.dataset.id);
-    });
-  });
+    `;
+  }).join("");
 }
 
-/* -------------------- ADMIN UPDATE -------------------- */
+/* =========================================================
+   14. ADMIN UPDATE FEEDBACK
+   ========================================================= */
 
-async function updateAdminRecord(trackingId) {
-  const statusInput = document.querySelector(
-    `.admin-status[data-id="${CSS.escape(trackingId)}"]`
-  );
+async function updateFeedback(trackingId) {
 
-  const responseInput = document.querySelector(
-    `.admin-response[data-id="${CSS.escape(trackingId)}"]`
-  );
+  const status =
+    document.getElementById("status-" + trackingId)?.value;
 
-  if (!statusInput || !responseInput) return;
+  const response =
+    document.getElementById("response-" + trackingId)?.value || "";
 
   try {
+
     await api(
-      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+      "/admin/suggestions/" + encodeURIComponent(trackingId),
       {
         method: "PATCH",
 
+        headers: {
+          "Content-Type": "application/json"
+        },
+
         body: JSON.stringify({
-          status: statusInput.value,
-          admin_response: responseInput.value
+          status: status,
+          admin_response: response
         })
       }
     );
 
-    toast("Feedback updated successfully!");
+    toast("Feedback updated successfully.");
 
-    await loadAdminData();
+    await loadAdminDashboard();
 
   } catch (error) {
-    toast(error.message);
+
+    toast(error.message, "error");
   }
 }
 
-/* -------------------- ADMIN DELETE -------------------- */
+/* =========================================================
+   15. ADMIN DELETE FEEDBACK
+   ========================================================= */
 
-async function deleteAdminRecord(trackingId) {
+async function deleteFeedback(trackingId) {
+
   const confirmed = confirm(
-    `Are you sure you want to delete feedback ${trackingId}?`
+    "Are you sure you want to delete this feedback?"
   );
 
   if (!confirmed) return;
 
   try {
+
     await api(
-      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+      "/admin/suggestions/" + encodeURIComponent(trackingId),
       {
         method: "DELETE"
       }
     );
 
-    toast("Feedback deleted successfully!");
+    toast("Feedback deleted successfully.");
 
-    await loadAdminData();
+    await loadAdminDashboard();
 
   } catch (error) {
-    toast(error.message);
+
+    toast(error.message, "error");
   }
 }
 
-/* -------------------- SESSION AND LOGOUT -------------------- */
+/* =========================================================
+   16. CITIZEN DASHBOARD
+   ========================================================= */
 
-async function loadSession() {
-  try {
-    currentUser = await api("/api/session");
+function showCitizenDashboard() {
 
-    if (!currentUser.loggedIn) {
-      currentUser = null;
-    }
+  shell("Citizen Dashboard", `
 
-    return currentUser;
+    <div class="welcome-panel">
 
-  } catch {
-    currentUser = null;
-    return null;
-  }
+      <h2>Welcome to JanaSetu</h2>
+
+      <p>
+        Your feedback can help improve your community.
+      </p>
+
+      <div class="home-actions">
+
+        <button
+          class="primary-button"
+          onclick="showSubmitForm()">
+          Submit Feedback
+        </button>
+
+        <button
+          class="secondary-button"
+          onclick="showTracking()">
+          Track Feedback
+        </button>
+
+        <button
+          class="secondary-button"
+          onclick="logout()">
+          Logout
+        </button>
+
+      </div>
+
+    </div>
+
+  `);
 }
+
+/* =========================================================
+   17. LOGOUT
+   ========================================================= */
 
 async function logout() {
+
   try {
-    await api("/api/logout", {
+
+    await api("/logout", {
       method: "POST"
     });
 
-    currentUser = null;
-
-    adminItems = [];
-
-    toast("You have been logged out.");
-
-    view("home");
-
   } catch (error) {
-    toast(error.message);
+    console.log("Logout:", error);
+  }
+
+  currentUser = null;
+  currentRole = null;
+  suggestionsCache = [];
+
+  toast("Logged out successfully.");
+
+  showHome();
+}
+
+/* =========================================================
+   18. HAMBURGER MENU AND NAVIGATION
+   ========================================================= */
+
+function closeMenu() {
+
+  const toggle =
+    document.getElementById("menuToggle");
+
+  const menu =
+    document.getElementById("navMenu");
+
+  if (menu) menu.classList.remove("active");
+
+  if (toggle) {
+    toggle.classList.remove("active");
+    toggle.setAttribute("aria-expanded", "false");
   }
 }
 
-/* -------------------- SERVICE WORKER -------------------- */
+document.addEventListener("DOMContentLoaded", () => {
+
+  const toggle =
+    document.getElementById("menuToggle");
+
+  const menu =
+    document.getElementById("navMenu");
+
+  if (toggle && menu) {
+
+    toggle.addEventListener("click", event => {
+
+      event.stopPropagation();
+
+      const isOpen = menu.classList.toggle("active");
+
+      toggle.classList.toggle("active", isOpen);
+
+      toggle.setAttribute(
+        "aria-expanded",
+        String(isOpen)
+      );
+    });
+
+    document.addEventListener("click", event => {
+
+      if (
+        !menu.contains(event.target) &&
+        !toggle.contains(event.target)
+      ) {
+        closeMenu();
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    });
+  }
+
+  // Navigation buttons in the HTML.
+  document.addEventListener("click", event => {
+
+    const navButton = event.target.closest("[data-view]");
+
+    if (!navButton) return;
+
+    const view = navButton.dataset.view;
+
+    closeMenu();
+
+    switch (view) {
+
+      case "home":
+        showHome();
+        break;
+
+      case "submit":
+        showSubmitForm();
+        break;
+
+      case "track":
+        showTracking();
+        break;
+
+      case "login":
+        showLogin();
+        break;
+
+      case "register":
+        showRegister();
+        break;
+
+      case "admin-login":
+        showAdminLogin();
+        break;
+
+      case "dashboard":
+        if (currentRole === "admin") {
+          showAdminDashboard();
+        } else if (currentRole === "citizen") {
+          showCitizenDashboard();
+        } else {
+          showLogin();
+        }
+        break;
+    }
+  });
+
+  /* =======================================================
+     19. LIGHT / DARK THEME
+     ======================================================= */
+
+  const themeSelect =
+    document.getElementById("themeSelect");
+
+  const savedTheme =
+    localStorage.getItem("janasetu-theme") || "light";
+
+  document.documentElement.dataset.theme = savedTheme;
+
+  if (themeSelect) {
+
+    themeSelect.value = savedTheme;
+
+    themeSelect.addEventListener("change", () => {
+
+      const theme = themeSelect.value;
+
+      document.documentElement.dataset.theme = theme;
+
+      localStorage.setItem("janasetu-theme", theme);
+    });
+  }
+
+  /* =======================================================
+     20. INITIAL PAGE AND SESSION
+     ======================================================= */
+
+  showHome();
+
+  api("/session")
+    .then(data => {
+
+      if (!data.loggedIn) return;
+
+      currentUser = data.user || null;
+      currentRole = data.role || null;
+
+      if (currentRole === "admin") {
+        showAdminDashboard();
+      } else if (currentRole === "citizen") {
+        showCitizenDashboard();
+      }
+    })
+    .catch(error => {
+      console.log("Session check:", error);
+    });
+
+});
+
+/* =========================================================
+   21. FORM SUBMISSIONS
+   ========================================================= */
+
+document.addEventListener("submit", async event => {
+
+  const form = event.target;
+
+  if (!form.matches("form")) return;
+
+  event.preventDefault();
+
+  const submitButton =
+    form.querySelector('[type="submit"]');
+
+  if (submitButton) {
+    submitButton.disabled = true;
+  }
+
+  try {
+
+    /* ---------------- REGISTRATION ---------------- */
+
+    if (form.id === "registerForm") {
+
+      const values =
+        Object.fromEntries(new FormData(form));
+
+      const data = await api("/register", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(values)
+      });
+
+      currentRole = "citizen";
+      currentUser = data;
+
+      toast("Registration successful!");
+
+      showCitizenDashboard();
+    }
+
+    /* ---------------- CITIZEN LOGIN ---------------- */
+
+    else if (form.id === "loginForm") {
+
+      const values =
+        Object.fromEntries(new FormData(form));
+
+      const data = await api("/login", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(values)
+      });
+
+      currentUser = data.user || null;
+      currentRole = "citizen";
+
+      toast("Login successful!");
+
+      showCitizenDashboard();
+    }
+
+    /* ---------------- ADMIN LOGIN ---------------- */
+
+    else if (form.id === "adminLoginForm") {
+
+      const values =
+        Object.fromEntries(new FormData(form));
+
+      const data = await api("/admin-login", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify(values)
+      });
+
+      currentUser = data;
+      currentRole = "admin";
+
+      toast("Admin login successful!");
+
+      await showAdminDashboard();
+    }
+
+    /* ---------------- SUBMIT FEEDBACK ---------------- */
+
+    else if (form.id === "suggestionForm") {
+
+      const photoInput =
+        document.getElementById("photoInput");
+
+      const photo = photoInput?.files?.[0];
+
+      if (!photo) {
+
+        toast("Please upload a photo.", "error");
+
+        return;
+      }
+
+      const formData = new FormData(form);
+
+      const data = await api("/suggestions", {
+
+        method: "POST",
+
+        body: formData
+      });
+
+      const trackingId = data.trackingId;
+
+      toast("Feedback submitted successfully!");
+
+      shell("Feedback Submitted Successfully!", `
+
+        <div class="success-panel">
+
+          <h3>Your feedback has been received.</h3>
+
+          <p>
+            Keep your Tracking ID safe to check the progress
+            of your feedback.
+          </p>
+
+          <div class="tracking-id-display">
+            <strong>${escapeHTML(trackingId)}</strong>
+          </div>
+
+          <button
+            class="primary-button"
+            type="button"
+            onclick="copyTrackingId('${escapeHTML(trackingId)}')">
+            Copy Tracking ID
+          </button>
+
+          <button
+            class="secondary-button"
+            type="button"
+            onclick="showTracking()">
+            Track Feedback
+          </button>
+
+          <button
+            class="secondary-button"
+            type="button"
+            onclick="showCitizenDashboard()">
+            Citizen Dashboard
+          </button>
+
+        </div>
+
+      `);
+    }
+
+    /* ---------------- TRACK FEEDBACK ---------------- */
+
+    else if (form.id === "trackingForm") {
+
+      const trackingId =
+        new FormData(form).get("trackingId");
+
+      await trackFeedback(trackingId);
+    }
+
+  } catch (error) {
+
+    toast(error.message, "error");
+
+  } finally {
+
+    if (submitButton && submitButton.isConnected) {
+      submitButton.disabled = false;
+    }
+  }
+});
+
+/* =========================================================
+   22. COPY TRACKING ID
+   ========================================================= */
+
+async function copyTrackingId(trackingId) {
+
+  try {
+
+    await navigator.clipboard.writeText(trackingId);
+
+    toast("Tracking ID copied successfully!");
+
+  } catch (error) {
+
+    const temporaryInput =
+      document.createElement("textarea");
+
+    temporaryInput.value = trackingId;
+
+    document.body.appendChild(temporaryInput);
+
+    temporaryInput.select();
+
+    document.execCommand("copy");
+
+    temporaryInput.remove();
+
+    toast("Tracking ID copied!");
+  }
+}
+
+/* =========================================================
+   23. SERVICE WORKER
+   ========================================================= */
 
 if ("serviceWorker" in navigator) {
+
   window.addEventListener("load", () => {
+
     navigator.serviceWorker.register("/sw.js")
       .catch(error => {
-        console.warn(
+
+        console.log(
           "Service worker registration failed:",
           error
         );
+
       });
+
   });
 }
 
-/* -------------------- START APPLICATION -------------------- */
-
-(async function startApplication() {
-  await loadSession();
-
-  homeView();
-})();
+/* =========================================================
+   END OF JANASETU JAVASCRIPT
+   ========================================================= */
