@@ -79,31 +79,119 @@
   <!-- MAIN HEADER -->
   <header class="government-header">
 
+    <!-- UPDATED JANASETU LOGO ONLY -->
     <a
       href="#home"
       class="identity"
-      aria-label="Digital Citizen Feedback System home"
+      aria-label="Janasetu Digital Citizen Feedback System home"
+      style="display:flex; align-items:center; gap:16px;"
     >
 
-      <div class="civic-seal" aria-hidden="true">
-        <div class="seal-inner">
-          <span class="seal-symbol">✦</span>
-          <span class="seal-kannada">ಕರ್ನಾಟಕ</span>
-          <span class="seal-caption">CITIZEN SERVICES</span>
-        </div>
+      <!-- JANASETU LOGO SYMBOL -->
+      <div
+        class="civic-seal"
+        aria-hidden="true"
+        style="width:125px; height:110px; flex-shrink:0; background:transparent; border:0; box-shadow:none;"
+      >
+
+        <svg
+          viewBox="0 0 150 120"
+          width="100%"
+          height="100%"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+
+          <!-- Karnataka-inspired map -->
+          <path
+            d="M43 5 L57 10 L61 20 L74 25 L70 39
+               L82 47 L74 59 L79 72 L65 80
+               L58 96 L43 105 L29 94 L20 78
+               L12 62 L18 48 L13 34 L27 23
+               L31 11 Z"
+            fill="#ff981f"
+          />
+
+          <!-- Government building -->
+          <path
+            d="M88 45 L112 34 L137 45 L137 51 L88 51 Z"
+            fill="#173d78"
+          />
+
+          <path
+            d="M91 52 H135 V88 H91 Z"
+            fill="#173d78"
+          />
+
+          <path
+            d="M85 43 L112 29 L141 43 Z"
+            fill="#173d78"
+          />
+
+          <!-- Building columns -->
+          <g fill="#ffffff">
+            <rect x="96" y="54" width="4" height="30"/>
+            <rect x="106" y="54" width="4" height="30"/>
+            <rect x="116" y="54" width="4" height="30"/>
+            <rect x="126" y="54" width="4" height="30"/>
+          </g>
+
+          <!-- Citizen figures -->
+          <g fill="#102f68">
+            <circle cx="42" cy="55" r="9"/>
+            <circle cx="65" cy="49" r="10"/>
+            <circle cx="84" cy="58" r="8"/>
+
+            <path d="M27 91 Q28 68 42 68 Q56 68 57 91 Z"/>
+            <path d="M48 91 Q49 63 65 63 Q81 63 82 91 Z"/>
+            <path d="M73 91 Q74 70 84 70 Q96 70 98 91 Z"/>
+          </g>
+
+          <!-- Tricolour-inspired waves -->
+          <path
+            d="M12 94 Q48 111 83 91 Q105 79 139 92"
+            fill="none"
+            stroke="#ff981f"
+            stroke-width="7"
+          />
+
+          <path
+            d="M12 103 Q50 118 87 99 Q111 87 141 99"
+            fill="none"
+            stroke="#229b50"
+            stroke-width="7"
+          />
+
+        </svg>
       </div>
 
-      <div class="identity-text">
-        <span class="identity-kannada">
-          ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ
+      <!-- JANASETU BRANDING -->
+      <div
+        class="identity-text"
+        style="display:flex; flex-direction:column; justify-content:center; gap:3px;"
+      >
+
+        <h1
+          style="font-size:34px; font-weight:800; color:#173d78; margin:0; letter-spacing:1px;"
+        >
+          JANASETU
+        </h1>
+
+        <p
+          style="font-size:15px; font-weight:600; color:#173d78; margin:0;"
+        >
+          Digital Citizen Feedback System
+        </p>
+
+        <span
+          style="display:inline-block; width:max-content; max-width:100%; margin-top:5px; padding:5px 13px; border:1px solid #f5bd43; border-radius:20px; background:#fff3d4; color:#173d78; font-size:12px; font-weight:700;"
+        >
+          Together for a Better Karnataka
         </span>
 
-        <h1>Digital Citizen Feedback System</h1>
-
-        <p>Local Governance & Public Participation</p>
       </div>
 
     </a>
+    <!-- END OF UPDATED LOGO -->
 
     <div class="header-right">
       <span class="header-label">CITIZEN SERVICE PORTAL</span>
