@@ -1,4 +1,6 @@
-const CACHE_NAME = 'dsb-shell-v2';
+
+const CACHE_NAME = 'janasetu-shell-v3';
+
 const SHELL = [
   '/',
   '/static/style.css',
@@ -7,57 +9,79 @@ const SHELL = [
   '/static/app-icon.svg'
 ];
 
+// Install the new application cache.
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(SHELL))
+    caches.open(CACHE_NAME)
+      .then(cache => cache.addAll(SHELL))
   );
+
   self.skipWaiting();
 });
 
+// Remove outdated JANASETU and old DSB caches.
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key.startsWith('dsb-shell-') && key !== CACHE_NAME)
+          .filter(key =>
+            (
+              key.startsWith('dsb-shell-') ||
+              key.startsWith('janasetu-shell-')
+            ) &&
+            key !== CACHE_NAME
+          )
           .map(key => caches.delete(key))
       )
     )
   );
+
   self.clients.claim();
 });
 
+// Network-first strategy for application files.
 self.addEventListener('fetch', event => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  const url = new URL(request.url);
 
+  // Do not cache API requests or external websites.
   if (
-    event.request.method !== 'GET' ||
+    request.method !== 'GET' ||
     url.origin !== self.location.origin ||
     url.pathname.startsWith('/api/')
   ) {
     return;
   }
 
-  // Always request the homepage fresh from the server.
-  if (event.request.mode === 'navigate') {
+  // Always try to load the latest page from the server.
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/'))
+      fetch(request)
+        .catch(() => caches.match('/'))
     );
+
     return;
   }
 
-  // Network-first for other static files.
+  // Network-first for static files.
   event.respondWith(
-    fetch(event.request)
+    fetch(request)
       .then(response => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache =>
-            cache.put(event.request, copy)
+        if (response && response.ok) {
+          const responseCopy = response.clone();
+
+          event.waitUntil(
+            caches.open(CACHE_NAME).then(cache =>
+              cache.put(request, responseCopy)
+            )
           );
         }
+
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() =>
+        caches.match(request)
+      )
   );
 });
