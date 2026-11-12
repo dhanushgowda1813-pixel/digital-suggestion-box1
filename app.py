@@ -8,7 +8,7 @@ import os
 import uuid
 
 # =========================================================
-# DIGITAL CITIZEN FEEDBACK SYSTEM
+# JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
 # Flask Backend
 # =========================================================
 
@@ -25,12 +25,14 @@ app.secret_key = os.environ.get(
     "change-this-secret-before-deployment"
 )
 
-# Session security settings
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.environ.get("RENDER") is not None
+)
 
-# No application-level upload size limit is set.
-# Hosting providers may still enforce their own limits.
+# No application-level upload size limit.
+# Hosting providers may enforce their own limits.
 
 
 # =========================================================
@@ -81,7 +83,6 @@ def init_db():
             )
         """)
 
-        # Add missing columns to an existing database.
         columns = {
             row["name"]
             for row in con.execute(
@@ -107,8 +108,6 @@ def init_db():
             )
         """)
 
-        # Default Admin credentials can be configured
-        # through environment variables.
         username = os.environ.get(
             "DSB_ADMIN_USER",
             "admin"
@@ -125,7 +124,6 @@ def init_db():
         ).fetchone()
 
         if not existing_admin:
-
             con.execute(
                 """
                 INSERT INTO admins(username, password_hash)
@@ -160,6 +158,20 @@ def row_to_dict(row):
     }
 
 
+def add_photo_url(item):
+    if item.get("photo"):
+        item["photoUrl"] = url_for(
+            "static",
+            filename="uploads/" + Path(item["photo"]).name
+        )
+        item.pop("photo", None)
+
+    # Compatibility with the frontend.
+    item["response"] = item.get("admin_response", "")
+
+    return item
+
+
 # =========================================================
 # HOME PAGE
 # =========================================================
@@ -185,12 +197,13 @@ def service_worker():
 @app.get("/api/session")
 def session_info():
 
-    logged_in = is_citizen() or is_admin()
-
     return jsonify({
-        "loggedIn": logged_in,
+        "loggedIn": is_citizen() or is_admin(),
         "role": session.get("role"),
-        "name": session.get("name")
+        "name": session.get("name"),
+        "user": {
+            "name": session.get("name")
+        } if session.get("role") == "citizen" else None
     })
 
 
@@ -207,10 +220,9 @@ def register():
     email = str(data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
+    # Name is optional.
     if not name:
-        return jsonify(
-            error="Please enter your name."
-        ), 400
+        name = "Citizen"
 
     if not email or "@" not in email:
         return jsonify(
@@ -252,7 +264,10 @@ def register():
             error="An account with this email already exists."
         ), 409
 
-    return jsonify(ok=True)
+    return jsonify(
+        ok=True,
+        name=name
+    )
 
 
 # =========================================================
@@ -264,7 +279,11 @@ def login():
 
     data = request.get_json(silent=True) or {}
 
-    email = str(data.get("email") or "").strip().lower()
+    # Accept both frontend field names.
+    email = str(
+        data.get("email") or data.get("identity") or ""
+    ).strip().lower()
+
     password = data.get("password") or ""
 
     if not email or not isinstance(password, str):
@@ -296,7 +315,13 @@ def login():
         name=user["name"]
     )
 
-    return jsonify(ok=True)
+    return jsonify(
+        ok=True,
+        user={
+            "name": user["name"],
+            "email": user["email"]
+        }
+    )
 
 
 # =========================================================
@@ -339,7 +364,10 @@ def admin_login():
         name=admin["username"]
     )
 
-    return jsonify(ok=True)
+    return jsonify(
+        ok=True,
+        name=admin["username"]
+    )
 
 
 # =========================================================
@@ -362,7 +390,6 @@ def logout():
 def create_suggestion():
 
     if not is_citizen():
-
         return jsonify(
             error="Please log in as a citizen before submitting."
         ), 401
@@ -371,6 +398,7 @@ def create_suggestion():
 
     name = (
         request.form.get("name", "").strip()
+        or session.get("name")
         or "Anonymous citizen"
     )
 
@@ -412,7 +440,7 @@ def create_suggestion():
             error="Invalid location coordinates."
         ), 400
 
-    # Photo remains mandatory.
+    # Photo is mandatory.
     if not all([
         photo,
         photo.filename,
@@ -425,30 +453,20 @@ def create_suggestion():
             error="Category, area, description, and a photo are mandatory."
         ), 400
 
-    # Accept different image filename extensions.
-    # No PNG/JPG/WEBP-only whitelist is used.
+    # Accept image uploads without a PNG/JPG/WEBP-only whitelist.
     # No application-level 5 MB limit is applied.
+    # The browser's image/* selector is not a security validation.
 
-    safe_original_name = secure_filename(
-        photo.filename
-    )
+    safe_original_name = secure_filename(photo.filename)
 
-    extension = Path(
-        safe_original_name
-    ).suffix.lower()
+    extension = Path(safe_original_name).suffix.lower()
 
-    # Keep an available extension where possible.
-    # The original user filename is never used as the saved filename.
     if not extension or len(extension) > 20:
         extension = ".upload"
 
-    filename = (
-        uuid.uuid4().hex + extension
-    )
-
+    filename = uuid.uuid4().hex + extension
     filepath = UPLOAD_DIR / filename
 
-    # Save the uploaded file.
     try:
 
         photo.save(filepath)
@@ -458,21 +476,14 @@ def create_suggestion():
 
     except Exception:
 
-        try:
-            filepath.unlink(missing_ok=True)
-        except OSError:
-            pass
+        filepath.unlink(missing_ok=True)
 
         return jsonify(
             error="Unable to save the uploaded photo. Please try again."
         ), 500
 
-    # Generate unique tracking ID.
-    tracking_id = (
-        "DSB-" + uuid.uuid4().hex[:10].upper()
-    )
+    tracking_id = "DSB-" + uuid.uuid4().hex[:10].upper()
 
-    # Store suggestion details in database.
     try:
 
         with db() as con:
@@ -507,10 +518,7 @@ def create_suggestion():
 
     except Exception:
 
-        try:
-            filepath.unlink(missing_ok=True)
-        except OSError:
-            pass
+        filepath.unlink(missing_ok=True)
 
         app.logger.exception(
             "Suggestion submission failed"
@@ -557,17 +565,12 @@ def track(tracking_id):
         ).fetchone()
 
     if not row:
-
         return jsonify(
             error="No suggestion found for this tracking ID."
         ), 404
 
     result = row_to_dict(row)
-
-    result["photoUrl"] = url_for(
-        "static",
-        filename="uploads/" + result.pop("photo")
-    )
+    result = add_photo_url(result)
 
     return jsonify(result)
 
@@ -580,18 +583,12 @@ def track(tracking_id):
 def admin_suggestions():
 
     if not is_admin():
-
         return jsonify(
             error="Admin access required."
         ), 403
 
-    status = request.args.get(
-        "status", ""
-    ).strip()
-
-    search = request.args.get(
-        "q", ""
-    ).strip()
+    status = request.args.get("status", "").strip()
+    search = request.args.get("q", "").strip()
 
     sql = """
         SELECT *
@@ -602,12 +599,10 @@ def admin_suggestions():
     args = []
 
     if status:
-
         sql += " AND status=?"
         args.append(status)
 
     if search:
-
         sql += """
             AND (
                 tracking_id LIKE ?
@@ -618,9 +613,7 @@ def admin_suggestions():
             )
         """
 
-        args += [
-            f"%{search}%"
-        ] * 5
+        args += [f"%{search}%"] * 5
 
     sql += " ORDER BY created_at DESC"
 
@@ -628,13 +621,9 @@ def admin_suggestions():
 
         rows = [
             row_to_dict(row)
-            for row in con.execute(
-                sql,
-                args
-            ).fetchall()
+            for row in con.execute(sql, args).fetchall()
         ]
 
-        # Dashboard statistics.
         stats = {
             current_status: con.execute(
                 """
@@ -657,17 +646,26 @@ def admin_suggestions():
             "SELECT COUNT(*) FROM suggestions"
         ).fetchone()[0]
 
-    # Add photo URLs for dashboard records.
     for row in rows:
+        add_photo_url(row)
 
-        row["photoUrl"] = url_for(
-            "static",
-            filename="uploads/" + row.pop("photo")
-        )
+    # Return both capitalized and lowercase statistic keys.
+    frontend_stats = {
+        "Total": stats["Total"],
+        "Submitted": stats["Submitted"],
+        "Under Review": stats["Under Review"],
+        "In Progress": stats["In Progress"],
+        "Resolved": stats["Resolved"],
+        "total": stats["Total"],
+        "submitted": stats["Submitted"],
+        "underReview": stats["Under Review"],
+        "inProgress": stats["In Progress"],
+        "resolved": stats["Resolved"]
+    }
 
     return jsonify(
         items=rows,
-        stats=stats
+        stats=frontend_stats
     )
 
 
@@ -679,7 +677,6 @@ def admin_suggestions():
 def update_suggestion(tracking_id):
 
     if not is_admin():
-
         return jsonify(
             error="Admin access required."
         ), 403
@@ -688,8 +685,10 @@ def update_suggestion(tracking_id):
 
     status = data.get("status", "")
 
+    # Accept both frontend and backend response field names.
     response = data.get(
-        "admin_response", ""
+        "admin_response",
+        data.get("response", "")
     )
 
     if not isinstance(response, str):
@@ -707,7 +706,6 @@ def update_suggestion(tracking_id):
     ]
 
     if status not in valid_statuses:
-
         return jsonify(
             error="Choose a valid status."
         ), 400
@@ -731,7 +729,6 @@ def update_suggestion(tracking_id):
         )
 
     if not cur.rowcount:
-
         return jsonify(
             error="Suggestion not found."
         ), 404
@@ -747,7 +744,6 @@ def update_suggestion(tracking_id):
 def delete_suggestion(tracking_id):
 
     if not is_admin():
-
         return jsonify(
             error="Admin access required."
         ), 403
@@ -764,7 +760,6 @@ def delete_suggestion(tracking_id):
         ).fetchone()
 
         if not row:
-
             return jsonify(
                 error="Suggestion not found."
             ), 404
@@ -777,13 +772,9 @@ def delete_suggestion(tracking_id):
             (tracking_id.strip().upper(),)
         )
 
-    # Delete the associated uploaded photo.
     try:
 
-        photo_path = (
-            UPLOAD_DIR / Path(row["photo"]).name
-        )
-
+        photo_path = UPLOAD_DIR / Path(row["photo"]).name
         photo_path.unlink(missing_ok=True)
 
     except OSError:
