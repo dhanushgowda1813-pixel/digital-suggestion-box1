@@ -17,6 +17,7 @@
    - Session and logout management
    - Full-page app-style navigation
    - Responsive web application + PWA
+   - ONLY LIGHT AND DARK THEMES
    ========================================================= */
 
 "use strict";
@@ -492,19 +493,14 @@ if (menuToggle && navMenu) {
 
 /* =========================================================
    THEME SELECTOR
+   ONLY LIGHT AND DARK THEMES
    ========================================================= */
 
 const themeSelect = document.getElementById("themeSelect");
 
-function applyTheme(theme) {
-  const allowedThemes = [
-    "light",
-    "dark",
-    "ocean",
-    "sunset",
-    "forest"
-  ];
+const allowedThemes = ["light", "dark"];
 
+function applyTheme(theme) {
   const selectedTheme = allowedThemes.includes(theme)
     ? theme
     : "light";
@@ -516,14 +512,13 @@ function applyTheme(theme) {
   }
 
   try {
-    localStorage.setItem(
-      "citizenTheme",
-      selectedTheme
-    );
+    localStorage.setItem("citizenTheme", selectedTheme);
   } catch {
     console.warn("Theme preference could not be saved.");
   }
 }
+
+/* Restore saved theme */
 
 try {
   const savedTheme = localStorage.getItem("citizenTheme");
@@ -533,6 +528,8 @@ try {
 } catch {
   applyTheme("light");
 }
+
+/* Listen for theme changes */
 
 if (themeSelect) {
   themeSelect.addEventListener("change", event => {
