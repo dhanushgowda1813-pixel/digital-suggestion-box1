@@ -1,1777 +1,1411 @@
 
 /* =========================================================
-   JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
+   DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
+   Responsive Web Application + Android APK
+   Compatible with the existing Flask backend
    ========================================================= */
 
-const API = "/api";
+"use strict";
 
+/* -------------------- GLOBAL VARIABLES -------------------- */
+
+const appPanel = document.getElementById("panel");
+const toastEl = document.getElementById("toast");
+
+const statuses = [
+  "Submitted",
+  "Under Review",
+  "In Progress",
+  "Resolved"
+];
+
+const allowedPhotoTypes = [
+  "image/png",
+  "image/jpeg",
+  "image/webp"
+];
+
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
+
+let currentView = "";
 let currentUser = null;
-let currentRole = null;
-let selectedPhoto = null;
-let suggestionsCache = [];
+let adminItems = [];
+let activePhotoURL = null;
 
-/* ==================== HELPERS ==================== */
+/* -------------------- COMMON FUNCTIONS -------------------- */
 
-async function api(url, options = {}) {
-    const response = await fetch(API + url, {
-        credentials: "same-origin",
-        ...options
-    });
+function toast(message) {
+  if (!toastEl) return;
 
-    let data = {};
+  toastEl.textContent = message;
+  toastEl.classList.add("show");
 
-    try {
-        data = await response.json();
-    } catch {
-        data = {};
-    }
+  clearTimeout(toastEl.toastTimer);
 
-    if (!response.ok) {
-        throw new Error(data.error || data.message || "Something went wrong.");
-    }
-
-    return data;
+  toastEl.toastTimer = setTimeout(() => {
+    toastEl.classList.remove("show");
+  }, 3200);
 }
 
 function escapeHTML(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-    })[char]);
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
 }
 
-function toast(message, type = "success") {
-    const element = document.getElementById("toast");
+function safeImageURL(value) {
+  const url = String(value || "").trim();
 
-    if (!element) return;
+  if (
+    url.startsWith("/") ||
+    url.startsWith("./") ||
+    url.startsWith("https://") ||
+    url.startsWith("http://")
+  ) {
+    return escapeHTML(url);
+  }
 
-    element.textContent = message;
-    element.className = "toast show " + type;
-
-    clearTimeout(window.janasetuToastTimer);
-
-    window.janasetuToastTimer = setTimeout(() => {
-        element.className = "toast";
-    }, 3500);
+  return "";
 }
 
-function setPanel(html) {
-    const panel = document.getElementById("panel");
+async function api(url, options = {}) {
+  const headers = {
+    ...(options.body instanceof FormData
+      ? {}
+      : { "Content-Type": "application/json" }),
+    ...(options.headers || {})
+  };
 
-    if (!panel) return;
+  let response;
 
-    panel.innerHTML = html;
-    panel.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers
     });
-}
-
-function shell(title, description = "", content = "") {
-    return `
-        <section class="app-panel">
-
-            <h2>${escapeHTML(title)}</h2>
-
-            ${description ? `<p>${escapeHTML(description)}</p>` : ""}
-
-            ${content}
-
-        </section>
-    `;
-}
-
-function button(text, action = "", extraClass = "") {
-    return `
-        <button
-            type="button"
-            class="primary-button ${extraClass}"
-            ${action ? `data-action="${escapeHTML(action)}"` : ""}
-        >
-            ${escapeHTML(text)}
-        </button>
-    `;
-}
-
-function formField(label, name, type = "text", placeholder = "", required = true) {
-    return `
-        <div class="form-group">
-
-            <label for="${escapeHTML(name)}">
-                ${escapeHTML(label)}
-            </label>
-
-            <input
-                type="${escapeHTML(type)}"
-                id="${escapeHTML(name)}"
-                name="${escapeHTML(name)}"
-                placeholder="${escapeHTML(placeholder)}"
-                ${required ? "required" : ""}
-            >
-
-        </div>
-    `;
-}
-
-function passwordField(label, name, placeholder = "Enter password") {
-    return `
-        <div class="form-group">
-
-            <label for="${escapeHTML(name)}">
-                ${escapeHTML(label)}
-            </label>
-
-            <div class="password-wrapper">
-
-                <input
-                    type="password"
-                    id="${escapeHTML(name)}"
-                    name="${escapeHTML(name)}"
-                    placeholder="${escapeHTML(placeholder)}"
-                    required
-                >
-
-                <button
-                    type="button"
-                    class="password-toggle"
-                    data-password="${escapeHTML(name)}"
-                >
-                    Show
-                </button>
-
-            </div>
-
-        </div>
-    `;
-}
-
-function imageURL(photo) {
-    if (!photo) return "";
-
-    const value = String(photo);
-
-    if (value.startsWith("http://") || value.startsWith("https://")) {
-        return value;
-    }
-
-    if (value.startsWith("/")) {
-        return value;
-    }
-
-    return "/static/uploads/" + encodeURIComponent(value);
-}
-
-function photoPreview(file, container) {
-    if (!file || !container) return;
-
-    const reader = new FileReader();
-
-    reader.onload = event => {
-        container.innerHTML = `
-            <img
-                src="${event.target.result}"
-                class="photo-preview"
-                alt="Selected photo preview"
-            >
-        `;
-    };
-
-    reader.readAsDataURL(file);
-}
-
-function statusClass(status) {
-    return "status-" + String(status || "submitted")
-        .toLowerCase()
-        .replace(/\s+/g, "-");
-}
-
-/* ==================== NAVIGATION ==================== */
-
-function closeMobileMenu() {
-    const menu = document.getElementById("navMenu");
-    const toggle = document.getElementById("menuToggle");
-
-    if (menu) menu.classList.remove("active");
-
-    if (toggle) toggle.setAttribute("aria-expanded", "false");
-}
-
-function showHome() {
-    const home = document.getElementById("home");
-
-    if (home) {
-        home.style.display = "block";
-    }
-
-    setPanel("");
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
-}
-
-function showView(view) {
-    closeMobileMenu();
-
-    const home = document.getElementById("home");
-
-    if (home) {
-        home.style.display = view === "home" ? "block" : "none";
-    }
-
-    switch (view) {
-        case "home":
-            showHome();
-            break;
-
-        case "submit":
-            showFeedbackForm();
-            break;
-
-        case "track":
-            showTrackingForm();
-            break;
-
-        case "login":
-            showLogin();
-            break;
-
-        case "admin-login":
-            showAdminLogin();
-            break;
-
-        default:
-            showHome();
-    }
-}
-
-/* ==================== HOME ==================== */
-
-function showCitizenDashboard() {
-    setPanel(shell(
-        "Citizen Dashboard",
-        "Welcome to your JanaSetu account.",
-        `
-            <div class="home-actions">
-
-                ${button("Submit Feedback", "submit")}
-
-                ${button("Track Feedback", "track", "secondary-button")}
-
-                <button
-                    type="button"
-                    class="secondary-button"
-                    data-action="my-feedback"
-                >
-                    My Submissions
-                </button>
-
-                <button
-                    type="button"
-                    class="danger-button"
-                    data-action="logout"
-                >
-                    Logout
-                </button>
-
-            </div>
-
-            <div id="myFeedback" style="margin-top:25px;"></div>
-        `
-    ));
-}
-
-function showMyFeedback() {
-    const container = document.getElementById("myFeedback");
-
-    if (!container) return;
-
-    container.innerHTML = `<p>Loading your submissions...</p>`;
-
-    loadMyFeedback(container);
-}
-
-async function loadMyFeedback(container) {
-    try {
-        const data = await api("/admin/suggestions");
-        const records = data.suggestions || data.records || data.items || [];
-
-        const mine = records.filter(item =>
-            String(item.user_id) === String(currentUser?.id)
-        );
-
-        if (!mine.length) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    You have not submitted any feedback yet.
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = mine.map(item => `
-            <div class="tracking-card">
-
-                <h3>${escapeHTML(item.category)}</h3>
-
-                <p>
-                    Tracking ID:
-                    <strong>${escapeHTML(item.tracking_id || item.trackingId)}</strong>
-                </p>
-
-                <p>Status:
-                    <span class="status-badge ${statusClass(item.status)}">
-                        ${escapeHTML(item.status)}
-                    </span>
-                </p>
-
-            </div>
-        `).join("");
-
-    } catch (error) {
-        container.innerHTML = `
-            <div class="error-message">
-                Unable to load submissions.
-            </div>
-        `;
-    }
-}
-
-/* ==================== REGISTER ==================== */
-
-function showRegister() {
-    setPanel(shell(
-        "Create Citizen Account",
-        "Register to submit and track your feedback.",
-        `
-            <form id="registerForm">
-
-                ${formField(
-                    "Full Name (Optional)",
-                    "name",
-                    "text",
-                    "Enter your name",
-                    false
-                )}
-
-                ${formField(
-                    "Email Address",
-                    "email",
-                    "email",
-                    "Enter your email"
-                )}
-
-                ${passwordField("Password", "password")}
-
-                ${passwordField("Confirm Password", "confirmPassword")}
-
-                <div class="form-actions">
-                    <button type="submit" class="primary-button">
-                        Create Account
-                    </button>
-                </div>
-
-            </form>
-
-            <div class="auth-links">
-                <span>Already registered?</span>
-                <span class="text-link" data-view="login">
-                    Login here
-                </span>
-            </div>
-        `
-    ));
-}
-
-/* ==================== CITIZEN LOGIN ==================== */
-
-function showLogin() {
-    setPanel(shell(
-        "Citizen Login",
-        "Login to access your JanaSetu account.",
-        `
-            <form id="loginForm">
-
-                ${formField(
-                    "Email Address",
-                    "email",
-                    "email",
-                    "Enter registered email"
-                )}
-
-                ${passwordField("Password", "password")}
-
-                <div class="form-actions">
-
-                    <button type="submit" class="primary-button">
-                        Login
-                    </button>
-
-                </div>
-
-            </form>
-
-            <div class="auth-links">
-                <span>New citizen?</span>
-
-                <span class="text-link" data-action="register">
-                    Create an account
-                </span>
-            </div>
-        `
-    ));
-}
-
-/* ==================== ADMIN LOGIN ==================== */
-
-function showAdminLogin() {
-    setPanel(shell(
-        "Admin Login",
-        "Authorized administration access only.",
-        `
-            <form id="adminLoginForm">
-
-                ${formField(
-                    "Admin Username",
-                    "username",
-                    "text",
-                    "Enter admin username"
-                )}
-
-                ${passwordField("Admin Password", "password")}
-
-                <div class="form-actions">
-
-                    <button type="submit" class="primary-button">
-                        Admin Login
-                    </button>
-
-                </div>
-
-            </form>
-        `
-    ));
-}
-
-/* ==================== AREA SUGGESTIONS ==================== */
-
-const areas = [
-    "Anchepalya",
-    "Bagalagunte",
-    "Chikkabanavara",
-    "Dasarahalli",
-    "Hesaraghatta",
-    "Jalahalli",
-    "Lakshmipura",
-    "Madanayakanahalli",
-    "Madhavara",
-    "Nagasandra",
-    "Nelamangala",
-    "Peenya",
-    "Rajanukunte",
-    "T. Dasarahalli",
-    "Tumkur Road",
-    "Yeshwanthpur"
-];
-
-function showAreaSuggestions(value) {
-    const list = document.getElementById("areaSuggestions");
-
-    if (!list) return;
-
-    const search = value.trim().toLowerCase();
-
-    if (!search) {
-        list.innerHTML = "";
-        return;
-    }
-
-    const matches = areas.filter(area =>
-        area.toLowerCase().includes(search)
+  } catch {
+    throw new Error(
+      "Unable to connect. Please check your internet connection."
     );
+  }
 
-    list.innerHTML = matches.map(area => `
-        <div
-            class="autocomplete-item"
-            data-area="${escapeHTML(area)}"
-        >
-            ${escapeHTML(area)}
-        </div>
-    `).join("");
-}
+  let data = {};
 
-/* ==================== GPS LOCATION ==================== */
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
 
-async function getCurrentLocation() {
-    if (!navigator.geolocation) {
-        toast("Location is not supported by this device.", "error");
-        return;
-    }
-
-    toast("Getting your current location...");
-
-    navigator.geolocation.getCurrentPosition(
-        async position => {
-            const latitude = position.coords.latitude;
-            const longitude = position.coords.longitude;
-
-            const latitudeInput = document.getElementById("latitude");
-            const longitudeInput = document.getElementById("longitude");
-            const locationStatus = document.getElementById("locationStatus");
-            const map = document.getElementById("mapPreview");
-
-            if (latitudeInput) latitudeInput.value = latitude;
-            if (longitudeInput) longitudeInput.value = longitude;
-
-            if (locationStatus) {
-                locationStatus.textContent = "Location captured successfully.";
-            }
-
-            if (map) {
-                map.innerHTML = `
-                    <iframe
-                        src="https://www.openstreetmap.org/export/embed.html?bbox=${longitude - 0.01}%2C${latitude - 0.01}%2C${longitude + 0.01}%2C${latitude + 0.01}&layer=mapnik&marker=${latitude}%2C${longitude}"
-                        loading="lazy"
-                        title="Your location map"
-                    ></iframe>
-                `;
-            }
-
-            try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
-                );
-
-                const data = await response.json();
-
-                const areaInput = document.getElementById("area");
-
-                if (areaInput && data.address) {
-                    const address = data.address;
-
-                    const location =
-                        address.suburb ||
-                        address.neighbourhood ||
-                        address.village ||
-                        address.town ||
-                        address.city ||
-                        "";
-
-                    if (location) {
-                        areaInput.value = location;
-                    }
-                }
-
-            } catch (error) {
-                console.log("Address lookup unavailable.");
-            }
-
-            toast("Location captured successfully.");
-        },
-
-        error => {
-            let message = "Unable to get location.";
-
-            if (error.code === 1) {
-                message = "Please allow location permission.";
-            }
-
-            if (error.code === 2) {
-                message = "Location is currently unavailable.";
-            }
-
-            if (error.code === 3) {
-                message = "Location request timed out.";
-            }
-
-            toast(message, "error");
-        },
-
-        {
-            enableHighAccuracy: true,
-            timeout: 15000,
-            maximumAge: 0
-        }
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Something went wrong. Please try again."
     );
+  }
+
+  return data;
 }
 
-/* ==================== FEEDBACK FORM ==================== */
+function setLoading(button, loading, originalText = "Submit") {
+  if (!button) return;
 
-function showFeedbackForm() {
-    selectedPhoto = null;
-
-    setPanel(shell(
-        "Submit Citizen Feedback",
-        "Share a suggestion or report a problem in your community.",
-        `
-            <form id="feedbackForm">
-
-                ${formField(
-                    "Your Name (Optional)",
-                    "citizenName",
-                    "text",
-                    "Enter your name",
-                    false
-                )}
-
-                <div class="form-group">
-
-                    <label for="category">Feedback Category *</label>
-
-                    <select id="category" name="category" required>
-
-                        <option value="">Select Category</option>
-
-                        <option value="Roads and Infrastructure">
-                            Roads and Infrastructure
-                        </option>
-
-                        <option value="Water Supply">
-                            Water Supply
-                        </option>
-
-                        <option value="Sanitation and Cleanliness">
-                            Sanitation and Cleanliness
-                        </option>
-
-                        <option value="Street Lights">
-                            Street Lights
-                        </option>
-
-                        <option value="Drainage">
-                            Drainage
-                        </option>
-
-                        <option value="Waste Management">
-                            Waste Management
-                        </option>
-
-                        <option value="Public Facilities">
-                            Public Facilities
-                        </option>
-
-                        <option value="Public Safety">
-                            Public Safety
-                        </option>
-
-                        <option value="Other">
-                            Other
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div class="form-group autocomplete-wrapper">
-
-                    <label for="area">Area / Location *</label>
-
-                    <input
-                        type="text"
-                        id="area"
-                        name="area"
-                        placeholder="Enter your area"
-                        autocomplete="off"
-                        required
-                    >
-
-                    <div
-                        class="autocomplete-list"
-                        id="areaSuggestions"
-                    ></div>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label>GPS Location (Optional)</label>
-
-                    <div class="location-row">
-
-                        <button
-                            type="button"
-                            class="location-button"
-                            id="getLocation"
-                        >
-                            📍 Get Current Location
-                        </button>
-
-                        <span id="locationStatus" class="form-help"></span>
-
-                    </div>
-
-                    <input
-                        type="hidden"
-                        id="latitude"
-                        name="latitude"
-                    >
-
-                    <input
-                        type="hidden"
-                        id="longitude"
-                        name="longitude"
-                    >
-
-                    <div class="map-preview" id="mapPreview">
-                        <div class="empty-state">
-                            Your location map will appear here.
-                        </div>
-                    </div>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label for="description">
-                        Describe Your Feedback *
-                    </label>
-
-                    <textarea
-                        id="description"
-                        name="description"
-                        placeholder="Explain the problem or suggestion clearly..."
-                        required
-                        minlength="5"
-                    ></textarea>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label for="photo">
-                        Upload Supporting Photo *
-                    </label>
-
-                    <input
-                        type="file"
-                        id="photo"
-                        name="photo"
-                        accept="image/*"
-                        required
-                    >
-
-                    <p class="form-help">
-                        Select an image showing the issue or suggestion.
-                    </p>
-
-                    <div id="photoPreview"></div>
-
-                </div>
-
-                <div class="form-actions">
-
-                    <button type="submit" class="primary-button">
-                        Submit Feedback
-                    </button>
-
-                    <button
-                        type="reset"
-                        class="secondary-button"
-                    >
-                        Clear Form
-                    </button>
-
-                </div>
-
-            </form>
-        `
-    ));
+  button.disabled = loading;
+  button.textContent = loading
+    ? "Please wait..."
+    : originalText;
 }
 
-/* ==================== TRACKING FORM ==================== */
+function shell(title, lead, body, wide = false) {
+  if (!appPanel) return;
 
-function showTrackingForm() {
-    setPanel(shell(
-        "Track Your Feedback",
-        "Enter your tracking ID to check the latest status.",
-        `
-            <form id="trackingForm">
+  appPanel.innerHTML = `
+    <div class="panel ${wide ? "wide" : ""}">
 
-                <div class="form-group">
+      <button class="back" data-view="home">
+        ← Back to home
+      </button>
 
-                    <label for="trackingId">
-                        Tracking ID
-                    </label>
+      <h2>${escapeHTML(title)}</h2>
 
-                    <input
-                        type="text"
-                        id="trackingId"
-                        name="trackingId"
-                        placeholder="Example: JAN-XXXXXXXX"
-                        required
-                    >
+      <p class="lead">
+        ${escapeHTML(lead)}
+      </p>
 
-                </div>
+      ${body}
 
-                <button type="submit" class="primary-button">
-                    Track Feedback
-                </button>
+    </div>
+  `;
 
-            </form>
-
-            <div id="trackingResult"></div>
-        `
-    ));
+  appPanel.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
 
-/* ==================== TRACKING RESULT ==================== */
+function formField(label, name, type = "text", required = true) {
+  return `
+    <label class="form-field">
 
-async function trackFeedback(trackingId) {
-    const container = document.getElementById("trackingResult");
+      <span>${escapeHTML(label)}</span>
 
-    if (!container) return;
+      <input
+        type="${escapeHTML(type)}"
+        name="${escapeHTML(name)}"
+        ${required ? "required" : ""}
+        autocomplete="off"
+      >
 
-    container.innerHTML = `<p>Checking your feedback...</p>`;
-
-    try {
-        const data = await api(
-            "/track/" + encodeURIComponent(trackingId)
-        );
-
-        const item = data.suggestion || data.feedback || data;
-
-        if (!item || !(item.tracking_id || item.trackingId)) {
-            throw new Error("Feedback not found.");
-        }
-
-        const status = item.status || "Submitted";
-
-        const statuses = [
-            "Submitted",
-            "Under Review",
-            "In Progress",
-            "Resolved"
-        ];
-
-        const currentIndex = statuses.indexOf(status);
-
-        const timeline = statuses.map((step, index) => `
-            <div class="timeline-step">
-
-                <h4>
-                    ${index <= currentIndex ? "✓ " : ""}
-                    ${escapeHTML(step)}
-                </h4>
-
-                <p>
-                    ${index < currentIndex
-                        ? "Completed"
-                        : index === currentIndex
-                            ? "Current status"
-                            : "Pending"}
-                </p>
-
-            </div>
-        `).join("");
-
-        const photo = item.photoUrl || item.photo_url || item.photo;
-
-        container.innerHTML = `
-            <div class="tracking-card">
-
-                <h3>Feedback Details</h3>
-
-                <div class="tracking-id-display">
-                    ${escapeHTML(item.tracking_id || item.trackingId)}
-                </div>
-
-                <p>
-                    <strong>Category:</strong>
-                    ${escapeHTML(item.category)}
-                </p>
-
-                <p>
-                    <strong>Area:</strong>
-                    ${escapeHTML(item.area)}
-                </p>
-
-                <p>
-                    <strong>Description:</strong>
-                    ${escapeHTML(item.description)}
-                </p>
-
-                <p>
-                    <strong>Status:</strong>
-
-                    <span class="status-badge ${statusClass(status)}">
-                        ${escapeHTML(status)}
-                    </span>
-                </p>
-
-                ${
-                    item.admin_response || item.response
-                        ? `
-                            <div class="success-message">
-                                <strong>Admin Response:</strong>
-                                <p>
-                                    ${escapeHTML(item.admin_response || item.response)}
-                                </p>
-                            </div>
-                        `
-                        : ""
-                }
-
-                ${
-                    photo
-                        ? `
-                            <img
-                                src="${escapeHTML(imageURL(photo))}"
-                                class="photo-preview"
-                                alt="Feedback photo"
-                            >
-                        `
-                        : ""
-                }
-
-                <h3 style="margin-top:25px;">
-                    Progress Timeline
-                </h3>
-
-                <div class="tracking-timeline">
-                    ${timeline}
-                </div>
-
-            </div>
-        `;
-
-    } catch (error) {
-        container.innerHTML = `
-            <div class="error-message">
-                ${escapeHTML(error.message)}
-            </div>
-        `;
-    }
+    </label>
+  `;
 }
 
-/* ==================== ADMIN DASHBOARD ==================== */
-
-async function showAdminDashboard() {
-    setPanel(shell(
-        "Admin Dashboard",
-        "Manage citizen feedback and monitor progress.",
-        `
-            <div id="adminDashboardContent">
-                <p>Loading dashboard...</p>
-            </div>
-
-            <button
-                type="button"
-                class="danger-button"
-                data-action="logout"
-                style="margin-top:20px;"
-            >
-                Logout
-            </button>
-        `
-    ));
-
-    await loadAdminDashboard();
+function statusBadge(status) {
+  return `
+    <span class="status-badge">
+      ${escapeHTML(status)}
+    </span>
+  `;
 }
 
-async function loadAdminDashboard() {
-    const container = document.getElementById("adminDashboardContent");
-
-    if (!container) return;
-
-    try {
-        const data = await api("/admin/suggestions");
-
-        suggestionsCache =
-            data.suggestions ||
-            data.records ||
-            data.items ||
-            [];
-
-        const stats = data.stats || {};
-
-        const total = stats.Total ?? stats.total ?? suggestionsCache.length;
-
-        const submitted = stats.Submitted ??
-            stats.submitted ??
-            suggestionsCache.filter(x => x.status === "Submitted").length;
-
-        const review = stats["Under Review"] ??
-            stats.under_review ??
-            suggestionsCache.filter(x => x.status === "Under Review").length;
-
-        const progress = stats["In Progress"] ??
-            stats.in_progress ??
-            suggestionsCache.filter(x => x.status === "In Progress").length;
-
-        const resolved = stats.Resolved ??
-            stats.resolved ??
-            suggestionsCache.filter(x => x.status === "Resolved").length;
-
-        container.innerHTML = `
-
-            <div class="admin-stats">
-
-                ${statCard("Total Feedback", total)}
-
-                ${statCard("Submitted", submitted)}
-
-                ${statCard("Under Review", review)}
-
-                ${statCard("In Progress", progress)}
-
-                ${statCard("Resolved", resolved)}
-
-            </div>
-
-            <div class="admin-toolbar">
-
-                <input
-                    type="search"
-                    id="adminSearch"
-                    placeholder="Search by ID, category or area..."
-                >
-
-                <select id="adminStatusFilter">
-
-                    <option value="">All Statuses</option>
-
-                    <option value="Submitted">Submitted</option>
-
-                    <option value="Under Review">Under Review</option>
-
-                    <option value="In Progress">In Progress</option>
-
-                    <option value="Resolved">Resolved</option>
-
-                </select>
-
-                <button
-                    type="button"
-                    class="secondary-button"
-                    data-action="refresh-admin"
-                >
-                    Refresh
-                </button>
-
-            </div>
-
-            <div class="admin-list" id="adminRecords"></div>
-        `;
-
-        renderAdminRecords();
-
-    } catch (error) {
-        container.innerHTML = `
-            <div class="error-message">
-                ${escapeHTML(error.message)}
-            </div>
-        `;
-    }
+function releasePhotoPreview() {
+  if (activePhotoURL) {
+    URL.revokeObjectURL(activePhotoURL);
+    activePhotoURL = null;
+  }
 }
 
-function statCard(title, value) {
-    return `
-        <div class="stat-card">
+/* -------------------- NAVIGATION -------------------- */
 
-            <h3>${escapeHTML(title)}</h3>
+function closeMenu() {
+  const menu = document.getElementById("navMenu");
+  const toggle = document.getElementById("menuToggle");
 
-            <strong>${escapeHTML(value)}</strong>
+  if (menu) {
+    menu.hidden = true;
+  }
 
-        </div>
-    `;
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute(
+      "aria-label",
+      "Open navigation menu"
+    );
+  }
 }
 
-function renderAdminRecords() {
-    const container = document.getElementById("adminRecords");
+function view(name) {
+  releasePhotoPreview();
 
-    if (!container) return;
+  currentView = name;
 
-    const search = (
-        document.getElementById("adminSearch")?.value || ""
-    ).toLowerCase();
+  closeMenu();
 
-    const statusFilter =
-        document.getElementById("adminStatusFilter")?.value || "";
+  const views = {
+    home: homeView,
+    submit: submitView,
+    login: loginView,
+    register: registerView,
+    "admin-login": adminLoginView,
+    track: trackView,
+    admin: adminView
+  };
 
-    const records = suggestionsCache.filter(item => {
-        const text = [
-            item.tracking_id,
-            item.trackingId,
-            item.category,
-            item.area,
-            item.description,
-            item.name
-        ].join(" ").toLowerCase();
-
-        return text.includes(search) &&
-            (!statusFilter || item.status === statusFilter);
-    });
-
-    if (!records.length) {
-        container.innerHTML = `
-            <div class="empty-state">
-                No feedback records found.
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = records.map(item => {
-
-        const id = item.id;
-
-        const photo = item.photoUrl || item.photo_url || item.photo;
-
-        return `
-            <article class="admin-card">
-
-                <h3>${escapeHTML(item.category)}</h3>
-
-                <p>
-                    <strong>Tracking ID:</strong>
-                    ${escapeHTML(item.tracking_id || item.trackingId)}
-                </p>
-
-                <p>
-                    <strong>Citizen:</strong>
-                    ${escapeHTML(item.name || "Citizen")}
-                </p>
-
-                <p>
-                    <strong>Area:</strong>
-                    ${escapeHTML(item.area)}
-                </p>
-
-                <p>
-                    <strong>Description:</strong>
-                    ${escapeHTML(item.description)}
-                </p>
-
-                <p>
-                    <strong>Current Status:</strong>
-
-                    <span class="status-badge ${statusClass(item.status)}">
-                        ${escapeHTML(item.status)}
-                    </span>
-                </p>
-
-                ${
-                    photo
-                        ? `
-                            <img
-                                src="${escapeHTML(imageURL(photo))}"
-                                alt="Citizen uploaded photo"
-                                loading="lazy"
-                            >
-                        `
-                        : ""
-                }
-
-                <div class="form-group">
-
-                    <label>Status</label>
-
-                    <select id="status-${escapeHTML(id)}">
-
-                        ${[
-                            "Submitted",
-                            "Under Review",
-                            "In Progress",
-                            "Resolved"
-                        ].map(status => `
-                            <option
-                                value="${status}"
-                                ${item.status === status ? "selected" : ""}
-                            >
-                                ${status}
-                            </option>
-                        `).join("")}
-
-                    </select>
-
-                </div>
-
-                <div class="form-group">
-
-                    <label>Admin Response</label>
-
-                    <textarea
-                        id="response-${escapeHTML(id)}"
-                        placeholder="Enter response for citizen..."
-                    >${escapeHTML(item.admin_response || item.response || "")}</textarea>
-
-                </div>
-
-                <div class="admin-actions">
-
-                    <button
-                        type="button"
-                        class="primary-button"
-                        data-action="update-record"
-                        data-id="${escapeHTML(id)}"
-                    >
-                        Update
-                    </button>
-
-                    <button
-                        type="button"
-                        class="danger-button"
-                        data-action="delete-record"
-                        data-id="${escapeHTML(id)}"
-                    >
-                        Delete
-                    </button>
-
-                </div>
-
-            </article>
-        `;
-    }).join("");
+  (views[name] || homeView)();
 }
-
-/* ==================== UPDATE ADMIN RECORD ==================== */
-
-async function updateRecord(id) {
-    const status = document.getElementById("status-" + id)?.value;
-
-    const response = document.getElementById("response-" + id)?.value || "";
-
-    if (!status) {
-        toast("Please select a status.", "error");
-        return;
-    }
-
-    try {
-        await api("/admin/suggestions/" + encodeURIComponent(id), {
-            method: "PATCH",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                status,
-                admin_response: response
-            })
-        });
-
-        toast("Feedback updated successfully.");
-
-        await loadAdminDashboard();
-
-    } catch (error) {
-        toast(error.message, "error");
-    }
-}
-
-/* ==================== DELETE RECORD ==================== */
-
-async function deleteRecord(id) {
-    if (!confirm("Are you sure you want to delete this feedback?")) {
-        return;
-    }
-
-    try {
-        await api("/admin/suggestions/" + encodeURIComponent(id), {
-            method: "DELETE"
-        });
-
-        toast("Feedback deleted successfully.");
-
-        await loadAdminDashboard();
-
-    } catch (error) {
-        toast(error.message, "error");
-    }
-}
-
-/* ==================== LOGOUT ==================== */
-
-async function logout() {
-    try {
-        await api("/logout", {
-            method: "POST"
-        });
-    } catch (error) {
-        console.log(error);
-    }
-
-    currentUser = null;
-    currentRole = null;
-
-    toast("Logged out successfully.");
-
-    showHome();
-}
-
-/* ==================== FORM SUBMISSIONS ==================== */
-
-document.addEventListener("submit", async event => {
-
-    const form = event.target;
-
-    if (form.id === "registerForm") {
-        event.preventDefault();
-
-        const name = document.getElementById("name")?.value.trim() || "";
-
-        const email = document.getElementById("email")?.value.trim() || "";
-
-        const password = document.getElementById("password")?.value || "";
-
-        const confirmPassword =
-            document.getElementById("confirmPassword")?.value || "";
-
-        if (password !== confirmPassword) {
-            toast("Passwords do not match.", "error");
-            return;
-        }
-
-        try {
-            await api("/register", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    name,
-                    email,
-                    password
-                })
-            });
-
-            toast("Registration successful. Please login.");
-
-            showLogin();
-
-        } catch (error) {
-            toast(error.message, "error");
-        }
-    }
-
-    if (form.id === "loginForm") {
-        event.preventDefault();
-
-        const email = document.getElementById("email").value.trim();
-
-        const password = document.getElementById("password").value;
-
-        try {
-            const data = await api("/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    email,
-                    identity: email,
-                    password
-                })
-            });
-
-            currentUser = data.user || null;
-            currentRole = "citizen";
-
-            toast("Login successful.");
-
-            showCitizenDashboard();
-
-        } catch (error) {
-            toast(error.message, "error");
-        }
-    }
-
-    if (form.id === "adminLoginForm") {
-        event.preventDefault();
-
-        const username = document.getElementById("username").value.trim();
-
-        const password = document.getElementById("password").value;
-
-        try {
-            await api("/admin-login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    username,
-                    password
-                })
-            });
-
-            currentRole = "admin";
-
-            toast("Admin login successful.");
-
-            showAdminDashboard();
-
-        } catch (error) {
-            toast(error.message, "error");
-        }
-    }
-
-    if (form.id === "feedbackForm") {
-        event.preventDefault();
-
-        const fileInput = document.getElementById("photo");
-
-        if (!fileInput.files.length) {
-            toast("Please upload a supporting photo.", "error");
-            return;
-        }
-
-        const formData = new FormData(form);
-
-        const submitButton = form.querySelector(
-            'button[type="submit"]'
-        );
-
-        if (submitButton) {
-            submitButton.disabled = true;
-            submitButton.textContent = "Submitting...";
-        }
-
-        try {
-            const data = await api("/suggestions", {
-                method: "POST",
-                body: formData
-            });
-
-            const trackingId =
-                data.trackingId ||
-                data.tracking_id ||
-                data.id;
-
-            if (!trackingId) {
-                throw new Error("Submitted, but tracking ID was not returned.");
-            }
-
-            setPanel(shell(
-                "Feedback Submitted Successfully!",
-                "Thank you for contributing towards better communities.",
-                `
-                    <div class="success-message">
-                        Your feedback has been submitted successfully.
-                    </div>
-
-                    <h3>Your Tracking ID</h3>
-
-                    <div class="tracking-id-display" id="newTrackingId">
-                        ${escapeHTML(trackingId)}
-                    </div>
-
-                    <div class="form-actions">
-
-                        <button
-                            type="button"
-                            class="primary-button"
-                            data-action="copy-tracking"
-                        >
-                            Copy Tracking ID
-                        </button>
-
-                        <button
-                            type="button"
-                            class="secondary-button"
-                            data-action="track-new"
-                        >
-                            Track Feedback
-                        </button>
-
-                    </div>
-
-                    <p class="form-help">
-                        Save your tracking ID to check the progress
-                        of your feedback later.
-                    </p>
-                `
-            ));
-
-            toast("Feedback submitted successfully.");
-
-        } catch (error) {
-            toast(error.message, "error");
-
-            if (submitButton) {
-                submitButton.disabled = false;
-                submitButton.textContent = "Submit Feedback";
-            }
-        }
-    }
-
-    if (form.id === "trackingForm") {
-        event.preventDefault();
-
-        const trackingId =
-            document.getElementById("trackingId").value.trim();
-
-        await trackFeedback(trackingId);
-    }
-
-});
-
-/* ==================== CLICK EVENTS ==================== */
-
-document.addEventListener("click", async event => {
-
-    const viewButton = event.target.closest("[data-view]");
-
-    if (viewButton) {
-        showView(viewButton.dataset.view);
-        return;
-    }
-
-    const areaItem = event.target.closest("[data-area]");
-
-    if (areaItem) {
-        const areaInput = document.getElementById("area");
-
-        if (areaInput) {
-            areaInput.value = areaItem.dataset.area;
-        }
-
-        const list = document.getElementById("areaSuggestions");
-
-        if (list) list.innerHTML = "";
-
-        return;
-    }
-
-    const passwordButton = event.target.closest("[data-password]");
-
-    if (passwordButton) {
-        const input = document.getElementById(
-            passwordButton.dataset.password
-        );
-
-        if (!input) return;
-
-        const showing = input.type === "text";
-
-        input.type = showing ? "password" : "text";
-
-        passwordButton.textContent = showing ? "Show" : "Hide";
-
-        return;
-    }
-
-    const actionButton = event.target.closest("[data-action]");
-
-    if (!actionButton) return;
-
-    const action = actionButton.dataset.action;
-
-    switch (action) {
-
-        case "register":
-            showRegister();
-            break;
-
-        case "submit":
-            showFeedbackForm();
-            break;
-
-        case "track":
-            showTrackingForm();
-            break;
-
-        case "logout":
-            await logout();
-            break;
-
-        case "my-feedback":
-            showMyFeedback();
-            break;
-
-        case "refresh-admin":
-            await loadAdminDashboard();
-            break;
-
-        case "update-record":
-            await updateRecord(actionButton.dataset.id);
-            break;
-
-        case "delete-record":
-            await deleteRecord(actionButton.dataset.id);
-            break;
-
-        case "copy-tracking": {
-            const trackingId =
-                document.getElementById("newTrackingId")?.textContent.trim();
-
-            if (trackingId) {
-                try {
-                    await navigator.clipboard.writeText(trackingId);
-                    toast("Tracking ID copied.");
-                } catch {
-                    toast("Unable to copy tracking ID.", "error");
-                }
-            }
-
-            break;
-        }
-
-        case "track-new": {
-            const trackingId =
-                document.getElementById("newTrackingId")?.textContent.trim();
-
-            showTrackingForm();
-
-            if (trackingId) {
-                const input = document.getElementById("trackingId");
-
-                if (input) input.value = trackingId;
-
-                await trackFeedback(trackingId);
-            }
-
-            break;
-        }
-
-    }
-
-});
-
-/* ==================== INPUT EVENTS ==================== */
-
-document.addEventListener("input", event => {
-
-    if (event.target.id === "area") {
-        showAreaSuggestions(event.target.value);
-    }
-
-    if (
-        event.target.id === "adminSearch"
-    ) {
-        renderAdminRecords();
-    }
-
-});
-
-document.addEventListener("change", event => {
-
-    if (event.target.id === "adminStatusFilter") {
-        renderAdminRecords();
-    }
-
-    if (event.target.id === "photo") {
-        const file = event.target.files?.[0];
-
-        selectedPhoto = file || null;
-
-        const preview = document.getElementById("photoPreview");
-
-        if (file && preview) {
-            photoPreview(file, preview);
-        } else if (preview) {
-            preview.innerHTML = "";
-        }
-    }
-
-});
-
-/* ==================== GPS BUTTON ==================== */
 
 document.addEventListener("click", event => {
+  const button = event.target.closest("[data-view]");
 
-    if (event.target.closest("#getLocation")) {
-        getCurrentLocation();
-    }
-
+  if (button) {
+    event.preventDefault();
+    view(button.dataset.view);
+  }
 });
 
-/* ==================== HAMBURGER MENU ==================== */
+/* -------------------- HAMBURGER MENU -------------------- */
 
 const menuToggle = document.getElementById("menuToggle");
-
 const navMenu = document.getElementById("navMenu");
 
 if (menuToggle && navMenu) {
+  menuToggle.addEventListener("click", () => {
+    const isOpen = !navMenu.hidden;
 
-    menuToggle.addEventListener("click", () => {
+    navMenu.hidden = isOpen;
 
-        const active = navMenu.classList.toggle("active");
+    menuToggle.setAttribute(
+      "aria-expanded",
+      String(!isOpen)
+    );
 
-        menuToggle.setAttribute(
-            "aria-expanded",
-            active ? "true" : "false"
-        );
-
-    });
-
+    menuToggle.setAttribute(
+      "aria-label",
+      isOpen
+        ? "Open navigation menu"
+        : "Close navigation menu"
+    );
+  });
 }
 
-/* ==================== THEME SETTINGS ==================== */
-
-function applyTheme(theme) {
-    const selectedTheme = theme === "dark" ? "dark" : "light";
-
-    document.documentElement.dataset.theme = selectedTheme;
-
-    const selector = document.getElementById("themeSelect");
-
-    if (selector) {
-        selector.value = selectedTheme;
-    }
-
-    localStorage.setItem("janasetu-theme", selectedTheme);
-}
+/* -------------------- THEME SELECTOR -------------------- */
 
 const themeSelect = document.getElementById("themeSelect");
 
-const savedTheme = localStorage.getItem("janasetu-theme") || "light";
+function applyTheme(theme) {
+  const selectedTheme =
+    theme === "dark" ? "dark" : "light";
 
-applyTheme(savedTheme);
+  document.body.dataset.theme = selectedTheme;
+
+  if (themeSelect) {
+    themeSelect.value = selectedTheme;
+  }
+
+  try {
+    localStorage.setItem(
+      "citizenTheme",
+      selectedTheme
+    );
+  } catch {
+    console.warn("Theme preference could not be saved.");
+  }
+}
+
+try {
+  const savedTheme = localStorage.getItem("citizenTheme");
+
+  applyTheme(savedTheme || "light");
+
+} catch {
+  applyTheme("light");
+}
 
 if (themeSelect) {
-    themeSelect.addEventListener("change", event => {
-        applyTheme(event.target.value);
-    });
+  themeSelect.addEventListener("change", event => {
+    applyTheme(event.target.value);
+  });
 }
 
-/* ==================== SESSION INITIALIZATION ==================== */
+/* -------------------- HOME PAGE -------------------- */
 
-async function initializeJanaSetu() {
+function homeView() {
+  if (appPanel) {
+    appPanel.innerHTML = "";
+  }
 
-    showHome();
+  currentView = "home";
 
-    try {
-        const data = await api("/session");
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+}
 
-        if (data.logged_in) {
+/* -------------------- CITIZEN REGISTRATION -------------------- */
 
-            currentUser = data.user || null;
+function registerView() {
+  shell(
+    "Create Citizen Account",
+    "Register to submit feedback and participate in improving your community.",
+    `
+      <form id="registerForm" class="app-form">
 
-            currentRole = data.role || "citizen";
+        ${formField("Full Name", "name")}
 
-            if (currentRole === "admin") {
-                await showAdminDashboard();
-            } else {
-                showCitizenDashboard();
-            }
+        ${formField("Email Address", "email", "email")}
 
-        }
+        ${formField(
+          "Password (minimum 8 characters)",
+          "password",
+          "password"
+        )}
 
-    } catch (error) {
-        console.log("No active session.");
+        ${formField(
+          "Confirm Password",
+          "confirmPassword",
+          "password"
+        )}
+
+        <button type="submit" class="government-button">
+          Create Account
+        </button>
+
+        <p class="form-note">
+          Already registered?
+
+          <button
+            type="button"
+            class="text-button"
+            data-view="login"
+          >
+            Login here
+          </button>
+        </p>
+
+        <div id="formMessage" class="form-message"></div>
+
+      </form>
+    `
+  );
+
+  const form = document.getElementById("registerForm");
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
+
+    const name = formData.get("name").trim();
+    const email = formData.get("email").trim();
+    const password = formData.get("password");
+    const confirmPassword = formData.get("confirmPassword");
+
+    if (!name || !email) {
+      toast("Please complete all required fields.");
+      return;
     }
 
+    if (password.length < 8) {
+      toast("Password must contain at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast("Passwords do not match.");
+      return;
+    }
+
+    setLoading(button, true, "Create Account");
+
+    try {
+      await api("/api/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          email,
+          password
+        })
+      });
+
+      toast("Account created successfully!");
+
+      await loadSession();
+
+      view("submit");
+
+    } catch (error) {
+      toast(error.message);
+
+    } finally {
+      setLoading(button, false, "Create Account");
+    }
+  });
 }
 
-/* ==================== SERVICE WORKER ==================== */
+/* -------------------- CITIZEN LOGIN -------------------- */
 
-if ("serviceWorker" in navigator) {
+function loginView() {
+  shell(
+    "Citizen Login",
+    "Login to submit your feedback to the local administration.",
+    `
+      <form id="loginForm" class="app-form">
 
-    window.addEventListener("load", () => {
+        ${formField("Email Address", "email", "email")}
 
-        navigator.serviceWorker.register("/sw.js")
-            .catch(error => {
-                console.log("Service worker registration failed:", error);
-            });
+        ${formField("Password", "password", "password")}
 
+        <button type="submit" class="government-button">
+          Login
+        </button>
+
+        <p class="form-note">
+          Don't have an account?
+
+          <button
+            type="button"
+            class="text-button"
+            data-view="register"
+          >
+            Create Account
+          </button>
+        </p>
+
+        <div id="formMessage" class="form-message"></div>
+
+      </form>
+    `
+  );
+
+  const form = document.getElementById("loginForm");
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
+
+    setLoading(button, true, "Login");
+
+    try {
+      await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: formData.get("email").trim(),
+          password: formData.get("password")
+        })
+      });
+
+      toast("Login successful!");
+
+      await loadSession();
+
+      view("submit");
+
+    } catch (error) {
+      toast(error.message);
+
+    } finally {
+      setLoading(button, false, "Login");
+    }
+  });
+}
+
+/* -------------------- ADMIN LOGIN -------------------- */
+
+function adminLoginView() {
+  shell(
+    "Administrator Login",
+    "Authorized administrators can manage citizen feedback.",
+    `
+      <form id="adminLoginForm" class="app-form">
+
+        ${formField("Admin Username", "username")}
+
+        ${formField("Password", "password", "password")}
+
+        <button type="submit" class="government-button">
+          Administrator Login
+        </button>
+
+        <div id="formMessage" class="form-message"></div>
+
+      </form>
+    `
+  );
+
+  const form = document.getElementById("adminLoginForm");
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
+
+    setLoading(button, true, "Administrator Login");
+
+    try {
+      await api("/api/admin-login", {
+        method: "POST",
+        body: JSON.stringify({
+          username: formData.get("username").trim(),
+          password: formData.get("password")
+        })
+      });
+
+      toast("Administrator login successful!");
+
+      await loadSession();
+
+      view("admin");
+
+    } catch (error) {
+      toast(error.message);
+
+    } finally {
+      setLoading(button, false, "Administrator Login");
+    }
+  });
+}
+
+/* -------------------- PHOTO VALIDATION -------------------- */
+
+function validatePhoto(file) {
+  if (!file) {
+    return "Please upload a photo.";
+  }
+
+  if (!allowedPhotoTypes.includes(file.type)) {
+    return "Only PNG, JPG, JPEG and WEBP images are allowed.";
+  }
+
+  if (file.size > MAX_PHOTO_SIZE) {
+    return "Photo size must not exceed 5 MB.";
+  }
+
+  return "";
+}
+
+/* -------------------- SUBMIT FEEDBACK -------------------- */
+
+function submitView() {
+  if (!currentUser || currentUser.role !== "citizen") {
+    shell(
+      "Citizen Login Required",
+      "Please login to your citizen account before submitting feedback.",
+      `
+        <div class="action-buttons">
+
+          <button
+            class="government-button"
+            data-view="login"
+          >
+            Citizen Login
+          </button>
+
+          <button
+            class="outline-button"
+            data-view="register"
+          >
+            Create Account
+          </button>
+
+        </div>
+      `
+    );
+
+    return;
+  }
+
+  shell(
+    "Submit Your Feedback",
+    "Describe the local issue and upload a photograph as evidence.",
+    `
+      <form id="suggestionForm" class="app-form">
+
+        ${formField("Your Name (optional)", "name", "text", false)}
+
+        <label class="form-field">
+
+          <span>Feedback Category *</span>
+
+          <select name="category" required>
+
+            <option value="">Select a category</option>
+
+            <option value="Roads and Infrastructure">
+              Roads and Infrastructure
+            </option>
+
+            <option value="Water Supply">
+              Water Supply
+            </option>
+
+            <option value="Waste Management">
+              Waste Management
+            </option>
+
+            <option value="Street Lights">
+              Street Lights
+            </option>
+
+            <option value="Drainage">
+              Drainage
+            </option>
+
+            <option value="Public Facilities">
+              Public Facilities
+            </option>
+
+            <option value="Sanitation">
+              Sanitation
+            </option>
+
+            <option value="Other">
+              Other
+            </option>
+
+          </select>
+
+        </label>
+
+        ${formField("Area / Locality", "area")}
+
+        <label class="form-field">
+
+          <span>Describe Your Issue *</span>
+
+          <textarea
+            name="description"
+            rows="5"
+            placeholder="Explain the problem or suggestion..."
+            required
+          ></textarea>
+
+        </label>
+
+        <label class="form-field">
+
+          <span>Upload Photo *</span>
+
+          <input
+            type="file"
+            name="photo"
+            id="photoInput"
+            accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+            required
+          >
+
+          <small class="form-note">
+            Accepted formats: PNG, JPG, JPEG and WEBP.
+            Maximum size: 5 MB.
+          </small>
+
+        </label>
+
+        <div id="photoPreview" class="photo-preview"></div>
+
+        <button type="submit" class="government-button">
+          Submit Feedback
+        </button>
+
+        <div id="formMessage" class="form-message"></div>
+
+      </form>
+    `
+  );
+
+  const form = document.getElementById("suggestionForm");
+  const photoInput = document.getElementById("photoInput");
+  const preview = document.getElementById("photoPreview");
+
+  photoInput.addEventListener("change", () => {
+    preview.innerHTML = "";
+    releasePhotoPreview();
+
+    const file = photoInput.files[0];
+
+    if (!file) return;
+
+    const validationError = validatePhoto(file);
+
+    if (validationError) {
+      photoInput.value = "";
+      toast(validationError);
+      return;
+    }
+
+    activePhotoURL = URL.createObjectURL(file);
+
+    const image = document.createElement("img");
+
+    image.src = activePhotoURL;
+    image.alt = "Selected feedback photo";
+
+    image.style.width = "100%";
+    image.style.maxWidth = "260px";
+    image.style.height = "auto";
+    image.style.maxHeight = "220px";
+    image.style.objectFit = "contain";
+    image.style.borderRadius = "12px";
+
+    preview.appendChild(image);
+  });
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const file = photoInput.files[0];
+    const validationError = validatePhoto(file);
+
+    if (validationError) {
+      toast(validationError);
+      return;
+    }
+
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
+
+    setLoading(button, true, "Submit Feedback");
+
+    try {
+      const result = await api("/api/suggestions", {
+        method: "POST",
+        body: formData
+      });
+
+      const trackingId = result.trackingId;
+
+      releasePhotoPreview();
+
+      shell(
+        "Feedback Submitted Successfully!",
+        "Your feedback has been recorded. Save your tracking ID.",
+        `
+          <div class="success-panel">
+
+            <h3>Your Tracking ID</h3>
+
+            <div class="tracking-code" id="newTrackingId">
+              ${escapeHTML(trackingId)}
+            </div>
+
+            <button
+              type="button"
+              class="outline-button"
+              id="copyTrackingButton"
+            >
+              Copy Tracking ID
+            </button>
+
+            <p>
+              Use this tracking ID to check the progress
+              of your feedback.
+            </p>
+
+            <button
+              type="button"
+              class="government-button"
+              id="trackNewButton"
+            >
+              Track Your Feedback
+            </button>
+
+          </div>
+        `
+      );
+
+      document.getElementById("copyTrackingButton")
+        .addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(trackingId);
+            toast("Tracking ID copied!");
+
+          } catch {
+            toast("Please copy the tracking ID manually.");
+          }
+        });
+
+      document.getElementById("trackNewButton")
+        .addEventListener("click", () => {
+          view("track");
+
+          const input = document.getElementById("trackingInput");
+
+          if (input) {
+            input.value = trackingId;
+          }
+        });
+
+    } catch (error) {
+      toast(error.message);
+
+    } finally {
+      const currentButton = document.querySelector(
+        "#suggestionForm button[type='submit']"
+      );
+
+      if (currentButton) {
+        setLoading(
+          currentButton,
+          false,
+          "Submit Feedback"
+        );
+      }
+    }
+  });
+}
+
+/* -------------------- TRACK FEEDBACK -------------------- */
+
+function trackView() {
+  shell(
+    "Track Your Feedback",
+    "Enter your tracking ID to check the current status of your application.",
+    `
+      <form id="trackForm" class="app-form">
+
+        <label class="form-field">
+
+          <span>Tracking ID</span>
+
+          <input
+            type="text"
+            id="trackingInput"
+            name="trackingId"
+            placeholder="Example: DSB-XXXXXXXXXX"
+            required
+          >
+
+        </label>
+
+        <button type="submit" class="government-button">
+          Track Application
+        </button>
+
+      </form>
+
+      <div id="trackingResult"></div>
+    `
+  );
+
+  const form = document.getElementById("trackForm");
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const input = document.getElementById("trackingInput");
+    const resultBox = document.getElementById("trackingResult");
+    const button = form.querySelector('[type="submit"]');
+
+    const trackingId = input.value.trim().toUpperCase();
+
+    if (!trackingId) {
+      toast("Please enter your tracking ID.");
+      return;
+    }
+
+    setLoading(button, true, "Track Application");
+
+    resultBox.innerHTML = "";
+
+    try {
+      const data = await api(
+        `/api/track/${encodeURIComponent(trackingId)}`
+      );
+
+      showTrackingResult(data, resultBox);
+
+    } catch (error) {
+      resultBox.innerHTML = `
+        <div class="error-panel">
+          ${escapeHTML(error.message)}
+        </div>
+      `;
+
+    } finally {
+      setLoading(button, false, "Track Application");
+    }
+  });
+}
+
+function showTrackingResult(data, container) {
+  const currentIndex = statuses.indexOf(data.status);
+
+  const timeline = statuses.map((status, index) => `
+    <div class="timeline-item ${index <= currentIndex ? "completed" : ""}">
+
+      <span class="timeline-dot"></span>
+
+      <div>
+        <strong>${escapeHTML(status)}</strong>
+      </div>
+
+    </div>
+  `).join("");
+
+  const photoURL = safeImageURL(data.photoUrl);
+
+  container.innerHTML = `
+    <div class="tracking-result">
+
+      <h3>Feedback Details</h3>
+
+      <p>
+        <strong>Tracking ID:</strong>
+        ${escapeHTML(data.tracking_id)}
+      </p>
+
+      <p>
+        <strong>Name:</strong>
+        ${escapeHTML(data.name)}
+      </p>
+
+      <p>
+        <strong>Category:</strong>
+        ${escapeHTML(data.category)}
+      </p>
+
+      <p>
+        <strong>Area:</strong>
+        ${escapeHTML(data.area)}
+      </p>
+
+      <p>
+        <strong>Description:</strong>
+        ${escapeHTML(data.description)}
+      </p>
+
+      <p>
+        <strong>Current Status:</strong>
+        ${statusBadge(data.status)}
+      </p>
+
+      <h3>Application Progress</h3>
+
+      <div class="status-timeline">
+        ${timeline}
+      </div>
+
+      <h3>Administrator Response</h3>
+
+      <p>
+        ${escapeHTML(
+          data.admin_response ||
+          "No response has been added yet."
+        )}
+      </p>
+
+      ${
+        photoURL
+          ? `
+            <h3>Uploaded Photo</h3>
+
+            <img
+              src="${photoURL}"
+              alt="Uploaded feedback"
+              class="tracking-photo"
+              loading="lazy"
+            >
+          `
+          : ""
+      }
+
+      <p class="small-text">
+        Last updated:
+        ${escapeHTML(data.updated_at || "Not available")}
+      </p>
+
+    </div>
+  `;
+}
+
+/* -------------------- ADMIN DASHBOARD -------------------- */
+
+function adminView() {
+  if (!currentUser || currentUser.role !== "admin") {
+    shell(
+      "Administrator Login Required",
+      "Please login with administrator credentials.",
+      `
+        <button
+          class="government-button"
+          data-view="admin-login"
+        >
+          Administrator Login
+        </button>
+      `
+    );
+
+    return;
+  }
+
+  shell(
+    "Administrator Dashboard",
+    "Manage citizen feedback and update application progress.",
+    `
+      <div class="admin-toolbar">
+
+        <input
+          type="search"
+          id="adminSearch"
+          placeholder="Search by ID, name, area or category..."
+        >
+
+        <select id="adminStatusFilter">
+
+          <option value="">All Statuses</option>
+
+          ${statuses.map(status => `
+            <option value="${escapeHTML(status)}">
+              ${escapeHTML(status)}
+            </option>
+          `).join("")}
+
+        </select>
+
+        <button
+          type="button"
+          class="outline-button"
+          id="refreshAdmin"
+        >
+          Refresh
+        </button>
+
+      </div>
+
+      <div id="adminStats" class="stats-grid"></div>
+
+      <div id="adminTable" class="admin-table-wrap">
+        Loading feedback...
+      </div>
+
+      <button
+        type="button"
+        class="outline-button"
+        id="logoutButton"
+      >
+        Logout
+      </button>
+    `,
+    true
+  );
+
+  document.getElementById("adminSearch")
+    .addEventListener("input", renderAdminTable);
+
+  document.getElementById("adminStatusFilter")
+    .addEventListener("change", renderAdminTable);
+
+  document.getElementById("refreshAdmin")
+    .addEventListener("click", loadAdminData);
+
+  document.getElementById("logoutButton")
+    .addEventListener("click", logout);
+
+  loadAdminData();
+}
+
+/* -------------------- LOAD ADMIN DATA -------------------- */
+
+async function loadAdminData() {
+  const table = document.getElementById("adminTable");
+
+  if (table) {
+    table.textContent = "Loading feedback...";
+  }
+
+  try {
+    const data = await api("/api/admin/suggestions");
+
+    adminItems = data.items || [];
+
+    const stats = data.stats || {};
+    const statsBox = document.getElementById("adminStats");
+
+    if (statsBox) {
+      const statNames = [
+        "Total",
+        "Submitted",
+        "Under Review",
+        "In Progress",
+        "Resolved"
+      ];
+
+      statsBox.innerHTML = statNames.map(name => `
+        <div class="stat-card">
+
+          <span>${escapeHTML(name)}</span>
+
+          <strong>${Number(stats[name] || 0)}</strong>
+
+        </div>
+      `).join("");
+    }
+
+    renderAdminTable();
+
+  } catch (error) {
+    if (table) {
+      table.innerHTML = `
+        <div class="error-panel">
+          ${escapeHTML(error.message)}
+        </div>
+      `;
+    }
+  }
+}
+
+/* -------------------- RENDER ADMIN RECORDS -------------------- */
+
+function renderAdminTable() {
+  const table = document.getElementById("adminTable");
+
+  if (!table) return;
+
+  const search = (
+    document.getElementById("adminSearch")?.value || ""
+  ).toLowerCase();
+
+  const filter = (
+    document.getElementById("adminStatusFilter")?.value || ""
+  );
+
+  const filtered = adminItems.filter(item => {
+    const matchesSearch = [
+      item.tracking_id,
+      item.name,
+      item.area,
+      item.category
+    ].some(value =>
+      String(value || "").toLowerCase().includes(search)
+    );
+
+    const matchesStatus =
+      !filter || item.status === filter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (!filtered.length) {
+    table.innerHTML = `
+      <div class="empty-state">
+        No feedback records found.
+      </div>
+    `;
+
+    return;
+  }
+
+  table.innerHTML = `
+    <div class="admin-record-list">
+
+      ${filtered.map(item => {
+        const photoURL = safeImageURL(item.photoUrl);
+
+        return `
+          <article class="admin-record">
+
+            <div class="admin-record-header">
+
+              <strong>
+                ${escapeHTML(item.tracking_id)}
+              </strong>
+
+              ${statusBadge(item.status)}
+
+            </div>
+
+            <p>
+              <strong>Name:</strong>
+              ${escapeHTML(item.name)}
+            </p>
+
+            <p>
+              <strong>Category:</strong>
+              ${escapeHTML(item.category)}
+            </p>
+
+            <p>
+              <strong>Area:</strong>
+              ${escapeHTML(item.area)}
+            </p>
+
+            <p>
+              <strong>Description:</strong>
+              ${escapeHTML(item.description)}
+            </p>
+
+            ${
+              photoURL
+                ? `
+                  <img
+                    src="${photoURL}"
+                    alt="Feedback photo"
+                    class="admin-photo"
+                    loading="lazy"
+                  >
+                `
+                : ""
+            }
+
+            <label class="form-field">
+
+              <span>Update Status</span>
+
+              <select
+                class="admin-status"
+                data-id="${escapeHTML(item.tracking_id)}"
+              >
+
+                ${statuses.map(status => `
+                  <option
+                    value="${escapeHTML(status)}"
+                    ${item.status === status ? "selected" : ""}
+                  >
+                    ${escapeHTML(status)}
+                  </option>
+                `).join("")}
+
+              </select>
+
+            </label>
+
+            <label class="form-field">
+
+              <span>Administrator Response</span>
+
+              <textarea
+                class="admin-response"
+                data-id="${escapeHTML(item.tracking_id)}"
+                rows="3"
+                placeholder="Write your response..."
+              >${escapeHTML(item.admin_response || "")}</textarea>
+
+            </label>
+
+            <div class="admin-actions">
+
+              <button
+                type="button"
+                class="government-button save-admin"
+                data-id="${escapeHTML(item.tracking_id)}"
+              >
+                Save Update
+              </button>
+
+              <button
+                type="button"
+                class="danger-button delete-admin"
+                data-id="${escapeHTML(item.tracking_id)}"
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </article>
+        `;
+      }).join("")}
+
+    </div>
+  `;
+
+  table.querySelectorAll(".save-admin").forEach(button => {
+    button.addEventListener("click", () => {
+      updateAdminRecord(button.dataset.id);
+    });
+  });
+
+  table.querySelectorAll(".delete-admin").forEach(button => {
+    button.addEventListener("click", () => {
+      deleteAdminRecord(button.dataset.id);
+    });
+  });
+}
+
+/* -------------------- ADMIN UPDATE -------------------- */
+
+async function updateAdminRecord(trackingId) {
+  const statusInput = document.querySelector(
+    `.admin-status[data-id="${CSS.escape(trackingId)}"]`
+  );
+
+  const responseInput = document.querySelector(
+    `.admin-response[data-id="${CSS.escape(trackingId)}"]`
+  );
+
+  if (!statusInput || !responseInput) return;
+
+  try {
+    await api(
+      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+      {
+        method: "PATCH",
+
+        body: JSON.stringify({
+          status: statusInput.value,
+          admin_response: responseInput.value
+        })
+      }
+    );
+
+    toast("Feedback updated successfully!");
+
+    await loadAdminData();
+
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+/* -------------------- ADMIN DELETE -------------------- */
+
+async function deleteAdminRecord(trackingId) {
+  const confirmed = confirm(
+    `Are you sure you want to delete feedback ${trackingId}?`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    await api(
+      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    toast("Feedback deleted successfully!");
+
+    await loadAdminData();
+
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+/* -------------------- SESSION AND LOGOUT -------------------- */
+
+async function loadSession() {
+  try {
+    currentUser = await api("/api/session");
+
+    if (!currentUser.loggedIn) {
+      currentUser = null;
+    }
+
+    return currentUser;
+
+  } catch {
+    currentUser = null;
+    return null;
+  }
+}
+
+async function logout() {
+  try {
+    await api("/api/logout", {
+      method: "POST"
     });
 
+    currentUser = null;
+
+    adminItems = [];
+
+    toast("You have been logged out.");
+
+    view("home");
+
+  } catch (error) {
+    toast(error.message);
+  }
 }
 
-/* ==================== START APPLICATION ==================== */
+/* -------------------- SERVICE WORKER -------------------- */
 
-document.addEventListener("DOMContentLoaded", initializeJanaSetu);
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .catch(error => {
+        console.warn(
+          "Service worker registration failed:",
+          error
+        );
+      });
+  });
+}
+
+/* -------------------- START APPLICATION -------------------- */
+
+(async function startApplication() {
+  await loadSession();
+
+  homeView();
+})();
