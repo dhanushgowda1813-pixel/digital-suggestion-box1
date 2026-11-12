@@ -18,10 +18,12 @@
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
+
   <meta
     name="apple-mobile-web-app-status-bar-style"
     content="default"
   >
+
   <meta
     name="apple-mobile-web-app-title"
     content="Citizen Feedback"
@@ -42,6 +44,14 @@
     href="{{ url_for('static', filename='app-icon.svg') }}"
   >
 
+  <!-- LEAFLET MAP LIBRARY -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  >
+
   <!-- WEBSITE STYLESHEET -->
   <link
     rel="stylesheet"
@@ -52,7 +62,6 @@
 <body>
 
   <!-- TOP GOVERNMENT-STYLE STRIP -->
-
   <div class="top-strip">
     <div class="top-strip-inner">
       <span>ಕರ್ನಾಟಕ | KARNATAKA</span>
@@ -61,7 +70,6 @@
   </div>
 
   <!-- NATIONAL COLOUR STRIP -->
-
   <div class="tricolour" aria-hidden="true">
     <span class="saffron"></span>
     <span class="white"></span>
@@ -69,7 +77,6 @@
   </div>
 
   <!-- MAIN HEADER -->
-
   <header class="government-header">
 
     <a
@@ -108,15 +115,13 @@
   </header>
 
   <!-- NAVIGATION -->
-
   <nav
     class="main-nav"
     id="nav"
     aria-label="Main navigation"
   >
 
-    <!-- THREE-LINE HAMBURGER MENU -->
-
+    <!-- HAMBURGER MENU -->
     <button
       class="menu-toggle"
       id="menuToggle"
@@ -131,7 +136,6 @@
     </button>
 
     <!-- NAVIGATION OPTIONS -->
-
     <div class="nav-menu" id="navMenu" hidden>
 
       <button class="navlink" type="button" data-view="home">
@@ -154,10 +158,8 @@
         Administrator
       </button>
 
-      <!-- ONLY LIGHT AND DARK THEMES -->
-
+      <!-- LIGHT AND DARK THEMES -->
       <label class="theme-picker">
-
         <span>Theme</span>
 
         <select
@@ -167,7 +169,6 @@
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
-
       </label>
 
     </div>
@@ -175,17 +176,13 @@
   </nav>
 
   <!-- MAIN APPLICATION -->
-
   <main id="app">
 
     <!-- MAIN HERO SECTION -->
-
     <section class="welcome-banner" id="home">
 
       <!-- MAIN IMAGE -->
-
       <div class="welcome-illustration">
-
         <img
           class="civic-main-image"
           src="{{ url_for('static', filename='civic-banner-main.png') }}"
@@ -193,11 +190,9 @@
           fetchpriority="high"
           decoding="async"
         >
-
       </div>
 
       <!-- HERO CONTENT -->
-
       <div class="welcome-content">
 
         <span class="welcome-tag">
@@ -247,7 +242,6 @@
     </section>
 
     <!-- CITIZEN SERVICES -->
-
     <section class="services-heading">
 
       <div>
@@ -267,11 +261,9 @@
     </section>
 
     <!-- SERVICE CARDS -->
-
     <section class="service-grid">
 
       <!-- SUBMIT FEEDBACK -->
-
       <button
         class="service-card"
         type="button"
@@ -281,7 +273,6 @@
         <span class="service-icon submit-icon">✎</span>
 
         <span class="service-card-content">
-
           <strong>Submit Feedback</strong>
 
           <small>
@@ -289,13 +280,11 @@
           </small>
 
           <span class="service-link">Submit now →</span>
-
         </span>
 
       </button>
 
       <!-- TRACK APPLICATION -->
-
       <button
         class="service-card"
         type="button"
@@ -305,7 +294,6 @@
         <span class="service-icon track-icon">⌕</span>
 
         <span class="service-card-content">
-
           <strong>Track Application</strong>
 
           <small>
@@ -313,13 +301,11 @@
           </small>
 
           <span class="service-link">Track now →</span>
-
         </span>
 
       </button>
 
       <!-- CITIZEN LOGIN -->
-
       <button
         class="service-card"
         type="button"
@@ -329,7 +315,6 @@
         <span class="service-icon citizen-icon">♙</span>
 
         <span class="service-card-content">
-
           <strong>Citizen Login</strong>
 
           <small>
@@ -337,13 +322,11 @@
           </small>
 
           <span class="service-link">Login →</span>
-
         </span>
 
       </button>
 
       <!-- ADMIN LOGIN -->
-
       <button
         class="service-card"
         type="button"
@@ -353,7 +336,6 @@
         <span class="service-icon admin-icon">▤</span>
 
         <span class="service-card-content">
-
           <strong>Administrator</strong>
 
           <small>
@@ -361,7 +343,6 @@
           </small>
 
           <span class="service-link">Admin access →</span>
-
         </span>
 
       </button>
@@ -369,7 +350,6 @@
     </section>
 
     <!-- COMMUNITY PARTICIPATION SECTION -->
-
     <section class="civic-features-section">
 
       <div class="civic-features-content">
@@ -387,13 +367,9 @@
         </p>
 
         <div class="civic-feature-points">
-
           <span>✓ Report neighbourhood issues</span>
-
           <span>✓ Share ideas and suggestions</span>
-
           <span>✓ Follow application progress</span>
-
         </div>
 
       </div>
@@ -413,7 +389,6 @@
     </section>
 
     <!-- HOW THE SYSTEM WORKS -->
-
     <section class="process-section">
 
       <div class="process-heading">
@@ -429,7 +404,6 @@
       <div class="process-grid">
 
         <!-- STEP 1 -->
-
         <div class="process-item">
 
           <span class="process-number">01</span>
@@ -445,7 +419,6 @@
         </div>
 
         <!-- STEP 2 -->
-
         <div class="process-item">
 
           <span class="process-number">02</span>
@@ -461,7 +434,6 @@
         </div>
 
         <!-- STEP 3 -->
-
         <div class="process-item">
 
           <span class="process-number">03</span>
@@ -479,7 +451,6 @@
       </div>
 
       <!-- CITIZEN HELP SECTION -->
-
       <div class="citizen-help-section">
 
         <div class="citizen-help-image-wrap">
@@ -524,7 +495,6 @@
     </section>
 
     <!-- DYNAMIC APPLICATION PANEL -->
-
     <section
       class="panel-wrap"
       id="panel"
@@ -534,7 +504,6 @@
   </main>
 
   <!-- FOOTER -->
-
   <footer class="government-footer">
 
     <div class="footer-main">
@@ -585,7 +554,6 @@
   </footer>
 
   <!-- NOTIFICATION MESSAGE -->
-
   <div
     id="toast"
     role="status"
@@ -593,8 +561,15 @@
     aria-atomic="true"
   ></div>
 
-  <!-- APPLICATION JAVASCRIPT -->
+  <!-- LEAFLET MAP LIBRARY -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+    defer
+  ></script>
 
+  <!-- APPLICATION JAVASCRIPT -->
   <script
     src="{{ url_for('static', filename='app.js') }}"
     defer
