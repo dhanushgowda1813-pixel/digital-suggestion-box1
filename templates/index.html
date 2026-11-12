@@ -4,75 +4,65 @@
 <head>
   <meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1, viewport-fit=cover"
-  >
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <meta name="theme-color" content="#174b86">
 
-  <meta
-    name="description"
-    content="Digital Citizen Feedback System for Local Governance and Public Participation"
-  >
+  <meta name="description"
+        content="Digital Citizen Feedback System for Local Governance and Public Participation">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-
-  <meta
-    name="apple-mobile-web-app-status-bar-style"
-    content="default"
-  >
-
-  <meta
-    name="apple-mobile-web-app-title"
-    content="JANASETU"
-  >
-
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="JANASETU">
   <meta name="application-name" content="JANASETU">
 
   <title>JANASETU | Digital Citizen Feedback System</title>
 
   <!-- PWA CONFIGURATION -->
-  <link
-    rel="manifest"
-    href="{{ url_for('static', filename='manifest.json') }}"
-  >
+  <link rel="manifest"
+        href="{{ url_for('static', filename='manifest.json') }}">
 
-  <link
-    rel="apple-touch-icon"
-    href="{{ url_for('static', filename='app-icon.svg') }}"
-  >
+  <link rel="apple-touch-icon"
+        href="{{ url_for('static', filename='app-icon.svg') }}">
 
   <!-- LEAFLET MAP STYLES -->
-  <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-    crossorigin=""
-  >
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+        crossorigin="">
 
   <!-- WEBSITE STYLESHEET -->
-  <link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='style.css') }}"
-  >
+  <link rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
 
-  <!-- JANASETU COMMON HEADER BANNER -->
+  <!-- JANASETU FULL-WIDTH HEADER -->
   <style>
-    .janasetu-banner-header {
+    html,
+    body {
+      margin: 0;
+      padding: 0;
       width: 100%;
+    }
+
+    .janasetu-banner-header {
+      display: block;
+      width: 100%;
+      max-width: none;
       margin: 0;
       padding: 0;
       background: #ffffff;
       overflow: hidden;
+      box-sizing: border-box;
     }
 
     .janasetu-banner-link {
       display: block;
       width: 100%;
-      max-width: 1800px;
-      margin: 0 auto;
+      max-width: none;
+      margin: 0;
+      padding: 0;
       text-decoration: none;
       line-height: 0;
     }
@@ -80,14 +70,21 @@
     .janasetu-banner-image {
       display: block;
       width: 100%;
+      max-width: 100%;
       height: auto;
-      max-height: 320px;
+      max-height: none;
+      margin: 0;
+      padding: 0;
       object-fit: contain;
       object-position: center;
-      margin: 0 auto;
     }
 
     @media (max-width: 600px) {
+      .janasetu-banner-header,
+      .janasetu-banner-link {
+        width: 100%;
+      }
+
       .janasetu-banner-image {
         width: 100%;
         height: auto;
@@ -117,11 +114,9 @@
   <!-- MAIN JANASETU BANNER HEADER -->
   <header class="government-header janasetu-banner-header">
 
-    <a
-      href="#home"
-      class="janasetu-banner-link"
-      aria-label="JANASETU home"
-    >
+    <a href="#home"
+       class="janasetu-banner-link"
+       aria-label="JANASETU home">
 
       <img
         class="janasetu-banner-image"
@@ -136,27 +131,22 @@
   </header>
 
   <!-- NAVIGATION -->
-  <nav
-    class="main-nav"
-    id="nav"
-    aria-label="Main navigation"
-  >
+  <nav class="main-nav" id="nav" aria-label="Main navigation">
 
-    <!-- HAMBURGER MENU -->
     <button
       class="menu-toggle"
       id="menuToggle"
       type="button"
       aria-label="Open navigation menu"
       aria-controls="navMenu"
-      aria-expanded="false"
-    >
+      aria-expanded="false">
+
       <span></span>
       <span></span>
       <span></span>
+
     </button>
 
-    <!-- NAVIGATION OPTIONS -->
     <div class="nav-menu" id="navMenu" hidden>
 
       <button class="navlink" type="button" data-view="home">
@@ -179,31 +169,24 @@
         Administrator
       </button>
 
-      <!-- LOGOUT -->
-      <button
-        class="navlink"
-        id="logoutButton"
-        type="button"
-        hidden
-      >
+      <button class="navlink"
+              id="logoutButton"
+              type="button"
+              hidden>
         Logout
       </button>
 
-      <!-- LIGHT AND DARK THEMES -->
+      <!-- THEME SELECTOR -->
       <label class="theme-picker">
         <span>Theme</span>
 
-        <select
-          id="themeSelect"
-          aria-label="Choose website theme"
-        >
+        <select id="themeSelect" aria-label="Choose website theme">
           <option value="light">Light</option>
           <option value="dark">Dark</option>
         </select>
       </label>
 
     </div>
-
   </nav>
 
   <!-- MAIN APPLICATION -->
@@ -218,8 +201,7 @@
           src="{{ url_for('static', filename='civic-banner-main.png') }}"
           alt="Citizens and local communities working together for better public services"
           fetchpriority="high"
-          decoding="async"
-        >
+          decoding="async">
       </div>
 
       <div class="welcome-content">
@@ -242,19 +224,15 @@
 
         <div class="welcome-actions">
 
-          <button
-            class="government-button"
-            type="button"
-            data-view="submit"
-          >
+          <button class="government-button"
+                  type="button"
+                  data-view="submit">
             Submit Your Feedback <span>→</span>
           </button>
 
-          <button
-            class="outline-button"
-            type="button"
-            data-view="track"
-          >
+          <button class="outline-button"
+                  type="button"
+                  data-view="track">
             Track Application
           </button>
 
@@ -267,7 +245,6 @@
         </div>
 
       </div>
-
     </section>
 
     <!-- CITIZEN SERVICES -->
@@ -275,15 +252,12 @@
 
       <div>
         <span class="section-eyebrow">CITIZEN SERVICES</span>
-
         <h2>How can we help you?</h2>
-
         <p>Choose a service to get started.</p>
       </div>
 
       <div class="service-heading-note">
         ಸೇವೆಯೇ ನಮ್ಮ ಧ್ಯೇಯ
-
         <small>Service is our commitment</small>
       </div>
 
@@ -292,84 +266,52 @@
     <!-- SERVICE CARDS -->
     <section class="service-grid">
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="submit"
-      >
-
+      <button class="service-card" type="button" data-view="submit">
         <span class="service-icon submit-icon">✎</span>
 
         <span class="service-card-content">
           <strong>Submit Feedback</strong>
-
           <small>
             Report a local issue or share a suggestion with the local administration.
           </small>
-
           <span class="service-link">Submit now →</span>
         </span>
-
       </button>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="track"
-      >
-
+      <button class="service-card" type="button" data-view="track">
         <span class="service-icon track-icon">⌕</span>
 
         <span class="service-card-content">
           <strong>Track Application</strong>
-
           <small>
             Check the status of your submitted feedback using your tracking ID.
           </small>
-
           <span class="service-link">Track now →</span>
         </span>
-
       </button>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="login"
-      >
-
+      <button class="service-card" type="button" data-view="login">
         <span class="service-icon citizen-icon">♙</span>
 
         <span class="service-card-content">
           <strong>Citizen Login</strong>
-
           <small>
             Access your citizen account and submit feedback through the portal.
           </small>
-
           <span class="service-link">Login →</span>
         </span>
-
       </button>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="admin-login"
-      >
-
+      <button class="service-card" type="button" data-view="admin-login">
         <span class="service-icon admin-icon">▤</span>
 
         <span class="service-card-content">
           <strong>Administrator</strong>
-
           <small>
             Review submissions, manage requests and update application progress.
           </small>
-
           <span class="service-link">Admin access →</span>
         </span>
-
       </button>
 
     </section>
@@ -406,68 +348,46 @@
           src="{{ url_for('static', filename='civic-banner-features.png') }}"
           alt="Community participation and improvement of local public facilities"
           loading="lazy"
-          decoding="async"
-        >
+          decoding="async">
 
       </div>
-
     </section>
 
     <!-- HOW THE SYSTEM WORKS -->
     <section class="process-section">
 
       <div class="process-heading">
-
-        <span class="section-eyebrow">
-          SIMPLE & TRANSPARENT
-        </span>
-
+        <span class="section-eyebrow">SIMPLE & TRANSPARENT</span>
         <h2>How the system works</h2>
-
       </div>
 
       <div class="process-grid">
 
         <div class="process-item">
-
           <span class="process-number">01</span>
 
           <div>
             <strong>Submit</strong>
-
-            <p>
-              Share your issue with the required details and photo.
-            </p>
+            <p>Share your issue with the required details and photo.</p>
           </div>
-
         </div>
 
         <div class="process-item">
-
           <span class="process-number">02</span>
 
           <div>
             <strong>Review</strong>
-
-            <p>
-              Your submission can be reviewed by the administrator.
-            </p>
+            <p>Your submission can be reviewed by the administrator.</p>
           </div>
-
         </div>
 
         <div class="process-item">
-
           <span class="process-number">03</span>
 
           <div>
             <strong>Track progress</strong>
-
-            <p>
-              Follow the latest status and administrator response online.
-            </p>
+            <p>Follow the latest status and administrator response online.</p>
           </div>
-
         </div>
 
       </div>
@@ -482,16 +402,13 @@
             src="{{ url_for('static', filename='citizen-help-illustration.webp') }}"
             alt="Illustration representing citizens helping their community"
             loading="lazy"
-            decoding="async"
-          >
+            decoding="async">
 
         </div>
 
         <div class="citizen-help-content">
 
-          <span class="section-eyebrow">
-            YOUR VOICE MATTERS
-          </span>
+          <span class="section-eyebrow">YOUR VOICE MATTERS</span>
 
           <h3>
             Small suggestions can create meaningful change.
@@ -502,26 +419,22 @@
             concerns, ideas and suggestions through this digital platform.
           </p>
 
-          <button
-            class="government-button"
-            type="button"
-            data-view="submit"
-          >
+          <button class="government-button"
+                  type="button"
+                  data-view="submit">
             Share Your Feedback →
           </button>
 
         </div>
-
       </div>
 
     </section>
 
     <!-- DYNAMIC APPLICATION PANEL -->
-    <section
-      class="panel-wrap"
-      id="panel"
-      aria-live="polite"
-    ></section>
+    <section class="panel-wrap"
+             id="panel"
+             aria-live="polite">
+    </section>
 
   </main>
 
@@ -531,27 +444,19 @@
     <div class="footer-main">
 
       <div class="footer-brand">
-
         <strong>JANASETU - Digital Citizen Feedback System</strong>
 
-        <span>
-          Local Governance & Citizen Participation
-        </span>
+        <span>Local Governance & Citizen Participation</span>
 
-        <small>
-          ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ
-        </small>
-
+        <small>ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ</small>
       </div>
 
       <div class="footer-purpose">
-
         <strong>Citizen participation matters.</strong>
 
         <span>
           Every suggestion is an opportunity to improve our community.
         </span>
-
       </div>
 
     </div>
@@ -576,26 +481,25 @@
   </footer>
 
   <!-- NOTIFICATION MESSAGE -->
-  <div
-    id="toast"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true"
-  ></div>
+  <div id="toast"
+       role="status"
+       aria-live="polite"
+       aria-atomic="true">
+  </div>
 
   <!-- LEAFLET MAP LIBRARY -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""
-    defer
-  ></script>
+    defer>
+  </script>
 
   <!-- APPLICATION JAVASCRIPT -->
   <script
     src="{{ url_for('static', filename='app.js') }}"
-    defer
-  ></script>
+    defer>
+  </script>
 
 </body>
 </html>
