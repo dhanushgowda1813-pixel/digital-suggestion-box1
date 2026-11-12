@@ -3,6 +3,7 @@
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
    Responsive Web Application + Android APK
+
    Features:
    - Citizen and Admin authentication
    - Password visibility
@@ -13,6 +14,8 @@
    - Feedback submission and photo preview
    - Public tracking
    - Admin dashboard
+   - Status updates and deletion
+   - Session and logout management
    ========================================================= */
 
 "use strict";
@@ -36,8 +39,10 @@ let activePhotoURL = null;
 
 let feedbackMap = null;
 let feedbackMarker = null;
+
 let selectedLatitude = null;
 let selectedLongitude = null;
+
 let autocompleteTimer = null;
 let lastSearchTime = 0;
 let locationRequestActive = false;
@@ -130,6 +135,27 @@ function setLoading(button, loading, originalText = "Submit") {
     : originalText;
 }
 
+function releasePhotoPreview() {
+  if (activePhotoURL) {
+    URL.revokeObjectURL(activePhotoURL);
+    activePhotoURL = null;
+  }
+}
+
+/* -------------------- AUTHENTICATION UI -------------------- */
+
+function updateAuthUI() {
+  const headerLogout = document.getElementById("logoutButton");
+
+  if (headerLogout) {
+    headerLogout.hidden = !(
+      currentUser && currentUser.loggedIn
+    );
+  }
+}
+
+/* -------------------- PAGE SHELL -------------------- */
+
 function shell(title, lead, body, wide = false) {
   if (!appPanel) return;
 
@@ -158,6 +184,8 @@ function shell(title, lead, body, wide = false) {
     block: "start"
   });
 }
+
+/* -------------------- FORM FIELD GENERATOR -------------------- */
 
 function formField(label, name, type = "text", required = true) {
   const safeLabel = escapeHTML(label);
@@ -216,13 +244,17 @@ function formField(label, name, type = "text", required = true) {
       <input
         type="${safeType}"
         name="${safeName}"
-        ${type === "email" ? 'autocomplete="email"' : 'autocomplete="off"'}
+        ${type === "email"
+          ? 'autocomplete="email"'
+          : 'autocomplete="off"'}
         ${required ? "required" : ""}
       >
 
     </label>
   `;
 }
+
+/* -------------------- STATUS BADGE -------------------- */
 
 function statusBadge(status) {
   return `
@@ -232,14 +264,9 @@ function statusBadge(status) {
   `;
 }
 
-function releasePhotoPreview() {
-  if (activePhotoURL) {
-    URL.revokeObjectURL(activePhotoURL);
-    activePhotoURL = null;
-  }
-}
-
-/* -------------------- PASSWORD VISIBILITY -------------------- */
+/* =========================================================
+   PASSWORD VISIBILITY
+   ========================================================= */
 
 document.addEventListener("click", event => {
   const toggle = event.target.closest(".password-toggle");
@@ -304,7 +331,9 @@ document.addEventListener("click", event => {
     `;
 });
 
-/* -------------------- NAVIGATION -------------------- */
+/* =========================================================
+   NAVIGATION
+   ========================================================= */
 
 function closeMenu() {
   const menu = document.getElementById("navMenu");
@@ -352,6 +381,14 @@ document.addEventListener("click", event => {
   }
 });
 
+/* -------------------- HEADER LOGOUT -------------------- */
+
+const headerLogoutButton = document.getElementById("logoutButton");
+
+if (headerLogoutButton) {
+  headerLogoutButton.addEventListener("click", logout);
+}
+
 /* -------------------- HAMBURGER MENU -------------------- */
 
 const menuToggle = document.getElementById("menuToggle");
@@ -377,7 +414,9 @@ if (menuToggle && navMenu) {
   });
 }
 
-/* -------------------- THEME SELECTOR -------------------- */
+/* =========================================================
+   THEME SELECTOR
+   ========================================================= */
 
 const themeSelect = document.getElementById("themeSelect");
 
@@ -403,9 +442,7 @@ function applyTheme(theme) {
 
 try {
   const savedTheme = localStorage.getItem("citizenTheme");
-
   applyTheme(savedTheme || "light");
-
 } catch {
   applyTheme("light");
 }
@@ -416,7 +453,9 @@ if (themeSelect) {
   });
 }
 
-/* -------------------- HOME PAGE -------------------- */
+/* =========================================================
+   HOME PAGE
+   ========================================================= */
 
 function homeView() {
   destroyFeedbackMap();
@@ -427,13 +466,17 @@ function homeView() {
 
   currentView = "home";
 
+  updateAuthUI();
+
   window.scrollTo({
     top: 0,
     behavior: "smooth"
   });
 }
 
-/* -------------------- CITIZEN REGISTRATION -------------------- */
+/* =========================================================
+   CITIZEN REGISTRATION
+   ========================================================= */
 
 function registerView() {
   shell(
@@ -530,12 +573,16 @@ function registerView() {
       toast(error.message);
 
     } finally {
-      setLoading(button, false, "Create Account");
+      if (button.isConnected) {
+        setLoading(button, false, "Create Account");
+      }
     }
   });
 }
 
-/* -------------------- CITIZEN LOGIN -------------------- */
+/* =========================================================
+   CITIZEN LOGIN
+   ========================================================= */
 
 function loginView() {
   shell(
@@ -599,12 +646,16 @@ function loginView() {
       toast(error.message);
 
     } finally {
-      setLoading(button, false, "Login");
+      if (button.isConnected) {
+        setLoading(button, false, "Login");
+      }
     }
   });
 }
 
-/* -------------------- ADMIN LOGIN -------------------- */
+/* =========================================================
+   ADMIN LOGIN
+   ========================================================= */
 
 function adminLoginView() {
   shell(
@@ -656,7 +707,9 @@ function adminLoginView() {
       toast(error.message);
 
     } finally {
-      setLoading(button, false, "Administrator Login");
+      if (button.isConnected) {
+        setLoading(button, false, "Administrator Login");
+      }
     }
   });
 }
@@ -683,7 +736,7 @@ function destroyFeedbackMap() {
   selectedLongitude = null;
 }
 
-/* -------------------- UPDATE LOCATION COORDINATES -------------------- */
+/* -------------------- UPDATE COORDINATES -------------------- */
 
 function updateLocationCoordinates(latitude, longitude) {
   selectedLatitude = Number(latitude);
@@ -798,7 +851,6 @@ function setSelectedLocation(latitude, longitude, zoom = 16) {
         );
 
         const area = extractAreaName(result);
-
         const areaInput = document.getElementById("areaInput");
 
         if (areaInput && area) {
@@ -867,7 +919,6 @@ async function useCurrentLocation() {
         );
 
         const area = extractAreaName(result);
-
         const areaInput = document.getElementById("areaInput");
 
         if (areaInput && area) {
@@ -888,7 +939,7 @@ async function useCurrentLocation() {
 
       locationRequestActive = false;
 
-      if (button) {
+      if (button && button.isConnected) {
         button.disabled = false;
         button.textContent = "◎ Use Current Location";
       }
@@ -910,7 +961,7 @@ async function useCurrentLocation() {
 
       locationRequestActive = false;
 
-      if (button) {
+      if (button && button.isConnected) {
         button.disabled = false;
         button.textContent = "◎ Use Current Location";
       }
@@ -942,6 +993,8 @@ function initializeFeedbackMap() {
 
   if (feedbackMap) {
     feedbackMap.remove();
+    feedbackMap = null;
+    feedbackMarker = null;
   }
 
   // Default map centre: Bengaluru, Karnataka.
@@ -1051,9 +1104,10 @@ function showPlaceSuggestions(results) {
     const item = document.createElement("button");
 
     item.type = "button";
-    item.className = "place-suggestion";
+    item.className = "place-suggestion location-suggestion";
 
     const title = document.createElement("strong");
+
     title.textContent =
       extractAreaName(result) ||
       result.name ||
@@ -1081,6 +1135,14 @@ function selectSuggestedPlace(result) {
   const latitude = Number(result.lat);
   const longitude = Number(result.lon);
 
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude)
+  ) {
+    toast("Unable to select this place.");
+    return;
+  }
+
   const areaInput = document.getElementById("areaInput");
   const suggestions = document.getElementById("areaSuggestions");
 
@@ -1100,9 +1162,7 @@ function selectSuggestedPlace(result) {
 
   setSelectedLocation(latitude, longitude, 16);
 
-  locationMessage(
-    `Selected location: ${area}`
-  );
+  locationMessage(`Selected location: ${area}`);
 }
 
 /* -------------------- AREA INPUT SEARCH -------------------- */
@@ -1141,6 +1201,7 @@ function initializePlaceAutocomplete() {
         // Keep requests spaced to respect the public
         // OpenStreetMap Nominatim usage policy.
         const now = Date.now();
+
         const wait = Math.max(
           0,
           1100 - (now - lastSearchTime)
@@ -1157,13 +1218,16 @@ function initializePlaceAutocomplete() {
 
         showPlaceSuggestions(results);
 
-      } catch (error) {
+      } catch {
         if (areaInput.value.trim() === query) {
           suggestions.innerHTML = "";
 
           const message = document.createElement("div");
+
           message.className = "place-no-results";
-          message.textContent = "Place search unavailable. You can enter the area manually.";
+
+          message.textContent =
+            "Place search unavailable. You can enter the area manually.";
 
           suggestions.appendChild(message);
           suggestions.hidden = false;
@@ -1182,9 +1246,7 @@ function initializePlaceAutocomplete() {
   });
 
   document.addEventListener("click", event => {
-    if (
-      !event.target.closest(".location-search-wrap")
-    ) {
+    if (!event.target.closest(".location-search-wrap")) {
       suggestions.hidden = true;
     }
   });
@@ -1217,6 +1279,10 @@ function initializeLocationControls() {
 function validatePhoto(file) {
   if (!file) {
     return "Please upload a photo.";
+  }
+
+  if (file.type && !file.type.startsWith("image/")) {
+    return "Please select an image file.";
   }
 
   return "";
@@ -1306,6 +1372,7 @@ function submitView() {
         </label>
 
         <!-- LOCATION SEARCH -->
+
         <div class="form-field location-field">
 
           <span>Area / Place *</span>
@@ -1323,7 +1390,7 @@ function submitView() {
 
             <div
               id="areaSuggestions"
-              class="area-suggestions"
+              class="area-suggestions location-suggestions"
               hidden
             ></div>
 
@@ -1336,7 +1403,8 @@ function submitView() {
         </div>
 
         <!-- CURRENT LOCATION -->
-        <div class="location-controls">
+
+        <div class="location-controls location-actions">
 
           <button
             type="button"
@@ -1346,13 +1414,17 @@ function submitView() {
             ◎ Use Current Location
           </button>
 
-          <span id="locationMessage" class="location-message">
+          <span
+            id="locationMessage"
+            class="location-message location-status"
+          >
             Search for a place or use your current location.
           </span>
 
         </div>
 
         <!-- HIDDEN COORDINATES -->
+
         <input
           type="hidden"
           name="latitude"
@@ -1368,24 +1440,27 @@ function submitView() {
         >
 
         <!-- MAP -->
-        <div class="map-section">
+
+        <div class="map-section location-map-section">
 
           <div class="map-heading">
+
             <strong>Select the issue location</strong>
 
             <small>
               Search for a place or tap the map to select a location.
             </small>
+
           </div>
 
           <div
             id="feedbackMap"
-            class="feedback-map"
+            class="feedback-map location-map"
             role="application"
             aria-label="Map for selecting feedback location"
           ></div>
 
-          <p class="map-help">
+          <p class="map-help location-help">
             You can drag the map marker to adjust the exact location.
           </p>
 
@@ -1396,6 +1471,7 @@ function submitView() {
         </div>
 
         <!-- DESCRIPTION -->
+
         <label class="form-field">
 
           <span>Describe Your Issue *</span>
@@ -1410,6 +1486,7 @@ function submitView() {
         </label>
 
         <!-- PHOTO -->
+
         <label class="form-field">
 
           <span>Upload Photo *</span>
@@ -1423,7 +1500,7 @@ function submitView() {
           >
 
           <small class="form-note">
-            Select a photo from your device or camera.
+            Select an image from your device or camera.
           </small>
 
         </label>
@@ -1514,6 +1591,12 @@ function submitView() {
 
       const trackingId = result.trackingId;
 
+      if (!trackingId) {
+        throw new Error(
+          "Feedback was submitted, but the tracking ID was not received."
+        );
+      }
+
       releasePhotoPreview();
       destroyFeedbackMap();
 
@@ -1580,16 +1663,8 @@ function submitView() {
       toast(error.message);
 
     } finally {
-      const currentButton = document.querySelector(
-        "#suggestionForm button[type='submit']"
-      );
-
-      if (currentButton) {
-        setLoading(
-          currentButton,
-          false,
-          "Submit Feedback"
-        );
+      if (button.isConnected) {
+        setLoading(button, false, "Submit Feedback");
       }
     }
   });
@@ -1691,6 +1766,12 @@ function showTrackingResult(data, container) {
 
   const photoURL = safeImageURL(data.photoUrl);
 
+  const hasCoordinates =
+    data.latitude !== null &&
+    data.latitude !== undefined &&
+    data.longitude !== null &&
+    data.longitude !== undefined;
+
   container.innerHTML = `
     <div class="tracking-result">
 
@@ -1757,7 +1838,7 @@ function showTrackingResult(data, container) {
       }
 
       ${
-        data.latitude && data.longitude
+        hasCoordinates
           ? `
             <p>
               <strong>Location coordinates:</strong>
@@ -1844,7 +1925,7 @@ function adminView() {
       <button
         type="button"
         class="outline-button"
-        id="logoutButton"
+        id="adminLogoutButton"
       >
         Logout
       </button>
@@ -1861,7 +1942,8 @@ function adminView() {
   document.getElementById("refreshAdmin")
     .addEventListener("click", loadAdminData);
 
-  document.getElementById("logoutButton")
+  // Separate ID prevents conflict with the header logout.
+  document.getElementById("adminLogoutButton")
     .addEventListener("click", logout);
 
   loadAdminData();
@@ -1879,7 +1961,9 @@ async function loadAdminData() {
   try {
     const data = await api("/api/admin/suggestions");
 
-    adminItems = data.items || [];
+    adminItems = Array.isArray(data.items)
+      ? data.items
+      : [];
 
     const stats = data.stats || {};
     const statsBox = document.getElementById("adminStats");
@@ -1937,7 +2021,8 @@ function renderAdminTable() {
       item.tracking_id,
       item.name,
       item.area,
-      item.category
+      item.category,
+      item.description
     ].some(value =>
       String(value || "").toLowerCase().includes(search)
     );
@@ -2154,16 +2239,21 @@ async function deleteAdminRecord(trackingId) {
 
 async function loadSession() {
   try {
-    currentUser = await api("/api/session");
+    const data = await api("/api/session");
 
-    if (!currentUser.loggedIn) {
-      currentUser = null;
-    }
+    currentUser = data.loggedIn
+      ? data
+      : null;
+
+    updateAuthUI();
 
     return currentUser;
 
   } catch {
     currentUser = null;
+
+    updateAuthUI();
+
     return null;
   }
 }
@@ -2178,6 +2268,8 @@ async function logout() {
 
     currentUser = null;
     adminItems = [];
+
+    updateAuthUI();
 
     toast("You have been logged out.");
 
