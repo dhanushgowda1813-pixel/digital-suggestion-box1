@@ -1,13 +1,22 @@
 {
-  "name": "Digital Suggestion Box",
-  "short_name": "Suggestion Box",
-  "description": "Submit and track local community suggestions.",
+  "id": "/",
+  "name": "JANASETU – Digital Citizen Feedback System",
+  "short_name": "JANASETU",
+  "description": "Share suggestions, report local issues and track community feedback.",
+  "lang": "en-IN",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#f7f5ed",
   "theme_color": "#145b58",
+  "prefer_related_applications": false,
   "icons": [
-    {"src": "/static/app-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+    {
+      "src": "/static/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
