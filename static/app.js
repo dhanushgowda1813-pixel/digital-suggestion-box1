@@ -2,8 +2,13 @@
 /* =========================================================
    DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
-   Compatible with the existing Flask app.py and index.html
+   Responsive Web Application + Android APK
+   Compatible with the existing Flask backend
    ========================================================= */
+
+"use strict";
+
+/* -------------------- GLOBAL VARIABLES -------------------- */
 
 const appPanel = document.getElementById("panel");
 const toastEl = document.getElementById("toast");
@@ -18,6 +23,7 @@ const statuses = [
 let currentView = "";
 let currentUser = null;
 let adminItems = [];
+let activePhotoURL = null;
 
 /* -------------------- COMMON FUNCTIONS -------------------- */
 
@@ -27,7 +33,9 @@ function toast(message) {
   toastEl.textContent = message;
   toastEl.classList.add("show");
 
-  setTimeout(() => {
+  clearTimeout(toastEl.toastTimer);
+
+  toastEl.toastTimer = setTimeout(() => {
     toastEl.classList.remove("show");
   }, 3200);
 }
@@ -42,6 +50,21 @@ function escapeHTML(value) {
   })[char]);
 }
 
+function safeImageURL(value) {
+  const url = String(value || "").trim();
+
+  if (
+    url.startsWith("/") ||
+    url.startsWith("./") ||
+    url.startsWith("https://") ||
+    url.startsWith("http://")
+  ) {
+    return escapeHTML(url);
+  }
+
+  return "";
+}
+
 async function api(url, options = {}) {
   const headers = {
     ...(options.body instanceof FormData
@@ -50,10 +73,18 @@ async function api(url, options = {}) {
     ...(options.headers || {})
   };
 
-  const response = await fetch(url, {
-    ...options,
-    headers
-  });
+  let response;
+
+  try {
+    response = await fetch(url, {
+      ...options,
+      headers
+    });
+  } catch {
+    throw new Error(
+      "Unable to connect. Please check your internet connection."
+    );
+  }
 
   let data = {};
 
@@ -64,7 +95,9 @@ async function api(url, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data.error || "Something went wrong.");
+    throw new Error(
+      data.error || "Something went wrong. Please try again."
+    );
   }
 
   return data;
@@ -74,7 +107,9 @@ function setLoading(button, loading, originalText = "Submit") {
   if (!button) return;
 
   button.disabled = loading;
-  button.textContent = loading ? "Please wait..." : originalText;
+  button.textContent = loading
+    ? "Please wait..."
+    : originalText;
 }
 
 function shell(title, lead, body, wide = false) {
@@ -82,14 +117,19 @@ function shell(title, lead, body, wide = false) {
 
   appPanel.innerHTML = `
     <div class="panel ${wide ? "wide" : ""}">
+
       <button class="back" data-view="home">
         ← Back to home
       </button>
 
       <h2>${escapeHTML(title)}</h2>
-      <p class="lead">${escapeHTML(lead)}</p>
+
+      <p class="lead">
+        ${escapeHTML(lead)}
+      </p>
 
       ${body}
+
     </div>
   `;
 
@@ -102,13 +142,16 @@ function shell(title, lead, body, wide = false) {
 function formField(label, name, type = "text", required = true) {
   return `
     <label class="form-field">
+
       <span>${escapeHTML(label)}</span>
+
       <input
-        type="${type}"
+        type="${escapeHTML(type)}"
         name="${escapeHTML(name)}"
         ${required ? "required" : ""}
         autocomplete="off"
       >
+
     </label>
   `;
 }
@@ -121,21 +164,35 @@ function statusBadge(status) {
   `;
 }
 
+function releasePhotoPreview() {
+  if (activePhotoURL) {
+    URL.revokeObjectURL(activePhotoURL);
+    activePhotoURL = null;
+  }
+}
+
 /* -------------------- NAVIGATION -------------------- */
 
 function closeMenu() {
   const menu = document.getElementById("navMenu");
   const toggle = document.getElementById("menuToggle");
 
-  if (menu) menu.hidden = true;
+  if (menu) {
+    menu.hidden = true;
+  }
 
   if (toggle) {
     toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "Open navigation menu");
+    toggle.setAttribute(
+      "aria-label",
+      "Open navigation menu"
+    );
   }
 }
 
 function view(name) {
+  releasePhotoPreview();
+
   currentView = name;
 
   closeMenu();
@@ -180,7 +237,9 @@ if (menuToggle && navMenu) {
 
     menuToggle.setAttribute(
       "aria-label",
-      isOpen ? "Open navigation menu" : "Close navigation menu"
+      isOpen
+        ? "Open navigation menu"
+        : "Close navigation menu"
     );
   });
 }
@@ -190,34 +249,30 @@ if (menuToggle && navMenu) {
 const themeSelect = document.getElementById("themeSelect");
 
 function applyTheme(theme) {
-  const allowedThemes = [
-    "light",
-    "dark",
-    "ocean",
-    "sunset",
-    "forest"
-  ];
+  const selectedTheme =
+    theme === "dark" ? "dark" : "light";
 
-  if (!allowedThemes.includes(theme)) {
-    theme = "light";
-  }
-
-  document.body.dataset.theme = theme;
+  document.body.dataset.theme = selectedTheme;
 
   if (themeSelect) {
-    themeSelect.value = theme;
+    themeSelect.value = selectedTheme;
   }
 
   try {
-    localStorage.setItem("citizenTheme", theme);
-  } catch (error) {
+    localStorage.setItem(
+      "citizenTheme",
+      selectedTheme
+    );
+  } catch {
     console.warn("Theme preference could not be saved.");
   }
 }
 
 try {
   const savedTheme = localStorage.getItem("citizenTheme");
+
   applyTheme(savedTheme || "light");
+
 } catch {
   applyTheme("light");
 }
@@ -256,9 +311,17 @@ function registerView() {
 
         ${formField("Email Address", "email", "email")}
 
-        ${formField("Password (minimum 8 characters)", "password", "password")}
+        ${formField(
+          "Password (minimum 8 characters)",
+          "password",
+          "password"
+        )}
 
-        ${formField("Confirm Password", "confirmPassword", "password")}
+        ${formField(
+          "Confirm Password",
+          "confirmPassword",
+          "password"
+        )}
 
         <button type="submit" class="government-button">
           Create Account
@@ -266,7 +329,12 @@ function registerView() {
 
         <p class="form-note">
           Already registered?
-          <button type="button" class="text-button" data-view="login">
+
+          <button
+            type="button"
+            class="text-button"
+            data-view="login"
+          >
             Login here
           </button>
         </p>
@@ -289,6 +357,11 @@ function registerView() {
     const email = formData.get("email").trim();
     const password = formData.get("password");
     const confirmPassword = formData.get("confirmPassword");
+
+    if (!name || !email) {
+      toast("Please complete all required fields.");
+      return;
+    }
 
     if (password.length < 8) {
       toast("Password must contain at least 8 characters.");
@@ -320,6 +393,7 @@ function registerView() {
 
     } catch (error) {
       toast(error.message);
+
     } finally {
       setLoading(button, false, "Create Account");
     }
@@ -345,7 +419,12 @@ function loginView() {
 
         <p class="form-note">
           Don't have an account?
-          <button type="button" class="text-button" data-view="register">
+
+          <button
+            type="button"
+            class="text-button"
+            data-view="register"
+          >
             Create Account
           </button>
         </p>
@@ -383,6 +462,7 @@ function loginView() {
 
     } catch (error) {
       toast(error.message);
+
     } finally {
       setLoading(button, false, "Login");
     }
@@ -439,10 +519,21 @@ function adminLoginView() {
 
     } catch (error) {
       toast(error.message);
+
     } finally {
       setLoading(button, false, "Administrator Login");
     }
   });
+}
+
+/* -------------------- PHOTO VALIDATION -------------------- */
+
+function validatePhoto(file) {
+  if (!file) {
+    return "Please upload a photo.";
+  }
+
+  return "";
 }
 
 /* -------------------- SUBMIT FEEDBACK -------------------- */
@@ -454,13 +545,21 @@ function submitView() {
       "Please login to your citizen account before submitting feedback.",
       `
         <div class="action-buttons">
-          <button class="government-button" data-view="login">
+
+          <button
+            class="government-button"
+            data-view="login"
+          >
             Citizen Login
           </button>
 
-          <button class="outline-button" data-view="register">
+          <button
+            class="outline-button"
+            data-view="register"
+          >
             Create Account
           </button>
+
         </div>
       `
     );
@@ -477,24 +576,53 @@ function submitView() {
         ${formField("Your Name (optional)", "name", "text", false)}
 
         <label class="form-field">
+
           <span>Feedback Category *</span>
 
           <select name="category" required>
+
             <option value="">Select a category</option>
-            <option value="Roads and Infrastructure">Roads and Infrastructure</option>
-            <option value="Water Supply">Water Supply</option>
-            <option value="Waste Management">Waste Management</option>
-            <option value="Street Lights">Street Lights</option>
-            <option value="Drainage">Drainage</option>
-            <option value="Public Facilities">Public Facilities</option>
-            <option value="Sanitation">Sanitation</option>
-            <option value="Other">Other</option>
+
+            <option value="Roads and Infrastructure">
+              Roads and Infrastructure
+            </option>
+
+            <option value="Water Supply">
+              Water Supply
+            </option>
+
+            <option value="Waste Management">
+              Waste Management
+            </option>
+
+            <option value="Street Lights">
+              Street Lights
+            </option>
+
+            <option value="Drainage">
+              Drainage
+            </option>
+
+            <option value="Public Facilities">
+              Public Facilities
+            </option>
+
+            <option value="Sanitation">
+              Sanitation
+            </option>
+
+            <option value="Other">
+              Other
+            </option>
+
           </select>
+
         </label>
 
         ${formField("Area / Locality", "area")}
 
         <label class="form-field">
+
           <span>Describe Your Issue *</span>
 
           <textarea
@@ -503,9 +631,11 @@ function submitView() {
             placeholder="Explain the problem or suggestion..."
             required
           ></textarea>
+
         </label>
 
         <label class="form-field">
+
           <span>Upload Photo *</span>
 
           <input
@@ -515,6 +645,11 @@ function submitView() {
             accept="image/*"
             required
           >
+
+          <small class="form-note">
+            Select a photo from your device or camera.
+          </small>
+
         </label>
 
         <div id="photoPreview" class="photo-preview"></div>
@@ -535,23 +670,33 @@ function submitView() {
 
   photoInput.addEventListener("change", () => {
     preview.innerHTML = "";
+    releasePhotoPreview();
 
     const file = photoInput.files[0];
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
+    const validationError = validatePhoto(file);
+
+    if (validationError) {
       photoInput.value = "";
-      toast("Please select an image file.");
+      toast(validationError);
       return;
     }
 
+    activePhotoURL = URL.createObjectURL(file);
+
     const image = document.createElement("img");
-    image.src = URL.createObjectURL(file);
+
+    image.src = activePhotoURL;
     image.alt = "Selected feedback photo";
-    image.style.maxWidth = "220px";
-    image.style.maxHeight = "180px";
-    image.style.borderRadius = "10px";
+
+    image.style.width = "100%";
+    image.style.maxWidth = "260px";
+    image.style.height = "auto";
+    image.style.maxHeight = "220px";
+    image.style.objectFit = "contain";
+    image.style.borderRadius = "12px";
 
     preview.appendChild(image);
   });
@@ -559,8 +704,11 @@ function submitView() {
   form.addEventListener("submit", async event => {
     event.preventDefault();
 
-    if (!photoInput.files.length) {
-      toast("Please upload a photo.");
+    const file = photoInput.files[0];
+    const validationError = validatePhoto(file);
+
+    if (validationError) {
+      toast(validationError);
       return;
     }
 
@@ -577,11 +725,14 @@ function submitView() {
 
       const trackingId = result.trackingId;
 
+      releasePhotoPreview();
+
       shell(
         "Feedback Submitted Successfully!",
         "Your feedback has been recorded. Save your tracking ID.",
         `
           <div class="success-panel">
+
             <h3>Your Tracking ID</h3>
 
             <div class="tracking-code" id="newTrackingId">
@@ -597,7 +748,8 @@ function submitView() {
             </button>
 
             <p>
-              Use this tracking ID to check the progress of your feedback.
+              Use this tracking ID to check the progress
+              of your feedback.
             </p>
 
             <button
@@ -607,6 +759,7 @@ function submitView() {
             >
               Track Your Feedback
             </button>
+
           </div>
         `
       );
@@ -616,6 +769,7 @@ function submitView() {
           try {
             await navigator.clipboard.writeText(trackingId);
             toast("Tracking ID copied!");
+
           } catch {
             toast("Please copy the tracking ID manually.");
           }
@@ -624,6 +778,7 @@ function submitView() {
       document.getElementById("trackNewButton")
         .addEventListener("click", () => {
           view("track");
+
           const input = document.getElementById("trackingInput");
 
           if (input) {
@@ -633,13 +788,18 @@ function submitView() {
 
     } catch (error) {
       toast(error.message);
+
     } finally {
       const currentButton = document.querySelector(
         "#suggestionForm button[type='submit']"
       );
 
       if (currentButton) {
-        setLoading(currentButton, false, "Submit Feedback");
+        setLoading(
+          currentButton,
+          false,
+          "Submit Feedback"
+        );
       }
     }
   });
@@ -655,6 +815,7 @@ function trackView() {
       <form id="trackForm" class="app-form">
 
         <label class="form-field">
+
           <span>Tracking ID</span>
 
           <input
@@ -664,6 +825,7 @@ function trackView() {
             placeholder="Example: DSB-XXXXXXXXXX"
             required
           >
+
         </label>
 
         <button type="submit" class="government-button">
@@ -693,6 +855,7 @@ function trackView() {
     }
 
     setLoading(button, true, "Track Application");
+
     resultBox.innerHTML = "";
 
     try {
@@ -708,6 +871,7 @@ function trackView() {
           ${escapeHTML(error.message)}
         </div>
       `;
+
     } finally {
       setLoading(button, false, "Track Application");
     }
@@ -719,12 +883,17 @@ function showTrackingResult(data, container) {
 
   const timeline = statuses.map((status, index) => `
     <div class="timeline-item ${index <= currentIndex ? "completed" : ""}">
+
       <span class="timeline-dot"></span>
+
       <div>
         <strong>${escapeHTML(status)}</strong>
       </div>
+
     </div>
   `).join("");
+
+  const photoURL = safeImageURL(data.photoUrl);
 
   container.innerHTML = `
     <div class="tracking-result">
@@ -770,25 +939,30 @@ function showTrackingResult(data, container) {
       <h3>Administrator Response</h3>
 
       <p>
-        ${escapeHTML(data.admin_response || "No response has been added yet.")}
+        ${escapeHTML(
+          data.admin_response ||
+          "No response has been added yet."
+        )}
       </p>
 
       ${
-        data.photoUrl
+        photoURL
           ? `
             <h3>Uploaded Photo</h3>
+
             <img
-              src="${escapeHTML(data.photoUrl)}"
+              src="${photoURL}"
               alt="Uploaded feedback"
               class="tracking-photo"
-              style="max-width:100%;max-height:300px;border-radius:12px;"
+              loading="lazy"
             >
           `
           : ""
       }
 
       <p class="small-text">
-        Last updated: ${escapeHTML(data.updated_at || "Not available")}
+        Last updated:
+        ${escapeHTML(data.updated_at || "Not available")}
       </p>
 
     </div>
@@ -803,7 +977,10 @@ function adminView() {
       "Administrator Login Required",
       "Please login with administrator credentials.",
       `
-        <button class="government-button" data-view="admin-login">
+        <button
+          class="government-button"
+          data-view="admin-login"
+        >
           Administrator Login
         </button>
       `
@@ -825,15 +1002,22 @@ function adminView() {
         >
 
         <select id="adminStatusFilter">
+
           <option value="">All Statuses</option>
+
           ${statuses.map(status => `
             <option value="${escapeHTML(status)}">
               ${escapeHTML(status)}
             </option>
           `).join("")}
+
         </select>
 
-        <button type="button" class="outline-button" id="refreshAdmin">
+        <button
+          type="button"
+          class="outline-button"
+          id="refreshAdmin"
+        >
           Refresh
         </button>
 
@@ -845,7 +1029,11 @@ function adminView() {
         Loading feedback...
       </div>
 
-      <button type="button" class="outline-button" id="logoutButton">
+      <button
+        type="button"
+        class="outline-button"
+        id="logoutButton"
+      >
         Logout
       </button>
     `,
@@ -866,6 +1054,8 @@ function adminView() {
 
   loadAdminData();
 }
+
+/* -------------------- LOAD ADMIN DATA -------------------- */
 
 async function loadAdminData() {
   const table = document.getElementById("adminTable");
@@ -893,8 +1083,11 @@ async function loadAdminData() {
 
       statsBox.innerHTML = statNames.map(name => `
         <div class="stat-card">
+
           <span>${escapeHTML(name)}</span>
+
           <strong>${Number(stats[name] || 0)}</strong>
+
         </div>
       `).join("");
     }
@@ -911,6 +1104,8 @@ async function loadAdminData() {
     }
   }
 }
+
+/* -------------------- RENDER ADMIN RECORDS -------------------- */
 
 function renderAdminTable() {
   const table = document.getElementById("adminTable");
@@ -935,7 +1130,8 @@ function renderAdminTable() {
       String(value || "").toLowerCase().includes(search)
     );
 
-    const matchesStatus = !filter || item.status === filter;
+    const matchesStatus =
+      !filter || item.status === filter;
 
     return matchesSearch && matchesStatus;
   });
@@ -946,101 +1142,120 @@ function renderAdminTable() {
         No feedback records found.
       </div>
     `;
+
     return;
   }
 
   table.innerHTML = `
     <div class="admin-record-list">
 
-      ${filtered.map(item => `
-        <article class="admin-record">
+      ${filtered.map(item => {
+        const photoURL = safeImageURL(item.photoUrl);
 
-          <div class="admin-record-header">
-            <strong>${escapeHTML(item.tracking_id)}</strong>
-            ${statusBadge(item.status)}
-          </div>
+        return `
+          <article class="admin-record">
 
-          <p>
-            <strong>Name:</strong>
-            ${escapeHTML(item.name)}
-          </p>
+            <div class="admin-record-header">
 
-          <p>
-            <strong>Category:</strong>
-            ${escapeHTML(item.category)}
-          </p>
+              <strong>
+                ${escapeHTML(item.tracking_id)}
+              </strong>
 
-          <p>
-            <strong>Area:</strong>
-            ${escapeHTML(item.area)}
-          </p>
+              ${statusBadge(item.status)}
 
-          <p>
-            <strong>Description:</strong>
-            ${escapeHTML(item.description)}
-          </p>
+            </div>
 
-          ${
-            item.photoUrl
-              ? `
-                <img
-                  src="${escapeHTML(item.photoUrl)}"
-                  alt="Feedback photo"
-                  class="admin-photo"
-                  style="max-width:180px;max-height:140px;border-radius:10px;"
-                >
-              `
-              : ""
-          }
+            <p>
+              <strong>Name:</strong>
+              ${escapeHTML(item.name)}
+            </p>
 
-          <label class="form-field">
-            <span>Update Status</span>
+            <p>
+              <strong>Category:</strong>
+              ${escapeHTML(item.category)}
+            </p>
 
-            <select class="admin-status" data-id="${escapeHTML(item.tracking_id)}">
-              ${statuses.map(status => `
-                <option
-                  value="${escapeHTML(status)}"
-                  ${item.status === status ? "selected" : ""}
-                >
-                  ${escapeHTML(status)}
-                </option>
-              `).join("")}
-            </select>
-          </label>
+            <p>
+              <strong>Area:</strong>
+              ${escapeHTML(item.area)}
+            </p>
 
-          <label class="form-field">
-            <span>Administrator Response</span>
+            <p>
+              <strong>Description:</strong>
+              ${escapeHTML(item.description)}
+            </p>
 
-            <textarea
-              class="admin-response"
-              data-id="${escapeHTML(item.tracking_id)}"
-              rows="3"
-              placeholder="Write your response..."
-            >${escapeHTML(item.admin_response || "")}</textarea>
-          </label>
+            ${
+              photoURL
+                ? `
+                  <img
+                    src="${photoURL}"
+                    alt="Feedback photo"
+                    class="admin-photo"
+                    loading="lazy"
+                  >
+                `
+                : ""
+            }
 
-          <div class="admin-actions">
+            <label class="form-field">
 
-            <button
-              type="button"
-              class="government-button save-admin"
-              data-id="${escapeHTML(item.tracking_id)}"
-            >
-              Save Update
-            </button>
+              <span>Update Status</span>
 
-            <button
-              type="button"
-              class="danger-button delete-admin"
-              data-id="${escapeHTML(item.tracking_id)}"
-            >
-              Delete
-            </button>
+              <select
+                class="admin-status"
+                data-id="${escapeHTML(item.tracking_id)}"
+              >
 
-          </div>
+                ${statuses.map(status => `
+                  <option
+                    value="${escapeHTML(status)}"
+                    ${item.status === status ? "selected" : ""}
+                  >
+                    ${escapeHTML(status)}
+                  </option>
+                `).join("")}
 
-        </article>
-      `).join("")}
+              </select>
+
+            </label>
+
+            <label class="form-field">
+
+              <span>Administrator Response</span>
+
+              <textarea
+                class="admin-response"
+                data-id="${escapeHTML(item.tracking_id)}"
+                rows="3"
+                placeholder="Write your response..."
+              >${escapeHTML(item.admin_response || "")}</textarea>
+
+            </label>
+
+            <div class="admin-actions">
+
+              <button
+                type="button"
+                class="government-button save-admin"
+                data-id="${escapeHTML(item.tracking_id)}"
+              >
+                Save Update
+              </button>
+
+              <button
+                type="button"
+                class="danger-button delete-admin"
+                data-id="${escapeHTML(item.tracking_id)}"
+              >
+                Delete
+              </button>
+
+            </div>
+
+          </article>
+        `;
+      }).join("")}
 
     </div>
   `;
@@ -1076,6 +1291,7 @@ async function updateAdminRecord(trackingId) {
       `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
       {
         method: "PATCH",
+
         body: JSON.stringify({
           status: statusInput.value,
           admin_response: responseInput.value
@@ -1130,7 +1346,7 @@ async function loadSession() {
 
     return currentUser;
 
-  } catch (error) {
+  } catch {
     currentUser = null;
     return null;
   }
@@ -1143,6 +1359,8 @@ async function logout() {
     });
 
     currentUser = null;
+
+    adminItems = [];
 
     toast("You have been logged out.");
 
@@ -1159,7 +1377,10 @@ if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js")
       .catch(error => {
-        console.warn("Service worker registration failed:", error);
+        console.warn(
+          "Service worker registration failed:",
+          error
+        );
       });
   });
 }
