@@ -1,1732 +1,1868 @@
 
-const appPanel = document.getElementById('panel');
-const toastEl = document.getElementById('toast');
+/* =========================================================
+   DIGITAL CITIZEN FEEDBACK SYSTEM
+   Complete responsive stylesheet
+   ========================================================= */
 
-const statuses = [
-  'Submitted',
-  'Under Review',
-  'In Progress',
-  'Resolved'
-];
+/* -------------------- THEME VARIABLES -------------------- */
 
-let currentView = '';
-
-/* -------------------- TOAST -------------------- */
-
-function toast(msg) {
-  toastEl.textContent = msg;
-  toastEl.classList.add('show');
-
-  setTimeout(() => {
-    toastEl.classList.remove('show');
-  }, 3200);
+:root {
+  color-scheme: light;
+  --primary: #174b86;
+  --primary-dark: #103765;
+  --primary-light: #eaf2fb;
+  --accent: #d6a64a;
+  --background: #f4f7fb;
+  --surface: #ffffff;
+  --surface-soft: #f7f9fc;
+  --text: #172b43;
+  --muted: #64748b;
+  --border: #dce5ef;
+  --success: #16834b;
+  --danger: #c0392b;
+  --warning: #b7791f;
+  --shadow: 0 10px 30px rgba(20, 48, 80, 0.08);
+  --radius: 14px;
 }
 
-/* -------------------- API HELPER -------------------- */
+body[data-theme="dark"] {
+  color-scheme: dark;
+  --primary: #80b7f4;
+  --primary-dark: #a7cefa;
+  --primary-light: #20354d;
+  --accent: #e7bd69;
+  --background: #101a28;
+  --surface: #192638;
+  --surface-soft: #213247;
+  --text: #e8f0fa;
+  --muted: #a9b8ca;
+  --border: #35475c;
+  --success: #59ce91;
+  --danger: #ff8077;
+  --warning: #f0c36d;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+}
 
-async function api(url, options = {}) {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      ...(options.body instanceof FormData
-        ? {}
-        : { 'Content-Type': 'application/json' }),
-      ...(options.headers || {})
-    }
-  });
+body[data-theme="ocean"] {
+  --primary: #087e91;
+  --primary-dark: #075d70;
+  --primary-light: #e0f5f7;
+  --accent: #e5a84b;
+  --background: #eff8fa;
+  --surface: #ffffff;
+  --surface-soft: #f0fafb;
+  --text: #153b47;
+  --muted: #607e86;
+  --border: #cfe5e9;
+}
 
-  let data = {};
+body[data-theme="sunset"] {
+  --primary: #a94d35;
+  --primary-dark: #813722;
+  --primary-light: #fff0e9;
+  --accent: #d9a044;
+  --background: #fff7f2;
+  --surface: #ffffff;
+  --surface-soft: #fff2eb;
+  --text: #432a23;
+  --muted: #856b61;
+  --border: #f0dcd1;
+}
 
-  try {
-    data = await res.json();
-  } catch {}
+body[data-theme="forest"] {
+  --primary: #276849;
+  --primary-dark: #194b34;
+  --primary-light: #e7f4eb;
+  --accent: #d2aa50;
+  --background: #f1f7f1;
+  --surface: #ffffff;
+  --surface-soft: #f3f8f2;
+  --text: #203b2c;
+  --muted: #687d6e;
+  --border: #d7e6d8;
+}
 
-  if (!res.ok) {
-    throw new Error(data.error || 'Something went wrong.');
-  }
+/* -------------------- RESET & BASE -------------------- */
 
-  return data;
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+::selection {
+  background: var(--primary-light);
+  color: var(--text);
+}
+
+/* -------------------- TOP STRIP -------------------- */
+
+.top-strip {
+  background: #17385f;
+  color: #ffffff;
+  padding: 7px 5%;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+}
+
+.top-strip-inner {
+  max-width: 1250px;
+  margin: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tricolour {
+  display: flex;
+  height: 4px;
+}
+
+.tricolour span {
+  flex: 1;
+}
+
+.tricolour .saffron {
+  background: #ff9933;
+}
+
+.tricolour .white {
+  background: #ffffff;
+}
+
+.tricolour .green {
+  background: #138808;
+}
+
+/* -------------------- HEADER -------------------- */
+
+.government-header {
+  max-width: 1250px;
+  margin: auto;
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.identity:hover {
+  text-decoration: none;
+}
+
+.civic-seal {
+  width: 70px;
+  height: 70px;
+  flex: 0 0 70px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  padding: 5px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+}
+
+.seal-inner {
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+}
+
+.seal-symbol {
+  color: var(--accent);
+  font-size: 19px;
+}
+
+.seal-kannada {
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.seal-caption {
+  font-size: 5px;
+  letter-spacing: 0.4px;
+  color: var(--muted);
+}
+
+.identity-text {
+  min-width: 0;
+}
+
+.identity-kannada {
+  display: block;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.identity-text h1 {
+  margin: 2px 0;
+  color: var(--primary-dark);
+  font-size: clamp(18px, 2.2vw, 26px);
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.identity-text p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.header-right {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+  gap: 3px;
+}
+
+.header-label {
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.header-subtitle {
+  color: var(--muted);
+  font-size: 12px;
 }
 
 /* -------------------- NAVIGATION -------------------- */
 
-async function view(name) {
-  currentView = name;
-
-  if (name === 'submit') {
-    try {
-      const session = await api('/api/session');
-
-      if (session.role !== 'citizen') {
-        try {
-          sessionStorage.setItem('dsb-after-auth', 'submit');
-        } catch {}
-
-        loginView();
-        return;
-      }
-
-    } catch {
-      try {
-        sessionStorage.setItem('dsb-after-auth', 'submit');
-      } catch {}
-
-      loginView();
-      return;
-    }
-  }
-
-  const views = {
-    'submit': submitView,
-    'login': loginView,
-    'register': registerView,
-    'admin-login': adminLoginView,
-    'track': trackView,
-    'admin': adminView
-  };
-
-  (views[name] || homeView)();
+.main-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  min-height: 58px;
+  padding: 8px max(4%, calc((100% - 1250px) / 2));
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(20, 48, 80, 0.05);
 }
 
-/* -------------------- PASSWORD VISIBILITY -------------------- */
-
-document.addEventListener('click', e => {
-  const toggle = e.target.closest('[data-toggle-password]');
-
-  if (toggle) {
-    const input = document.getElementById(
-      toggle.dataset.togglePassword
-    );
-
-    if (input) {
-      const showing = input.type === 'password';
-
-      input.type = showing ? 'text' : 'password';
-
-      toggle.textContent = '👁';
-
-      toggle.setAttribute(
-        'aria-label',
-        showing ? 'Hide password' : 'Show password'
-      );
-
-      toggle.title = showing ? 'Hide password' : 'Show password';
-    }
-
-    return;
-  }
-});
-
-/* -------------------- COPY TRACKING ID -------------------- */
-
-async function copyTrackingId(id) {
-  if (!id) {
-    toast('Tracking ID not available.');
-    return;
-  }
-
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(id);
-    } else {
-      const textarea = document.createElement('textarea');
-
-      textarea.value = id;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-
-      document.body.appendChild(textarea);
-
-      textarea.select();
-
-      const copied = document.execCommand('copy');
-
-      textarea.remove();
-
-      if (!copied) {
-        throw new Error('Copy failed');
-      }
-    }
-
-    toast('Tracking ID copied successfully.');
-
-  } catch {
-    toast('Unable to copy. Please copy the ID manually.');
-  }
+.menu-toggle {
+  width: 44px;
+  height: 42px;
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-document.addEventListener('click', e => {
-  const copyButton = e.target.closest('[data-copy-tracking]');
-
-  if (copyButton) {
-    copyTrackingId(copyButton.dataset.copyTracking);
-    return;
-  }
-});
-
-/* -------------------- VIEW BUTTONS -------------------- */
-
-document.addEventListener('click', e => {
-  const b = e.target.closest('[data-view]');
-
-  if (b) {
-    e.preventDefault();
-    view(b.dataset.view);
-  }
-});
-
-/* -------------------- PAGE SHELL -------------------- */
-
-function shell(title, lead, body, wide = false) {
-  appPanel.innerHTML = `
-    <div class="panel ${wide ? 'wide' : ''}">
-
-      <button class="back" data-view="home">
-        ← Back to home
-      </button>
-
-      <h2>${title}</h2>
-
-      <p class="lead">${lead}</p>
-
-      ${body}
-
-    </div>
-  `;
-
-  appPanel.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start'
-  });
+.menu-toggle:hover,
+.menu-toggle:focus-visible {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  outline: none;
 }
 
-function homeView() {
-  appPanel.innerHTML = '';
+.menu-toggle span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  transition: transform 0.2s ease, opacity 0.2s ease;
 }
 
-/* -------------------- SUBMIT SUGGESTION -------------------- */
-
-function submitView() {
-  shell(
-    'Share a suggestion',
-    'Help improve your neighbourhood. Your name is optional; a supporting photo is required.',
-
-    `<form id="suggestionForm">
-
-      <div class="formgrid">
-
-        <div class="field">
-          <label>
-            Full name
-            <span class="optional-label">(optional)</span>
-          </label>
-
-          <input
-            name="name"
-            maxlength="90"
-            placeholder="You may leave this blank">
-        </div>
-
-        <div class="field">
-          <label>Category *</label>
-
-          <select name="category" required>
-            <option value="">Choose category</option>
-            <option>Roads</option>
-            <option>Water supply</option>
-            <option>Waste management</option>
-            <option>Street lights</option>
-            <option>Public safety</option>
-            <option>Public transport</option>
-            <option>Other</option>
-          </select>
-        </div>
-
-        <div class="field full">
-
-          <label>Area / locality *</label>
-
-          <input
-            name="area"
-            required
-            maxlength="180"
-            placeholder="Neighbourhood or ward">
-
-          <button
-            type="button"
-            class="btn light"
-            id="getLocation"
-            style="margin-top:8px">
-
-            Use my current location
-
-          </button>
-
-          <span
-            id="locationStatus"
-            class="hint"
-            aria-live="polite">
-
-            Allow location access to fetch your address.
-
-          </span>
-
-          <div id="locationDetails" class="location-details" hidden>
-
-            <p>
-              <strong>Full address:</strong>
-              <span id="locFullAddress"></span>
-            </p>
-
-            <p>
-              <strong>Area:</strong>
-              <span id="locArea"></span>
-            </p>
-
-            <p>
-              <strong>City:</strong>
-              <span id="locCity"></span>
-            </p>
-
-            <p>
-              <strong>District:</strong>
-              <span id="locDistrict"></span>
-            </p>
-
-            <p>
-              <strong>State:</strong>
-              <span id="locState"></span>
-            </p>
-
-            <p>
-              <strong>PIN code:</strong>
-              <span id="locPin"></span>
-            </p>
-
-            <p>
-              <strong>GPS accuracy:</strong>
-              <span id="locAccuracy"></span>
-            </p>
-
-            <h4>🗺️ Map preview</h4>
-
-            <iframe
-              id="locationMap"
-              title="Current location map"
-              width="100%"
-              height="250"
-              style="border:0;border-radius:12px"
-              loading="lazy">
-            </iframe>
-
-            <a
-              id="locationMapLink"
-              href="#"
-              target="_blank"
-              rel="noopener noreferrer">
-
-              Open in Google Maps
-
-            </a>
-
-          </div>
-
-          <input type="hidden" name="latitude">
-          <input type="hidden" name="longitude">
-
-        </div>
-
-        <div class="field full">
-
-          <label>Describe the issue or suggestion *</label>
-
-          <textarea
-            name="description"
-            required
-            maxlength="2500"
-            placeholder="Tell us what happened and what could improve..."></textarea>
-
-        </div>
-
-        <div class="field full">
-
-          <label>Upload photo (mandatory) *</label>
-
-          <input
-            id="photo"
-            name="photo"
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
-            required>
-
-          <span class="hint">
-            PNG, JPG, JPEG or WEBP · Maximum 5 MB
-          </span>
-
-          <img
-            id="preview"
-            class="photo-preview"
-            alt="Selected photo preview">
-
-        </div>
-
-      </div>
-
-      <div class="formfoot">
-
-        <button class="btn" type="submit">
-          Submit suggestion →
-        </button>
-
-        <span class="hint">
-          Sign in first to submit a request.
-        </span>
-
-      </div>
-
-    </form>
-
-    <div id="submissionResult"></div>`
-  );
-
-  document
-    .getElementById('photo')
-    .addEventListener('change', previewPhoto);
-
-  document
-    .getElementById('suggestionForm')
-    .addEventListener('submit', submitSuggestion);
-
-  setupAreaAutocomplete();
-  setupCurrentLocation();
+.menu-toggle[aria-expanded="true"] span:first-child {
+  transform: translateY(7px) rotate(45deg);
 }
 
-/* -------------------- AREA AUTOCOMPLETE -------------------- */
-
-const bengaluruAreas = [
-  "Bagalagunte, Bengaluru",
-  "Chikkabanavara, Bengaluru",
-  "T. Dasarahalli, Bengaluru",
-  "8th Mile, Bengaluru",
-  "Jalahalli, Bengaluru",
-  "Peenya, Bengaluru",
-  "Nagasandra, Bengaluru",
-  "Madanayakanahalli, Bengaluru",
-  "Anchepalya, Bengaluru",
-  "Lakshmipura, Bengaluru",
-  "Rajeshwari Nagar, Bengaluru",
-  "Yeshwanthpur, Bengaluru",
-  "Mathikere, Bengaluru",
-  "Vijayanagar, Bengaluru",
-  "Malleswaram, Bengaluru",
-  "Hebbal, Bengaluru",
-  "Majestic, Bengaluru",
-  "Yelahanka, Bengaluru",
-  "Hesaraghatta, Bengaluru",
-  "Nandini Layout, Bengaluru",
-  "Basaveshwaranagar, Bengaluru",
-  "Kengeri, Bengaluru",
-  "RR Nagar, Bengaluru",
-  "Jayanagar, Bengaluru",
-  "Banashankari, Bengaluru",
-  "Indiranagar, Bengaluru",
-  "Whitefield, Bengaluru",
-  "Electronic City, Bengaluru",
-  "Koramangala, Bengaluru",
-  "BTM Layout, Bengaluru",
-  "Marathahalli, Bengaluru",
-  "Bellandur, Bengaluru",
-  "Bommanahalli, Bengaluru",
-  "Hoodi, Bengaluru",
-  "Kalyan Nagar, Bengaluru",
-  "Sahakara Nagar, Bengaluru"
-];
-
-function setupAreaAutocomplete() {
-  const input = document.querySelector('input[name="area"]');
-
-  if (!input) return;
-
-  input.setAttribute('autocomplete', 'off');
-  input.setAttribute('aria-autocomplete', 'list');
-
-  input.placeholder = 'Start typing an area (e.g. Chikkabanavara)';
-
-  const wrapper = document.createElement('div');
-
-  wrapper.className = 'autocomplete-wrap';
-
-  input.parentNode.insertBefore(wrapper, input);
-  wrapper.appendChild(input);
-
-  const list = document.createElement('div');
-
-  list.className = 'autocomplete-list';
-  list.hidden = true;
-  list.setAttribute('role', 'listbox');
-
-  wrapper.appendChild(list);
-
-  function close() {
-    list.hidden = true;
-    list.innerHTML = '';
-  }
-
-  function show() {
-    const q = input.value.trim().toLowerCase();
-
-    list.innerHTML = '';
-
-    if (q.length < 2) {
-      close();
-      return;
-    }
-
-    const matches = bengaluruAreas
-      .filter(a => a.toLowerCase().includes(q))
-      .slice(0, 7);
-
-    if (!matches.length) {
-      close();
-      return;
-    }
-
-    matches.forEach(area => {
-      const option = document.createElement('button');
-
-      option.type = 'button';
-      option.className = 'autocomplete-option';
-      option.setAttribute('role', 'option');
-      option.textContent = area;
-
-      option.addEventListener('click', () => {
-        input.value = area;
-        close();
-        input.focus();
-      });
-
-      list.appendChild(option);
-    });
-
-    list.hidden = false;
-  }
-
-  input.addEventListener('input', show);
-  input.addEventListener('focus', show);
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Escape') close();
-  });
-
-  document.addEventListener('click', e => {
-    if (!wrapper.contains(e.target)) close();
-  });
+.menu-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
 }
 
-/* -------------------- GPS AND ADDRESS -------------------- */
-
-function setupCurrentLocation() {
-  const button = document.getElementById('getLocation');
-
-  if (!button) return;
-
-  button.addEventListener('click', () => {
-    const status = document.getElementById('locationStatus');
-    const details = document.getElementById('locationDetails');
-
-    if (!navigator.geolocation) {
-      status.textContent =
-        'Your browser does not support location access.';
-
-      return;
-    }
-
-    button.disabled = true;
-    status.textContent = 'Finding your current location…';
-    details.hidden = true;
-
-    navigator.geolocation.getCurrentPosition(
-      async position => {
-        const lat = position.coords.latitude;
-        const lon = position.coords.longitude;
-        const accuracy = Math.round(position.coords.accuracy);
-
-        document.querySelector(
-          'input[name="latitude"]'
-        ).value = lat;
-
-        document.querySelector(
-          'input[name="longitude"]'
-        ).value = lon;
-
-        document.getElementById(
-          'locAccuracy'
-        ).textContent = `Approximately ${accuracy} metres`;
-
-        document.getElementById('locationMap').src =
-          `https://www.openstreetmap.org/export/embed.html?bbox=${lon - 0.01}%2C${lat - 0.01}%2C${lon + 0.01}%2C${lat + 0.01}&layer=mapnik&marker=${lat}%2C${lon}`;
-
-        document.getElementById('locationMapLink').href =
-          `https://www.google.com/maps?q=${lat},${lon}`;
-
-        status.textContent =
-          'Coordinates received. Looking up address…';
-
-        try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}&zoom=18&addressdetails=1`
-          );
-
-          if (!response.ok) {
-            throw new Error('Address lookup failed');
-          }
-
-          const place = await response.json();
-          const a = place.address || {};
-
-          const city =
-            a.city ||
-            a.town ||
-            a.village ||
-            a.municipality ||
-            a.city_district ||
-            '';
-
-          const area =
-            a.neighbourhood ||
-            a.suburb ||
-            a.residential ||
-            a.quarter ||
-            a.hamlet ||
-            '';
-
-          const district =
-            a.state_district ||
-            a.county ||
-            '';
-
-          const state = a.state || '';
-          const pin = a.postcode || '';
-
-          document.getElementById(
-            'locFullAddress'
-          ).textContent = place.display_name || 'Not available';
-
-          document.getElementById(
-            'locArea'
-          ).textContent = area || 'Not available';
-
-          document.getElementById(
-            'locCity'
-          ).textContent = city || 'Not available';
-
-          document.getElementById(
-            'locDistrict'
-          ).textContent = district || 'Not available';
-
-          document.getElementById(
-            'locState'
-          ).textContent = state || 'Not available';
-
-          document.getElementById(
-            'locPin'
-          ).textContent = pin || 'Not available';
-
-          const areaInput = document.querySelector(
-            'input[name="area"]'
-          );
-
-          if (areaInput && area) {
-            areaInput.value = [area, city]
-              .filter(Boolean)
-              .join(', ');
-          }
-
-          details.hidden = false;
-
-          status.textContent =
-            'Location fetched. Check the address and map below.';
-
-        } catch (error) {
-          details.hidden = false;
-
-          status.textContent =
-            'Coordinates fetched, but address lookup failed. You can still view the map.';
-        }
-
-        button.disabled = false;
-      },
-
-      error => {
-        status.textContent =
-          error.code === 1
-            ? 'Location permission denied. Allow location access in browser settings.'
-            : error.code === 2
-              ? 'Location unavailable. Turn on device location and try again.'
-              : 'Location timed out. Try again outdoors or near a window.';
-
-        button.disabled = false;
-      },
-
-      {
-        enableHighAccuracy: true,
-        timeout: 30000,
-        maximumAge: 0
-      }
-    );
-  });
+.menu-toggle[aria-expanded="true"] span:last-child {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
-/* -------------------- THEMES -------------------- */
-
-const themeNames = [
-  'light',
-  'dark',
-  'ocean',
-  'sunset',
-  'forest'
-];
-
-function applyTheme(theme) {
-  if (!themeNames.includes(theme)) {
-    theme = 'light';
-  }
-
-  // The stylesheet uses body[data-theme].
-  document.body.dataset.theme = theme;
-
-  const picker = document.getElementById('themeSelect');
-
-  if (picker) {
-    picker.value = theme;
-  }
+.nav-menu {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: max(4%, calc((100% - 1250px) / 2));
+  min-width: 245px;
+  max-width: min(340px, 92vw);
+  padding: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 14px 35px rgba(20, 48, 80, 0.16);
 }
 
-function initializeTheme() {
-  let theme = 'light';
-
-  try {
-    theme = localStorage.getItem('dsb-theme') || 'light';
-  } catch {}
-
-  applyTheme(theme);
-
-  const picker = document.getElementById('themeSelect');
-
-  if (picker) {
-    picker.addEventListener('change', () => {
-      applyTheme(picker.value);
-
-      try {
-        localStorage.setItem('dsb-theme', picker.value);
-      } catch {}
-    });
-  }
+.nav-menu[hidden] {
+  display: none;
 }
 
-initializeTheme();
-
-/* -------------------- PHOTO PREVIEW -------------------- */
-
-function previewPhoto(e) {
-  const file = e.target.files[0];
-  const img = document.getElementById('preview');
-
-  if (!file) {
-    img.style.display = 'none';
-    img.removeAttribute('src');
-    return;
-  }
-
-  if (
-    !['image/png', 'image/jpeg', 'image/webp'].includes(file.type) ||
-    file.size > 5 * 1024 * 1024
-  ) {
-    e.target.value = '';
-
-    img.style.display = 'none';
-    img.removeAttribute('src');
-
-    toast('Choose a supported image up to 5 MB.');
-    return;
-  }
-
-  if (img.dataset.objectUrl) {
-    URL.revokeObjectURL(img.dataset.objectUrl);
-  }
-
-  const objectUrl = URL.createObjectURL(file);
-
-  img.dataset.objectUrl = objectUrl;
-  img.src = objectUrl;
-  img.style.display = 'block';
+.navlink {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 650;
+  transition: 0.2s ease;
 }
 
-/* -------------------- SUBMIT SUGGESTION -------------------- */
-
-async function submitSuggestion(e) {
-  e.preventDefault();
-
-  const form = e.currentTarget;
-  const fd = new FormData(form);
-  const photo = fd.get('photo');
-
-  if (!photo || !photo.size) {
-    toast('Photo upload is mandatory.');
-    return;
-  }
-
-  const submitButton = form.querySelector(
-    'button[type="submit"]'
-  );
-
-  submitButton.disabled = true;
-  submitButton.textContent = 'Submitting…';
-
-  try {
-    const data = await api('/api/suggestions', {
-      method: 'POST',
-      body: fd
-    });
-
-    const trackingId = String(data.trackingId || '');
-
-    if (!trackingId) {
-      throw new Error(
-        'Suggestion submitted, but the tracking ID was not returned. Contact the administrator.'
-      );
-    }
-
-    document.getElementById('submissionResult').innerHTML = `
-      <div class="trackresult">
-
-        <span class="status-pill">
-          Submitted successfully
-        </span>
-
-        <p>Your tracking ID is:</p>
-
-        <h2>${escapeHtml(trackingId)}</h2>
-
-        <p class="hint">
-          Save this ID to check the progress later.
-        </p>
-
-        <div class="formfoot">
-
-          <button
-            class="btn light"
-            type="button"
-            data-copy-tracking="${escapeHtml(trackingId)}">
-
-            📋 Copy Tracking ID
-
-          </button>
-
-          <button
-            class="btn"
-            type="button"
-            data-view="track">
-
-            Track this suggestion →
-
-          </button>
-
-        </div>
-
-      </div>
-    `;
-
-    form.reset();
-
-    const preview = document.getElementById('preview');
-
-    if (preview.dataset.objectUrl) {
-      URL.revokeObjectURL(preview.dataset.objectUrl);
-      delete preview.dataset.objectUrl;
-    }
-
-    preview.style.display = 'none';
-    preview.removeAttribute('src');
-
-    toast('Suggestion submitted successfully.');
-
-  } catch (err) {
-    toast(err.message);
-
-    if (err.message.toLowerCase().includes('log in')) {
-      view('login');
-    }
-
-  } finally {
-    if (submitButton.isConnected) {
-      submitButton.disabled = false;
-      submitButton.textContent = 'Submit suggestion →';
-    }
-  }
+.navlink:hover,
+.navlink:focus-visible {
+  background: var(--primary-light);
+  color: var(--primary);
+  outline: none;
 }
 
-/* -------------------- CITIZEN LOGIN -------------------- */
-
-function loginView() {
-  shell(
-    'Citizen login',
-    'Sign in to submit a suggestion with a photo and manage your submissions.',
-
-    `<form id="loginForm">
-
-      <div class="field">
-
-        <label>Email address</label>
-
-        <input
-          name="email"
-          type="email"
-          required
-          placeholder="you@example.com">
-
-      </div>
-
-      <div class="field">
-
-        <label>Password</label>
-
-        <div class="password-wrap">
-
-          <input
-            id="citizenLoginPassword"
-            name="password"
-            type="password"
-            required
-            minlength="8"
-            autocomplete="current-password">
-
-          <button
-            class="password-toggle"
-            type="button"
-            data-toggle-password="citizenLoginPassword"
-            aria-label="Show password"
-            title="Show password">
-
-            👁
-
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="formfoot">
-
-        <button class="btn" type="submit">
-          Sign in
-        </button>
-
-        <button
-          class="textlink"
-          type="button"
-          data-view="register">
-
-          Create account
-
-        </button>
-
-      </div>
-
-    </form>`
-  );
-
-  document
-    .getElementById('loginForm')
-    .addEventListener('submit', async e => {
-
-      e.preventDefault();
-
-      const f = new FormData(e.currentTarget);
-
-      try {
-        await api('/api/login', {
-          method: 'POST',
-          body: JSON.stringify(Object.fromEntries(f))
-        });
-
-        toast('Welcome back!');
-
-        let next = 'submit';
-
-        try {
-          next = sessionStorage.getItem('dsb-after-auth') || 'submit';
-
-          sessionStorage.removeItem('dsb-after-auth');
-        } catch {}
-
-        view(next);
-
-      } catch (err) {
-        toast(err.message);
-      }
-    });
+.theme-picker {
+  margin: 5px 0 0;
+  padding: 10px 12px 5px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
 }
 
-/* -------------------- CITIZEN REGISTRATION -------------------- */
-
-function registerView() {
-  shell(
-    'Create citizen account',
-    'Create an account to submit and follow community suggestions.',
-
-    `<form id="registerForm">
-
-      <div class="field">
-
-        <label>
-          Full name
-          <span class="optional-label">(optional)</span>
-        </label>
-
-        <input
-          name="name"
-          maxlength="90"
-          placeholder="You may leave this blank">
-
-      </div>
-
-      <div class="field">
-
-        <label>Email address</label>
-
-        <input
-          name="email"
-          type="email"
-          required>
-
-      </div>
-
-      <div class="field">
-
-        <label>Password (at least 8 characters)</label>
-
-        <div class="password-wrap">
-
-          <input
-            id="registerPassword"
-            name="password"
-            type="password"
-            required
-            minlength="8"
-            autocomplete="new-password">
-
-          <button
-            class="password-toggle"
-            type="button"
-            data-toggle-password="registerPassword"
-            aria-label="Show password"
-            title="Show password">
-
-            👁
-
-          </button>
-
-        </div>
-
-      </div>
-
-      <div class="formfoot">
-
-        <button class="btn" type="submit">
-          Create account
-        </button>
-
-        <button
-          class="textlink"
-          type="button"
-          data-view="login">
-
-          I already have an account
-
-        </button>
-
-      </div>
-
-    </form>`
-  );
-
-  document
-    .getElementById('registerForm')
-    .addEventListener('submit', async e => {
-
-      e.preventDefault();
-
-      try {
-        await api('/api/register', {
-          method: 'POST',
-          body: JSON.stringify(
-            Object.fromEntries(new FormData(e.currentTarget))
-          )
-        });
-
-        toast('Account created.');
-
-        let next = 'submit';
-
-        try {
-          next = sessionStorage.getItem('dsb-after-auth') || 'submit';
-
-          sessionStorage.removeItem('dsb-after-auth');
-        } catch {}
-
-        view(next);
-
-      } catch (err) {
-        toast(err.message);
-      }
-    });
+.theme-picker select {
+  width: auto;
+  min-width: 105px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  color: var(--text);
 }
 
-/* -------------------- ADMIN LOGIN -------------------- */
+/* -------------------- MAIN CONTENT -------------------- */
 
-function adminLoginView() {
-  shell(
-    'Administrator access',
-    'Sign in to review, update, and manage citizen suggestions.',
-
-    `<form id="adminForm">
-
-      <div class="field">
-
-        <label>Admin username</label>
-
-        <input
-          name="username"
-          required
-          autocomplete="username">
-
-      </div>
-
-      <div class="field">
-
-        <label>Password</label>
-
-        <div class="password-wrap">
-
-          <input
-            id="adminLoginPassword"
-            name="password"
-            type="password"
-            required
-            autocomplete="current-password">
-
-          <button
-            class="password-toggle"
-            type="button"
-            data-toggle-password="adminLoginPassword"
-            aria-label="Show password"
-            title="Show password">
-
-            👁
-
-          </button>
-
-        </div>
-
-      </div>
-
-      <button class="btn" type="submit">
-        Open dashboard
-      </button>
-
-    </form>`
-  );
-
-  document
-    .getElementById('adminForm')
-    .addEventListener('submit', async e => {
-
-      e.preventDefault();
-
-      try {
-        await api('/api/admin-login', {
-          method: 'POST',
-          body: JSON.stringify(
-            Object.fromEntries(new FormData(e.currentTarget))
-          )
-        });
-
-        toast('Admin signed in.');
-        view('admin');
-
-      } catch (err) {
-        toast(err.message);
-      }
-    });
+#app {
+  width: min(1200px, 92%);
+  margin: 28px auto 55px;
 }
 
-/* -------------------- TRACKING FORM -------------------- */
-
-function trackView() {
-  shell(
-    'Track your suggestion',
-    'Enter the unique tracking ID you received after submitting your suggestion.',
-
-    `<form id="trackForm">
-
-      <div class="tracking-form-row">
-
-        <input
-          class="tracking-input"
-          name="tracking"
-          type="text"
-          required
-          autocomplete="off"
-          placeholder="Enter your tracking ID (e.g. DSB-1234ABCD)">
-
-        <button
-          class="btn tracking-submit"
-          type="submit">
-
-          Check status →
-
-        </button>
-
-      </div>
-
-    </form>
-
-    <div id="trackResult" aria-live="polite"></div>`
-  );
-
-  const form = document.getElementById('trackForm');
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-
-    const id = new FormData(e.currentTarget)
-      .get('tracking')
-      .trim();
-
-    if (!id) {
-      toast('Please enter your tracking ID.');
-      return;
-    }
-
-    const result = document.getElementById('trackResult');
-
-    result.innerHTML =
-      '<p class="hint">Checking your suggestion status…</p>';
-
-    try {
-      const item = await api(
-        '/api/track/' + encodeURIComponent(id)
-      );
-
-      renderTracking(item, result);
-
-    } catch (err) {
-      result.innerHTML = `
-        <p class="hint">${escapeHtml(err.message)}</p>
-      `;
-    }
-  });
+.section-eyebrow {
+  display: inline-block;
+  margin-bottom: 7px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
 }
 
-/* -------------------- TRACKING RESULT -------------------- */
+/* -------------------- HERO SECTION -------------------- */
 
-function renderTracking(item, target) {
-  const idx = statuses.indexOf(item.status);
+.welcome-banner {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: center;
+  gap: 30px;
+  min-height: 390px;
+  padding: clamp(24px, 4vw, 48px);
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
 
-  const trackingId = String(item.tracking_id || '');
+.welcome-content {
+  position: relative;
+  z-index: 1;
+}
 
-  target.innerHTML = `
-    <div class="trackresult">
+.welcome-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 11px;
+  border-radius: 30px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
 
-      <div class="suggestion-head">
+.live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 4px rgba(22, 131, 75, 0.12);
+}
 
-        <div>
+.welcome-content h2 {
+  margin: 18px 0 12px;
+  color: var(--text);
+  font-size: clamp(30px, 4.1vw, 48px);
+  line-height: 1.12;
+  letter-spacing: -1.5px;
+}
 
-          <span class="hint">
-            TRACKING ID
-          </span>
+.welcome-content h2 span {
+  color: var(--primary);
+}
 
-          <h3>${escapeHtml(trackingId)}</h3>
+.welcome-content > p {
+  max-width: 520px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
 
-          <button
-            class="btn light"
-            type="button"
-            data-copy-tracking="${escapeHtml(trackingId)}">
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 25px;
+}
 
-            📋 Copy Tracking ID
+.government-button,
+.outline-button {
+  min-height: 44px;
+  padding: 11px 18px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
 
-          </button>
+.government-button {
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
 
-        </div>
+.government-button:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
 
-        <span class="status-pill">
-          ${escapeHtml(item.status)}
-        </span>
+.government-button span {
+  margin-left: 8px;
+}
 
-      </div>
+.outline-button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--primary);
+}
 
-      <div class="timeline">
+.outline-button:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
 
-        ${statuses.map((s, i) => `
-          <div class="stage ${
-            i < idx ? 'done' : i === idx ? 'active' : ''
-          }">
+.welcome-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  margin-top: 23px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
 
-            <div class="dot">
-              ${i < idx ? '✓' : i + 1}
-            </div>
+.welcome-points span::first-letter {
+  color: var(--success);
+}
 
-            <div>
+/* -------------------- HERO IMAGE -------------------- */
 
-              <strong>${escapeHtml(s)}</strong>
+.welcome-illustration {
+  position: relative;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface-soft);
+}
 
-              <small>
-                ${
-                  i === idx
-                    ? 'Current status'
-                    : i < idx
-                      ? 'Completed'
-                      : 'Pending'
-                }
-              </small>
+.illustration-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 12px;
+}
 
-            </div>
+.illustration-heading span {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+}
 
-          </div>
-        `).join('')}
+.illustration-heading strong {
+  color: var(--primary);
+  font-size: 15px;
+}
 
-      </div>
+.civic-main-image {
+  width: 100%;
+  height: 250px;
+  object-fit: contain;
+  object-position: center;
+  border-radius: 10px;
+}
 
-      <div class="detailgrid">
+.illustration-caption {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--primary-light);
+}
 
-        <div class="detail">
-          <small>Category</small>
-          <strong>${escapeHtml(item.category)}</strong>
-        </div>
+.illustration-caption strong {
+  color: var(--primary);
+  font-size: 10px;
+  letter-spacing: 0.8px;
+}
 
-        <div class="detail">
-          <small>Area</small>
-          <strong>${escapeHtml(item.area)}</strong>
-        </div>
+.illustration-caption span {
+  color: var(--muted);
+  font-size: 10px;
+}
 
-        <div class="detail">
-          <small>Submitted</small>
-          <strong>${escapeHtml(item.created_at)}</strong>
-        </div>
+/* -------------------- SERVICES -------------------- */
 
-        <div class="detail">
-          <small>Last updated</small>
-          <strong>${escapeHtml(item.updated_at)}</strong>
-        </div>
+.services-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  margin: 48px 0 18px;
+}
 
-      </div>
+.services-heading h2,
+.process-heading h2 {
+  margin: 0;
+  color: var(--text);
+  font-size: 27px;
+  line-height: 1.25;
+}
 
-      <div class="detail" style="margin-top:12px">
+.services-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
 
-        <small>Suggestion details</small>
+.service-heading-note {
+  display: flex;
+  flex-direction: column;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 800;
+  text-align: right;
+}
 
-        <strong>
-          ${escapeHtml(item.description)}
-        </strong>
+.service-heading-note small {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+}
 
-      </div>
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 15px;
+}
 
-      <div class="detail" style="margin-top:12px">
+.service-card {
+  min-width: 0;
+  min-height: 205px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 19px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 5px 18px rgba(20, 48, 80, 0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
 
-        <small>Administrator response</small>
+.service-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow);
+}
 
-        <strong>
-          ${escapeHtml(
-            item.admin_response || 'No response has been added yet.'
-          )}
-        </strong>
+.service-icon {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 11px;
+  font-size: 22px;
+  font-weight: 700;
+}
 
-      </div>
+.submit-icon {
+  background: #eaf2fb;
+  color: #174b86;
+}
 
-      ${
-        item.photoUrl
-          ? `
-            <img
-              class="result-photo"
-              src="${escapeHtml(item.photoUrl)}"
-              alt="Uploaded supporting photo">
-          `
-          : ''
-      }
+.track-icon {
+  background: #e9f7f2;
+  color: #16834b;
+}
 
-    </div>
-  `;
+.citizen-icon {
+  background: #fff4e7;
+  color: #b7791f;
+}
+
+.admin-icon {
+  background: #f1ebfa;
+  color: #7950a5;
+}
+
+.service-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.service-card-content strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.service-card-content small {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.service-link {
+  margin-top: 4px;
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+/* -------------------- CIVIC FEATURES -------------------- */
+
+.civic-features-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 35px;
+  margin-top: 50px;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 17px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.civic-features-content h2 {
+  margin: 0 0 12px;
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.civic-features-content p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.civic-feature-points {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-top: 18px;
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.civic-features-image-wrap {
+  overflow: hidden;
+  border-radius: 13px;
+  background: var(--surface-soft);
+}
+
+.civic-features-image {
+  width: 100%;
+  max-height: 310px;
+  object-fit: contain;
+}
+
+/* -------------------- PROCESS SECTION -------------------- */
+
+.process-section {
+  margin-top: 50px;
+}
+
+.process-heading {
+  margin-bottom: 18px;
+}
+
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.process-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 19px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.process-number {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.process-item strong {
+  color: var(--text);
+  font-size: 14px;
+}
+
+.process-item p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+/* -------------------- CITIZEN HELP -------------------- */
+
+.citizen-help-section {
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  align-items: center;
+  gap: 25px;
+  margin-top: 25px;
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: var(--primary-light);
+}
+
+.citizen-help-image-wrap {
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.citizen-help-image {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+}
+
+.citizen-help-content h3 {
+  margin: 0 0 10px;
+  color: var(--text);
+  font-size: 24px;
+  line-height: 1.3;
+}
+
+.citizen-help-content p {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.citizen-help-content .government-button {
+  margin-top: 10px;
+}
+
+/* -------------------- DYNAMIC PANEL -------------------- */
+
+.panel-wrap {
+  margin-top: 35px;
+}
+
+.panel,
+.app-panel,
+.form-panel,
+.auth-panel,
+.dashboard-panel {
+  width: 100%;
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.panel h2,
+.app-panel h2,
+.form-panel h2,
+.auth-panel h2,
+.dashboard-panel h2 {
+  margin-top: 0;
+  color: var(--text);
+}
+
+.panel p,
+.app-panel p,
+.form-panel p,
+.auth-panel p,
+.dashboard-panel p {
+  color: var(--muted);
+}
+
+.panel-heading,
+.form-heading {
+  margin-bottom: 20px;
+}
+
+.panel-heading h2,
+.form-heading h2 {
+  margin-bottom: 5px;
+  font-size: 23px;
+}
+
+.panel-heading p,
+.form-heading p {
+  margin-top: 0;
+  font-size: 12px;
+}
+
+/* -------------------- FORMS -------------------- */
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea,
+input,
+select,
+textarea {
+  max-width: 100%;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea,
+.form-control {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.form-group textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.form-help {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.required {
+  color: var(--danger);
+}
+
+.form-actions,
+.button-row,
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn {
+  min-height: 40px;
+  padding: 9px 16px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 750;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--primary);
+}
+
+.btn-secondary:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.btn-success {
+  border-color: var(--success);
+  background: var(--success);
+  color: #ffffff;
+}
+
+/* -------------------- AUTHENTICATION -------------------- */
+
+.auth-panel {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.auth-panel form {
+  margin-top: 18px;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 15px;
+  font-size: 12px;
+}
+
+.auth-links button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* -------------------- TRACKING -------------------- */
+
+.tracking-form-row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.tracking-form-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.tracking-submit {
+  flex: 0 0 auto;
+}
+
+.tracking-result,
+.status-result {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.tracking-id {
+  display: inline-block;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  background: var(--primary-light);
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.status-submitted {
+  background: #eaf2fb;
+  color: #174b86;
+}
+
+.status-review {
+  background: #fff4df;
+  color: #9b6715;
+}
+
+.status-progress {
+  background: #e8f3ff;
+  color: #1764a5;
+}
+
+.status-resolved {
+  background: #e7f6ec;
+  color: #16834b;
+}
+
+/* -------------------- STATUS TIMELINE -------------------- */
+
+.status-timeline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.timeline-step {
+  flex: 1 1 120px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.timeline-step.active {
+  border-color: var(--success);
+  background: rgba(22, 131, 75, 0.08);
+  color: var(--success);
+  font-weight: 800;
+}
+
+/* -------------------- FILE UPLOAD -------------------- */
+
+.file-upload,
+.upload-box {
+  display: block;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft);
+  text-align: center;
+}
+
+.file-upload input,
+.upload-box input {
+  width: 100%;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.image-preview,
+.preview-image {
+  max-width: 100%;
+  max-height: 220px;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  object-fit: contain;
+}
+
+/* -------------------- LOCATION / MAP -------------------- */
+
+.location-map,
+#mapPreview {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.map-preview iframe,
+.location-map iframe,
+#mapPreview iframe {
+  display: block;
+  width: 100%;
+  height: 220px;
+  border: 0;
 }
 
 /* -------------------- ADMIN DASHBOARD -------------------- */
 
-async function adminView() {
-  appPanel.innerHTML = `
-    <div class="panel wide">
+.admin-dashboard,
+.dashboard,
+.admin-content {
+  width: 100%;
+}
 
-      <h2>Admin dashboard</h2>
+.admin-stats,
+.stats-grid,
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
 
-      <p class="lead">
-        Review citizen requests, update progress, and respond transparently.
-      </p>
+.stat-card,
+.dashboard-stat {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface-soft);
+}
 
-      <div id="adminContent">
-        Loading…
-      </div>
+.stat-card strong,
+.dashboard-stat strong {
+  display: block;
+  color: var(--primary);
+  font-size: 25px;
+  line-height: 1.3;
+}
 
-      <div class="formfoot">
+.stat-card span,
+.dashboard-stat span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+}
 
-        <button class="btn light" id="logout">
-          Log out
-        </button>
+.admin-toolbar,
+.dashboard-toolbar,
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+}
 
-      </div>
+.admin-toolbar input,
+.dashboard-toolbar input,
+.filter-row input,
+.filter-row select {
+  flex: 1 1 180px;
+  min-width: 0;
+}
 
-    </div>
-  `;
+.suggestion-list,
+.admin-list,
+.submission-list {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
 
-  document.getElementById('logout').onclick = async () => {
-    try {
-      await api('/api/logout', {
-        method: 'POST'
-      });
+.suggestion-card,
+.admin-card,
+.submission-card {
+  min-width: 0;
+  padding: 17px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+}
 
-      view('home');
-      toast('Signed out.');
+.suggestion-card h3,
+.admin-card h3,
+.submission-card h3 {
+  margin: 0 0 7px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
 
-    } catch (err) {
-      toast(err.message);
-    }
-  };
+.suggestion-card p,
+.admin-card p,
+.submission-card p {
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
 
-  try {
-    await loadAdmin();
+.admin-card select {
+  max-width: 250px;
+}
 
-  } catch (err) {
-    toast(err.message);
-    view('admin-login');
+.admin-card textarea {
+  margin-top: 10px;
+}
+
+.admin-card img,
+.submission-card img {
+  max-width: 100%;
+  max-height: 200px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* -------------------- TABLES -------------------- */
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th,
+td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: var(--surface-soft);
+  color: var(--text);
+  font-weight: 800;
+}
+
+td {
+  color: var(--muted);
+}
+
+/* -------------------- FOOTER -------------------- */
+
+.government-footer {
+  margin-top: 60px;
+  padding: 30px max(4%, calc((100% - 1200px) / 2)) 18px;
+  background: #153758;
+  color: #ffffff;
+}
+
+.footer-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 25px;
+  padding-bottom: 25px;
+}
+
+.footer-brand,
+.footer-purpose {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.footer-brand strong,
+.footer-purpose strong {
+  color: #ffffff;
+  font-size: 15px;
+}
+
+.footer-brand span,
+.footer-purpose span {
+  color: #d0deec;
+  font-size: 12px;
+}
+
+.footer-brand small {
+  color: #b9cbdc;
+  font-size: 11px;
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  color: #c2d2e1;
+  font-size: 10px;
+}
+
+.disclaimer {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: #d0deec;
+  font-size: 10px;
+  text-align: center;
+}
+
+/* -------------------- TOAST -------------------- */
+
+#toast {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  max-width: min(380px, calc(100% - 40px));
+  padding: 12px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 9px;
+  background: #183b5c;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 650;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(10px);
+  transition: 0.25s ease;
+  pointer-events: none;
+}
+
+#toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* -------------------- EMPTY / ERROR / SUCCESS -------------------- */
+
+.empty-state,
+.no-results {
+  padding: 25px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+.error,
+.error-message {
+  color: var(--danger);
+  font-size: 12px;
+}
+
+.success,
+.success-message {
+  color: var(--success);
+  font-size: 12px;
+}
+
+/* -------------------- ACCESSIBILITY -------------------- */
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
 
-/* -------------------- LOAD ADMIN DATA -------------------- */
+/* -------------------- TABLET -------------------- */
 
-async function loadAdmin() {
-  const q = document.getElementById('adminSearch')?.value || '';
+@media (max-width: 900px) {
 
-  const s = document.getElementById('adminFilter')?.value || '';
-
-  const data = await api(
-    '/api/admin/suggestions?q=' +
-    encodeURIComponent(q) +
-    '&status=' +
-    encodeURIComponent(s)
-  );
-
-  const target = document.getElementById('adminContent');
-
-  target.innerHTML = `
-    <div class="stats">
-
-      ${['Total', ...statuses].map(k => `
-        <div class="stat">
-
-          <small>${escapeHtml(k)}</small>
-
-          <b>${Number(data.stats[k] || 0)}</b>
-
-        </div>
-      `).join('')}
-
-    </div>
-
-    <div class="toolbar">
-
-      <input
-        id="adminSearch"
-        placeholder="Search ID, name, area..."
-        value="${escapeHtml(q)}">
-
-      <select id="adminFilter">
-
-        <option value="">All statuses</option>
-
-        ${statuses.map(st => `
-          <option
-            value="${escapeHtml(st)}"
-            ${s === st ? 'selected' : ''}>
-
-            ${escapeHtml(st)}
-
-          </option>
-        `).join('')}
-
-      </select>
-
-      <button class="btn" id="refresh">
-        Refresh
-      </button>
-
-    </div>
-
-    <div id="adminItems">
-
-      ${
-        data.items.length
-          ? data.items.map(adminCard).join('')
-          : '<div class="empty">No suggestions match your search.</div>'
-      }
-
-    </div>
-  `;
-
-  document
-    .getElementById('adminSearch')
-    .addEventListener('input', debounce(loadAdmin, 300));
-
-  document
-    .getElementById('adminFilter')
-    .addEventListener('change', loadAdmin);
-
-  document
-    .getElementById('refresh')
-    .addEventListener('click', loadAdmin);
-
-  target.querySelectorAll('[data-save]').forEach(b => {
-    b.addEventListener('click', saveAdmin);
-  });
-
-  target.querySelectorAll('[data-delete]').forEach(b => {
-    b.addEventListener('click', deleteAdmin);
-  });
-}
-
-/* -------------------- ADMIN SUGGESTION CARD -------------------- */
-
-function adminCard(x) {
-  const id = String(x.tracking_id || '');
-
-  return `
-    <article class="suggestion">
-
-      <div class="suggestion-head">
-
-        <div>
-
-          <span class="hint">
-            ${escapeHtml(id)} · ${escapeHtml(x.created_at)}
-          </span>
-
-          <h3>
-            ${escapeHtml(x.name || 'Anonymous citizen')}
-            — ${escapeHtml(x.category)}
-          </h3>
-
-          <span class="hint">
-            ${escapeHtml(x.area)}
-          </span>
-
-        </div>
-
-        <span class="status-pill">
-          ${escapeHtml(x.status)}
-        </span>
-
-      </div>
-
-      <p>${escapeHtml(x.description)}</p>
-
-      ${
-        x.photoUrl
-          ? `
-            <img
-              src="${escapeHtml(x.photoUrl)}"
-              alt="Citizen uploaded photo"
-              style="max-width:150px;max-height:100px;border-radius:9px">
-          `
-          : ''
-      }
-
-      <div class="formgrid">
-
-        <div class="field">
-
-          <label>Update status</label>
-
-          <select data-status="${escapeHtml(id)}">
-
-            ${statuses.map(s => `
-              <option
-                value="${escapeHtml(s)}"
-                ${x.status === s ? 'selected' : ''}>
-
-                ${escapeHtml(s)}
-
-              </option>
-            `).join('')}
-
-          </select>
-
-        </div>
-
-        <div class="field">
-
-          <label>Admin response</label>
-
-          <input
-            data-response="${escapeHtml(id)}"
-            value="${escapeHtml(x.admin_response || '')}"
-            placeholder="Write a short update">
-
-        </div>
-
-      </div>
-
-      <div class="suggestion-actions">
-
-        <button
-          class="btn"
-          data-save="${escapeHtml(id)}">
-
-          Save update
-
-        </button>
-
-        <button
-          class="btn danger"
-          data-delete="${escapeHtml(id)}">
-
-          Delete
-
-        </button>
-
-      </div>
-
-    </article>
-  `;
-}
-
-/* -------------------- SAVE ADMIN UPDATE -------------------- */
-
-async function saveAdmin(e) {
-  const id = e.currentTarget.dataset.save;
-
-  const status = document.querySelector(
-    `[data-status="${id}"]`
-  ).value;
-
-  const admin_response = document.querySelector(
-    `[data-response="${id}"]`
-  ).value;
-
-  try {
-    await api(
-      '/api/admin/suggestions/' + encodeURIComponent(id),
-      {
-        method: 'PATCH',
-        body: JSON.stringify({
-          status,
-          admin_response
-        })
-      }
-    );
-
-    toast('Suggestion updated.');
-
-    await loadAdmin();
-
-  } catch (err) {
-    toast(err.message);
-  }
-}
-
-/* -------------------- DELETE ADMIN SUGGESTION -------------------- */
-
-async function deleteAdmin(e) {
-  const id = e.currentTarget.dataset.delete;
-
-  if (!confirm('Delete this suggestion and its uploaded photo?')) {
-    return;
+  .welcome-banner {
+    grid-template-columns: 1fr 0.9fr;
+    gap: 18px;
   }
 
-  try {
-    await api(
-      '/api/admin/suggestions/' + encodeURIComponent(id),
-      {
-        method: 'DELETE'
-      }
-    );
-
-    toast('Suggestion deleted.');
-
-    await loadAdmin();
-
-  } catch (err) {
-    toast(err.message);
+  .service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .admin-stats,
+  .stats-grid,
+  .dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header-right {
+    display: none;
+  }
+
 }
 
-/* -------------------- DEBOUNCE -------------------- */
+/* -------------------- MOBILE -------------------- */
 
-function debounce(fn, wait) {
-  let timer;
+@media (max-width: 650px) {
 
-  return () => {
-    clearTimeout(timer);
+  html {
+    scroll-padding-top: 110px;
+  }
 
-    timer = setTimeout(fn, wait);
-  };
+  body {
+    font-size: 14px;
+  }
+
+  .top-strip {
+    padding: 6px 12px;
+    font-size: 9px;
+  }
+
+  .top-strip-inner {
+    gap: 5px;
+  }
+
+  .top-strip-inner span:last-child {
+    text-align: right;
+  }
+
+  .government-header {
+    padding: 13px 14px;
+  }
+
+  .identity {
+    gap: 10px;
+  }
+
+  .civic-seal {
+    width: 53px;
+    height: 53px;
+    flex-basis: 53px;
+  }
+
+  .seal-symbol {
+    font-size: 15px;
+  }
+
+  .seal-kannada {
+    font-size: 7px;
+  }
+
+  .seal-caption {
+    font-size: 4px;
+  }
+
+  .identity-kannada {
+    font-size: 9px;
+  }
+
+  .identity-text h1 {
+    font-size: 16px;
+  }
+
+  .identity-text p {
+    font-size: 10px;
+  }
+
+  .main-nav {
+    position: sticky;
+    padding: 7px 13px;
+  }
+
+  .menu-toggle {
+    width: 42px;
+    height: 40px;
+  }
+
+  .nav-menu {
+    left: 12px;
+    top: calc(100% + 6px);
+    min-width: min(260px, calc(100vw - 24px));
+  }
+
+  .navlink {
+    padding: 10px 11px;
+    font-size: 12px;
+  }
+
+  .theme-picker {
+    width: auto;
+    justify-content: space-between;
+  }
+
+  #app {
+    width: calc(100% - 26px);
+    margin: 18px auto 35px;
+  }
+
+  .welcome-banner {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 18px;
+    border-radius: 14px;
+  }
+
+  .welcome-illustration {
+    order: -1;
+    padding: 10px;
+  }
+
+  .welcome-content {
+    order: 0;
+  }
+
+  .welcome-content h2 {
+    font-size: 34px;
+    letter-spacing: -1px;
+  }
+
+  .welcome-content > p {
+    font-size: 13px;
+  }
+
+  .welcome-actions {
+    gap: 8px;
+  }
+
+  .government-button,
+  .outline-button {
+    padding: 10px 12px;
+    font-size: 11px;
+  }
+
+  .welcome-points {
+    gap: 8px 12px;
+    font-size: 10px;
+  }
+
+  .civic-main-image {
+    height: auto;
+    max-height: 230px;
+  }
+
+  .services-heading {
+    align-items: flex-start;
+    margin-top: 38px;
+  }
+
+  .services-heading h2,
+  .process-heading h2 {
+    font-size: 23px;
+  }
+
+  .service-heading-note {
+    display: none;
+  }
+
+  .service-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .service-card {
+    min-height: 190px;
+    padding: 14px;
+    gap: 11px;
+  }
+
+  .service-icon {
+    width: 37px;
+    height: 37px;
+    font-size: 20px;
+  }
+
+  .service-card-content strong {
+    font-size: 12px;
+  }
+
+  .service-card-content small {
+    font-size: 10px;
+  }
+
+  .service-link {
+    font-size: 10px;
+  }
+
+  .civic-features-section {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-top: 38px;
+    padding: 20px;
+  }
+
+  .civic-features-content h2 {
+    font-size: 24px;
+  }
+
+  .civic-features-image {
+    max-height: 230px;
+  }
+
+  .process-section {
+    margin-top: 38px;
+  }
+
+  .process-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .process-item {
+    padding: 15px;
+  }
+
+  .citizen-help-section {
+    grid-template-columns: 1fr;
+    padding: 17px;
+  }
+
+  .citizen-help-image {
+    max-height: 180px;
+  }
+
+  .citizen-help-content h3 {
+    font-size: 20px;
+  }
+
+  .panel-wrap {
+    margin-top: 25px;
+  }
+
+  .panel,
+  .app-panel,
+  .form-panel,
+  .auth-panel,
+  .dashboard-panel {
+    padding: 17px;
+    border-radius: 11px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .tracking-form-row {
+    flex-direction: column;
+  }
+
+  .tracking-submit {
+    width: 100%;
+  }
+
+  .admin-stats,
+  .stats-grid,
+  .dashboard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .stat-card,
+  .dashboard-stat {
+    padding: 12px;
+  }
+
+  .stat-card strong,
+  .dashboard-stat strong {
+    font-size: 21px;
+  }
+
+  .admin-toolbar,
+  .dashboard-toolbar,
+  .filter-row {
+    align-items: stretch;
+  }
+
+  .admin-toolbar > *,
+  .dashboard-toolbar > *,
+  .filter-row > * {
+    width: 100%;
+  }
+
+  .form-actions,
+  .button-row,
+  .action-buttons {
+    align-items: stretch;
+  }
+
+  .form-actions .btn,
+  .button-row .btn,
+  .action-buttons .btn {
+    flex: 1 1 auto;
+  }
+
+  .footer-main {
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .government-footer {
+    margin-top: 40px;
+    padding: 25px 18px 16px;
+  }
+
+  #toast {
+    right: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    max-width: calc(100% - 24px);
+  }
+
 }
 
-/* -------------------- HTML ESCAPING -------------------- */
+/* -------------------- SMALL PHONES -------------------- */
 
-function escapeHtml(value) {
-  return String(value ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[c]));
-}
+@media (max-width: 380px) {
 
-/* -------------------- SESSION CHECK -------------------- */
+  .identity-text h1 {
+    font-size: 14px;
+  }
 
-(async () => {
-  try {
-    const s = await api('/api/session');
+  .identity-kannada {
+    font-size: 8px;
+  }
 
-    if (s.role === 'admin') {
-      const n = document.createElement('button');
+  .welcome-content h2 {
+    font-size: 29px;
+  }
 
-      n.className = 'navlink';
-      n.dataset.view = 'admin';
-      n.textContent = 'Dashboard';
+  .service-card {
+    padding: 11px;
+  }
 
-      document.getElementById('nav').prepend(n);
+  .service-card-content strong {
+    font-size: 11px;
+  }
 
-    } else if (s.role === 'citizen') {
-      const n = document.createElement('button');
+  .service-card-content small {
+    font-size: 9px;
+  }
 
-      n.className = 'navlink';
-      n.dataset.view = 'submit';
-      n.textContent = 'Submit suggestion';
+  .navlink {
+    padding: 9px 10px;
+    font-size: 11px;
+  }
 
-      document.getElementById('nav').prepend(n);
-    }
-
-  } catch {}
-})();
-
-/* -------------------- PWA SERVICE WORKER -------------------- */
-
-if (
-  'serviceWorker' in navigator &&
-  location.protocol.startsWith('http')
-) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/sw.js')
-      .catch(() => {});
-  });
 }
