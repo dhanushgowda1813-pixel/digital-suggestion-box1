@@ -44,7 +44,7 @@
     href="{{ url_for('static', filename='app-icon.svg') }}"
   >
 
-  <!-- LEAFLET MAP LIBRARY -->
+  <!-- LEAFLET MAP STYLES -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -158,6 +158,16 @@
         Administrator
       </button>
 
+      <!-- LOGOUT -->
+      <button
+        class="navlink"
+        id="logoutButton"
+        type="button"
+        hidden
+      >
+        Logout
+      </button>
+
       <!-- LIGHT AND DARK THEMES -->
       <label class="theme-picker">
         <span>Theme</span>
@@ -181,7 +191,6 @@
     <!-- MAIN HERO SECTION -->
     <section class="welcome-banner" id="home">
 
-      <!-- MAIN IMAGE -->
       <div class="welcome-illustration">
         <img
           class="civic-main-image"
@@ -192,7 +201,6 @@
         >
       </div>
 
-      <!-- HERO CONTENT -->
       <div class="welcome-content">
 
         <span class="welcome-tag">
@@ -263,7 +271,6 @@
     <!-- SERVICE CARDS -->
     <section class="service-grid">
 
-      <!-- SUBMIT FEEDBACK -->
       <button
         class="service-card"
         type="button"
@@ -284,7 +291,6 @@
 
       </button>
 
-      <!-- TRACK APPLICATION -->
       <button
         class="service-card"
         type="button"
@@ -305,7 +311,6 @@
 
       </button>
 
-      <!-- CITIZEN LOGIN -->
       <button
         class="service-card"
         type="button"
@@ -326,7 +331,6 @@
 
       </button>
 
-      <!-- ADMIN LOGIN -->
       <button
         class="service-card"
         type="button"
@@ -403,7 +407,6 @@
 
       <div class="process-grid">
 
-        <!-- STEP 1 -->
         <div class="process-item">
 
           <span class="process-number">01</span>
@@ -418,7 +421,6 @@
 
         </div>
 
-        <!-- STEP 2 -->
         <div class="process-item">
 
           <span class="process-number">02</span>
@@ -433,7 +435,6 @@
 
         </div>
 
-        <!-- STEP 3 -->
         <div class="process-item">
 
           <span class="process-number">03</span>
