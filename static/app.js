@@ -2,7 +2,6 @@
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
-   Responsive Web Application + Android APK
 
    Features:
    - Citizen and Admin authentication
@@ -16,12 +15,15 @@
    - Admin dashboard
    - Status updates and deletion
    - Session and logout management
-   - Full-page navigation
+   - Full-page app-style navigation
+   - Responsive web application + PWA
    ========================================================= */
 
 "use strict";
 
-/* -------------------- GLOBAL VARIABLES -------------------- */
+/* =========================================================
+   GLOBAL VARIABLES
+   ========================================================= */
 
 const appPanel = document.getElementById("panel");
 const toastEl = document.getElementById("toast");
@@ -33,7 +35,7 @@ const statuses = [
   "Resolved"
 ];
 
-let currentView = "";
+let currentView = "home";
 let currentUser = null;
 let adminItems = [];
 let activePhotoURL = null;
@@ -45,10 +47,13 @@ let selectedLatitude = null;
 let selectedLongitude = null;
 
 let autocompleteTimer = null;
+let autocompleteRequestId = 0;
 let lastSearchTime = 0;
 let locationRequestActive = false;
 
-/* -------------------- COMMON FUNCTIONS -------------------- */
+/* =========================================================
+   COMMON FUNCTIONS
+   ========================================================= */
 
 function toast(message) {
   if (!toastEl) return;
@@ -143,7 +148,16 @@ function releasePhotoPreview() {
   }
 }
 
-/* -------------------- AUTHENTICATION UI -------------------- */
+function scrollPageToTop() {
+  window.scrollTo({
+    top: 0,
+    behavior: "auto"
+  });
+}
+
+/* =========================================================
+   AUTHENTICATION UI
+   ========================================================= */
 
 function updateAuthUI() {
   const headerLogout = document.getElementById("logoutButton");
@@ -156,17 +170,8 @@ function updateAuthUI() {
 }
 
 /* =========================================================
-   FULL-PAGE LAYOUT CONTROL
+   FULL-PAGE APP LAYOUT
    ========================================================= */
-
-/*
-   Homepage sections remain visible on Home.
-
-   When another menu option is selected:
-   - Homepage sections are hidden.
-   - The selected page panel is displayed.
-   - Header and navigation are not affected.
-*/
 
 function setPageLayout(showInnerPage) {
   const homeSections = [
@@ -174,25 +179,39 @@ function setPageLayout(showInnerPage) {
     document.querySelector(".services-heading"),
     document.querySelector(".service-grid"),
     document.querySelector(".civic-features-section"),
-    document.querySelector(".process-section")
+    document.querySelector(".process-section"),
+    document.querySelector(".citizen-help-section")
   ].filter(Boolean);
 
   homeSections.forEach(section => {
     section.hidden = showInnerPage;
-
-    // Ensures hidden sections stay hidden even if CSS
-    // contains a display property for these sections.
     section.style.display = showInnerPage ? "none" : "";
   });
 
+  const footer = document.querySelector(".government-footer");
+
+  if (footer) {
+    footer.hidden = showInnerPage;
+    footer.style.display = showInnerPage ? "none" : "";
+  }
+
   if (appPanel) {
     appPanel.hidden = !showInnerPage;
-
     appPanel.style.display = showInnerPage ? "" : "none";
   }
 
+  /*
+    Both classes are maintained for compatibility
+    with the application stylesheet.
+  */
+
   document.body.classList.toggle(
     "inner-page-active",
+    showInnerPage
+  );
+
+  document.body.classList.toggle(
+    "app-screen-active",
     showInnerPage
   );
 }
@@ -206,14 +225,18 @@ function shell(title, lead, body, wide = false) {
 
   destroyFeedbackMap();
 
-  // Hide the homepage and display the selected page.
   setPageLayout(true);
 
   appPanel.innerHTML = `
     <div class="panel ${wide ? "wide" : ""}">
 
-      <button class="back" data-view="home">
-        ← Back to home
+      <button
+        type="button"
+        class="back"
+        data-view="home"
+      >
+        <span aria-hidden="true">←</span>
+        Back to home
       </button>
 
       <h2>${escapeHTML(title)}</h2>
@@ -227,12 +250,7 @@ function shell(title, lead, body, wide = false) {
     </div>
   `;
 
-  // Open the selected page from the top.
-  // No sliding or smooth scrolling.
-  window.scrollTo({
-    top: 0,
-    behavior: "auto"
-  });
+  scrollPageToTop();
 }
 
 /* =========================================================
@@ -288,6 +306,10 @@ function formField(label, name, type = "text", required = true) {
     `;
   }
 
+  const autocomplete = type === "email"
+    ? 'autocomplete="email"'
+    : 'autocomplete="off"';
+
   return `
     <label class="form-field">
 
@@ -296,9 +318,7 @@ function formField(label, name, type = "text", required = true) {
       <input
         type="${safeType}"
         name="${safeName}"
-        ${type === "email"
-          ? 'autocomplete="email"'
-          : 'autocomplete="off"'}
+        ${autocomplete}
         ${required ? "required" : ""}
       >
 
@@ -398,17 +418,12 @@ function closeMenu() {
 
   if (toggle) {
     toggle.setAttribute("aria-expanded", "false");
-
-    toggle.setAttribute(
-      "aria-label",
-      "Open navigation menu"
-    );
+    toggle.setAttribute("aria-label", "Open navigation menu");
   }
 }
 
 function view(name) {
   releasePhotoPreview();
-
   currentView = name;
 
   closeMenu();
@@ -426,19 +441,19 @@ function view(name) {
   (views[name] || homeView)();
 }
 
-/* -------------------- NAVIGATION CLICK HANDLER -------------------- */
+/* Navigation buttons */
 
 document.addEventListener("click", event => {
   const button = event.target.closest("[data-view]");
 
-  if (button) {
-    event.preventDefault();
+  if (!button) return;
 
-    view(button.dataset.view);
-  }
+  event.preventDefault();
+
+  view(button.dataset.view);
 });
 
-/* -------------------- HEADER LOGOUT -------------------- */
+/* Header logout */
 
 const headerLogoutButton = document.getElementById("logoutButton");
 
@@ -446,7 +461,7 @@ if (headerLogoutButton) {
   headerLogoutButton.addEventListener("click", logout);
 }
 
-/* -------------------- HAMBURGER MENU -------------------- */
+/* Hamburger menu */
 
 const menuToggle = document.getElementById("menuToggle");
 const navMenu = document.getElementById("navMenu");
@@ -469,6 +484,15 @@ if (menuToggle && navMenu) {
         : "Close navigation menu"
     );
   });
+
+  document.addEventListener("click", event => {
+    if (
+      !event.target.closest("#navMenu") &&
+      !event.target.closest("#menuToggle")
+    ) {
+      closeMenu();
+    }
+  });
 }
 
 /* =========================================================
@@ -478,8 +502,17 @@ if (menuToggle && navMenu) {
 const themeSelect = document.getElementById("themeSelect");
 
 function applyTheme(theme) {
-  const selectedTheme =
-    theme === "dark" ? "dark" : "light";
+  const allowedThemes = [
+    "light",
+    "dark",
+    "ocean",
+    "sunset",
+    "forest"
+  ];
+
+  const selectedTheme = allowedThemes.includes(theme)
+    ? theme
+    : "light";
 
   document.body.dataset.theme = selectedTheme;
 
@@ -523,17 +556,13 @@ function homeView() {
     appPanel.innerHTML = "";
   }
 
-  // Restore the homepage and hide the inner-page panel.
   setPageLayout(false);
 
   currentView = "home";
 
   updateAuthUI();
 
-  window.scrollTo({
-    top: 0,
-    behavior: "auto"
-  });
+  scrollPageToTop();
 }
 
 /* =========================================================
@@ -780,13 +809,15 @@ function adminLoginView() {
    LOCATION AND MAP FUNCTIONS
    ========================================================= */
 
-/* -------------------- DESTROY MAP -------------------- */
+/* Destroy previous map */
 
 function destroyFeedbackMap() {
   if (autocompleteTimer) {
     clearTimeout(autocompleteTimer);
     autocompleteTimer = null;
   }
+
+  autocompleteRequestId++;
 
   if (feedbackMap) {
     feedbackMap.remove();
@@ -796,9 +827,10 @@ function destroyFeedbackMap() {
 
   selectedLatitude = null;
   selectedLongitude = null;
+  locationRequestActive = false;
 }
 
-/* -------------------- UPDATE COORDINATES -------------------- */
+/* Update coordinates */
 
 function updateLocationCoordinates(latitude, longitude) {
   selectedLatitude = Number(latitude);
@@ -816,7 +848,7 @@ function updateLocationCoordinates(latitude, longitude) {
   }
 }
 
-/* -------------------- LOCATION MESSAGE -------------------- */
+/* Location message */
 
 function locationMessage(message, isError = false) {
   const element = document.getElementById("locationMessage");
@@ -827,7 +859,7 @@ function locationMessage(message, isError = false) {
   element.classList.toggle("error", isError);
 }
 
-/* -------------------- REVERSE GEOCODING -------------------- */
+/* Reverse geocoding */
 
 async function reverseGeocode(latitude, longitude) {
   const url = new URL(
@@ -853,7 +885,7 @@ async function reverseGeocode(latitude, longitude) {
   return response.json();
 }
 
-/* -------------------- EXTRACT AREA NAME -------------------- */
+/* Extract area name */
 
 function extractAreaName(result) {
   const address = result.address || {};
@@ -876,7 +908,7 @@ function extractAreaName(result) {
     "";
 }
 
-/* -------------------- SET SELECTED LOCATION -------------------- */
+/* Set selected map location */
 
 function setSelectedLocation(latitude, longitude, zoom = 16) {
   if (!feedbackMap) return;
@@ -939,7 +971,7 @@ function setSelectedLocation(latitude, longitude, zoom = 16) {
   feedbackMap.setView(position, zoom);
 }
 
-/* -------------------- GPS CURRENT LOCATION -------------------- */
+/* GPS current location */
 
 async function useCurrentLocation() {
   if (locationRequestActive) return;
@@ -1037,7 +1069,7 @@ async function useCurrentLocation() {
   );
 }
 
-/* -------------------- MAP INITIALIZATION -------------------- */
+/* Initialize map */
 
 function initializeFeedbackMap() {
   const mapElement = document.getElementById("feedbackMap");
@@ -1059,7 +1091,6 @@ function initializeFeedbackMap() {
     feedbackMarker = null;
   }
 
-  // Default map centre: Bengaluru, Karnataka.
   feedbackMap = L.map("feedbackMap", {
     zoomControl: true,
     scrollWheelZoom: true
@@ -1115,7 +1146,7 @@ function initializeFeedbackMap() {
   }, 250);
 }
 
-/* -------------------- PLACE AUTOCOMPLETE -------------------- */
+/* Search places */
 
 async function searchPlaces(query) {
   const url = new URL(
@@ -1141,7 +1172,7 @@ async function searchPlaces(query) {
   return response.json();
 }
 
-/* -------------------- DISPLAY PLACE SUGGESTIONS -------------------- */
+/* Display place suggestions */
 
 function showPlaceSuggestions(results) {
   const suggestions = document.getElementById("areaSuggestions");
@@ -1176,6 +1207,7 @@ function showPlaceSuggestions(results) {
       "Selected place";
 
     const description = document.createElement("small");
+
     description.textContent = result.display_name || "";
 
     item.appendChild(title);
@@ -1191,7 +1223,7 @@ function showPlaceSuggestions(results) {
   suggestions.hidden = false;
 }
 
-/* -------------------- SELECT PLACE -------------------- */
+/* Select suggested place */
 
 function selectSuggestedPlace(result) {
   const latitude = Number(result.lat);
@@ -1227,7 +1259,7 @@ function selectSuggestedPlace(result) {
   locationMessage(`Selected location: ${area}`);
 }
 
-/* -------------------- AREA INPUT SEARCH -------------------- */
+/* Area autocomplete */
 
 function initializePlaceAutocomplete() {
   const areaInput = document.getElementById("areaInput");
@@ -1237,6 +1269,7 @@ function initializePlaceAutocomplete() {
 
   areaInput.addEventListener("input", () => {
     const query = areaInput.value.trim();
+    const requestId = ++autocompleteRequestId;
 
     if (autocompleteTimer) {
       clearTimeout(autocompleteTimer);
@@ -1245,8 +1278,6 @@ function initializePlaceAutocomplete() {
     suggestions.innerHTML = "";
     suggestions.hidden = true;
 
-    // A manually changed area must be selected again
-    // or located on the map to update coordinates.
     selectedLatitude = null;
     selectedLongitude = null;
 
@@ -1260,8 +1291,6 @@ function initializePlaceAutocomplete() {
 
     autocompleteTimer = setTimeout(async () => {
       try {
-        // Keep requests spaced to respect the public
-        // OpenStreetMap Nominatim usage policy.
         const now = Date.now();
 
         const wait = Math.max(
@@ -1271,17 +1300,31 @@ function initializePlaceAutocomplete() {
 
         await new Promise(resolve => setTimeout(resolve, wait));
 
+        if (
+          requestId !== autocompleteRequestId ||
+          areaInput.value.trim() !== query
+        ) {
+          return;
+        }
+
         lastSearchTime = Date.now();
 
         const results = await searchPlaces(query);
 
-        // Do not display results for outdated searches.
-        if (areaInput.value.trim() !== query) return;
+        if (
+          requestId !== autocompleteRequestId ||
+          areaInput.value.trim() !== query
+        ) {
+          return;
+        }
 
         showPlaceSuggestions(results);
 
       } catch {
-        if (areaInput.value.trim() === query) {
+        if (
+          requestId === autocompleteRequestId &&
+          areaInput.value.trim() === query
+        ) {
           suggestions.innerHTML = "";
 
           const message = document.createElement("div");
@@ -1314,7 +1357,7 @@ function initializePlaceAutocomplete() {
   });
 }
 
-/* -------------------- INITIALIZE LOCATION CONTROLS -------------------- */
+/* Initialize location controls */
 
 function initializeLocationControls() {
   initializeFeedbackMap();
@@ -1336,7 +1379,7 @@ function initializeLocationControls() {
    PHOTO UPLOAD AND FEEDBACK SUBMISSION
    ========================================================= */
 
-/* -------------------- PHOTO VALIDATION -------------------- */
+/* Photo validation */
 
 function validatePhoto(file) {
   if (!file) {
@@ -1350,7 +1393,7 @@ function validatePhoto(file) {
   return "";
 }
 
-/* -------------------- SUBMIT FEEDBACK -------------------- */
+/* Submit feedback */
 
 function submitView() {
   if (!currentUser || currentUser.role !== "citizen") {
@@ -1396,44 +1439,18 @@ function submitView() {
           <select name="category" required>
 
             <option value="">Select a category</option>
-
-            <option value="Roads and Infrastructure">
-              Roads and Infrastructure
-            </option>
-
-            <option value="Water Supply">
-              Water Supply
-            </option>
-
-            <option value="Waste Management">
-              Waste Management
-            </option>
-
-            <option value="Street Lights">
-              Street Lights
-            </option>
-
-            <option value="Drainage">
-              Drainage
-            </option>
-
-            <option value="Public Facilities">
-              Public Facilities
-            </option>
-
-            <option value="Sanitation">
-              Sanitation
-            </option>
-
-            <option value="Other">
-              Other
-            </option>
+            <option value="Roads and Infrastructure">Roads and Infrastructure</option>
+            <option value="Water Supply">Water Supply</option>
+            <option value="Waste Management">Waste Management</option>
+            <option value="Street Lights">Street Lights</option>
+            <option value="Drainage">Drainage</option>
+            <option value="Public Facilities">Public Facilities</option>
+            <option value="Sanitation">Sanitation</option>
+            <option value="Other">Other</option>
 
           </select>
 
         </label>
-
-        <!-- LOCATION SEARCH -->
 
         <div class="form-field location-field">
 
@@ -1459,12 +1476,10 @@ function submitView() {
           </div>
 
           <small class="form-note">
-            Start typing at least 3 characters to find nearby places.
+            Start typing at least 3 characters to find places.
           </small>
 
         </div>
-
-        <!-- CURRENT LOCATION -->
 
         <div class="location-controls location-actions">
 
@@ -1485,8 +1500,6 @@ function submitView() {
 
         </div>
 
-        <!-- HIDDEN COORDINATES -->
-
         <input
           type="hidden"
           name="latitude"
@@ -1500,8 +1513,6 @@ function submitView() {
           id="longitudeInput"
           value=""
         >
-
-        <!-- MAP -->
 
         <div class="map-section location-map-section">
 
@@ -1532,8 +1543,6 @@ function submitView() {
 
         </div>
 
-        <!-- DESCRIPTION -->
-
         <label class="form-field">
 
           <span>Describe Your Issue *</span>
@@ -1546,8 +1555,6 @@ function submitView() {
           ></textarea>
 
         </label>
-
-        <!-- PHOTO -->
 
         <label class="form-field">
 
@@ -1611,7 +1618,6 @@ function submitView() {
     image.style.width = "100%";
     image.style.maxWidth = "260px";
     image.style.height = "auto";
-    image.style.maxHeight = "none";
     image.style.objectFit = "contain";
     image.style.borderRadius = "12px";
 
@@ -1631,9 +1637,6 @@ function submitView() {
 
     const button = form.querySelector('[type="submit"]');
     const formData = new FormData(form);
-
-    // Name is optional.
-    // The backend uses "Anonymous citizen" if left blank.
 
     if (
       !formData.get("latitude") ||
@@ -1736,8 +1739,6 @@ function submitView() {
    PUBLIC FEEDBACK TRACKING
    ========================================================= */
 
-/* -------------------- TRACK FEEDBACK -------------------- */
-
 function trackView() {
   shell(
     "Track Your Feedback",
@@ -1753,7 +1754,7 @@ function trackView() {
             type="text"
             id="trackingInput"
             name="trackingId"
-            placeholder="Example: DSB-XXXXXXXXXX"
+            placeholder="Example: JAN-XXXXXXXXXX"
             required
           >
 
@@ -1804,12 +1805,14 @@ function trackView() {
       `;
 
     } finally {
-      setLoading(button, false, "Track Application");
+      if (button.isConnected) {
+        setLoading(button, false, "Track Application");
+      }
     }
   });
 }
 
-/* -------------------- TRACKING RESULT -------------------- */
+/* Tracking result */
 
 function showTrackingResult(data, container) {
   const currentIndex = statuses.indexOf(data.status);
@@ -1924,8 +1927,6 @@ function showTrackingResult(data, container) {
    ADMIN DASHBOARD
    ========================================================= */
 
-/* -------------------- ADMIN DASHBOARD -------------------- */
-
 function adminView() {
   if (!currentUser || currentUser.role !== "admin") {
     shell(
@@ -2004,21 +2005,20 @@ function adminView() {
   document.getElementById("refreshAdmin")
     .addEventListener("click", loadAdminData);
 
-  // Separate ID prevents conflict with the header logout.
   document.getElementById("adminLogoutButton")
     .addEventListener("click", logout);
 
   loadAdminData();
 }
 
-/* -------------------- LOAD ADMIN DATA -------------------- */
+/* Load admin data */
 
 async function loadAdminData() {
   const table = document.getElementById("adminTable");
 
-  if (table) {
-    table.textContent = "Loading feedback...";
-  }
+  if (!table) return;
+
+  table.textContent = "Loading feedback...";
 
   try {
     const data = await api("/api/admin/suggestions");
@@ -2053,7 +2053,7 @@ async function loadAdminData() {
     renderAdminTable();
 
   } catch (error) {
-    if (table) {
+    if (table.isConnected) {
       table.innerHTML = `
         <div class="error-panel">
           ${escapeHTML(error.message)}
@@ -2063,7 +2063,7 @@ async function loadAdminData() {
   }
 }
 
-/* -------------------- RENDER ADMIN RECORDS -------------------- */
+/* Render admin records */
 
 function renderAdminTable() {
   const table = document.getElementById("adminTable");
@@ -2232,7 +2232,7 @@ function renderAdminTable() {
   });
 }
 
-/* -------------------- ADMIN UPDATE -------------------- */
+/* Admin update */
 
 async function updateAdminRecord(trackingId) {
   const statusInput = document.querySelector(
@@ -2250,7 +2250,6 @@ async function updateAdminRecord(trackingId) {
       `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
       {
         method: "PATCH",
-
         body: JSON.stringify({
           status: statusInput.value,
           admin_response: responseInput.value
@@ -2267,7 +2266,7 @@ async function updateAdminRecord(trackingId) {
   }
 }
 
-/* -------------------- ADMIN DELETE -------------------- */
+/* Admin delete */
 
 async function deleteAdminRecord(trackingId) {
   const confirmed = confirm(
@@ -2297,8 +2296,6 @@ async function deleteAdminRecord(trackingId) {
    SESSION AND LOGOUT
    ========================================================= */
 
-/* -------------------- LOAD SESSION -------------------- */
-
 async function loadSession() {
   try {
     const data = await api("/api/session");
@@ -2319,8 +2316,6 @@ async function loadSession() {
     return null;
   }
 }
-
-/* -------------------- LOGOUT -------------------- */
 
 async function logout() {
   try {
