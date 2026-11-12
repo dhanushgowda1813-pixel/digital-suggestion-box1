@@ -2,32 +2,75 @@
 from flask import Flask, render_template, request, jsonify, session, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.middleware.proxy_fix import ProxyFix
 from pathlib import Path
+from contextlib import contextmanager
 import sqlite3
 import os
 import uuid
+import mimetypes
 
 # =========================================================
-# DIGITAL CITIZEN FEEDBACK SYSTEM
+# JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
 # Flask Backend
 # =========================================================
 
 BASE = Path(__file__).resolve().parent
-DB_PATH = BASE / "suggestions.db"
-UPLOAD_DIR = BASE / "static" / "uploads"
 
+# Configurable storage paths.
+# These can point to a persistent Render disk.
+DB_PATH = Path(
+    os.environ.get(
+        "DATABASE_PATH",
+        str(BASE / "suggestions.db")
+    )
+)
+
+UPLOAD_DIR = Path(
+    os.environ.get(
+        "UPLOAD_FOLDER",
+        str(BASE / "static" / "uploads")
+    )
+)
+
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 app = Flask(__name__)
+
+# =========================================================
+# APPLICATION CONFIGURATION
+# =========================================================
 
 app.secret_key = os.environ.get(
     "DSB_SECRET_KEY",
     "change-this-secret-before-deployment"
 )
 
-# Session security settings
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+# Render and other reverse-proxy hosting environments.
+app.wsgi_app = ProxyFix(
+    app.wsgi_app,
+    x_for=1,
+    x_proto=1,
+    x_host=1
+)
+
+IS_PRODUCTION = (
+    os.environ.get("RENDER", "").lower() == "true"
+    or os.environ.get("FLASK_ENV") == "production"
+)
+
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=IS_PRODUCTION,
+    PERMANENT_SESSION_LIFETIME=60 * 60 * 24 * 7
+)
+
+if IS_PRODUCTION and app.secret_key == "change-this-secret-before-deployment":
+    app.logger.warning(
+        "Set DSB_SECRET_KEY in your hosting environment."
+    )
 
 # No application-level upload size limit is set.
 # Hosting providers may still enforce their own limits.
@@ -37,10 +80,28 @@ app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 # DATABASE CONNECTION
 # =========================================================
 
+@contextmanager
 def db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+
+    con = sqlite3.connect(
+        DB_PATH,
+        timeout=20
+    )
+
+    con.row_factory = sqlite3.Row
+
+    con.execute("PRAGMA foreign_keys = ON")
+
+    try:
+        yield con
+        con.commit()
+
+    except Exception:
+        con.rollback()
+        raise
+
+    finally:
+        con.close()
 
 
 # =========================================================
@@ -81,7 +142,7 @@ def init_db():
             )
         """)
 
-        # Add missing columns to an existing database.
+        # Support existing databases created by earlier versions.
         columns = {
             row["name"]
             for row in con.execute(
@@ -107,8 +168,8 @@ def init_db():
             )
         """)
 
-        # Default Admin credentials can be configured
-        # through environment variables.
+        # Default Admin credentials.
+        # Configure these using environment variables.
         username = os.environ.get(
             "DSB_ADMIN_USER",
             "admin"
@@ -137,6 +198,25 @@ def init_db():
                 )
             )
 
+        # Useful database indexes.
+        con.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_suggestions_tracking
+            ON suggestions(tracking_id)
+        """)
+
+        con.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_suggestions_created
+            ON suggestions(created_at)
+        """)
+
+        con.execute("""
+            CREATE INDEX IF NOT EXISTS
+            idx_suggestions_status
+            ON suggestions(status)
+        """)
+
 
 # =========================================================
 # AUTHENTICATION HELPERS
@@ -160,6 +240,32 @@ def row_to_dict(row):
     }
 
 
+def clean_text(value, maximum=5000):
+    if not isinstance(value, str):
+        return ""
+
+    return value.strip()[:maximum]
+
+
+def image_extension(photo):
+
+    original_name = secure_filename(
+        photo.filename or ""
+    )
+
+    extension = Path(original_name).suffix.lower()
+
+    if not extension:
+        extension = mimetypes.guess_extension(
+            photo.mimetype or ""
+        ) or ".upload"
+
+    if len(extension) > 20:
+        extension = ".upload"
+
+    return extension
+
+
 # =========================================================
 # HOME PAGE
 # =========================================================
@@ -175,7 +281,12 @@ def home():
 
 @app.get("/sw.js")
 def service_worker():
-    return app.send_static_file("sw.js")
+
+    response = app.send_static_file("sw.js")
+
+    response.headers["Cache-Control"] = "no-cache"
+
+    return response
 
 
 # =========================================================
@@ -203,8 +314,8 @@ def register():
 
     data = request.get_json(silent=True) or {}
 
-    name = str(data.get("name") or "").strip()
-    email = str(data.get("email") or "").strip().lower()
+    name = clean_text(data.get("name"), 100)
+    email = clean_text(data.get("email"), 254).lower()
     password = data.get("password") or ""
 
     if not name:
@@ -220,6 +331,11 @@ def register():
     if not isinstance(password, str) or len(password) < 8:
         return jsonify(
             error="Password must contain at least 8 characters."
+        ), 400
+
+    if len(password) > 200:
+        return jsonify(
+            error="Password is too long."
         ), 400
 
     try:
@@ -264,7 +380,7 @@ def login():
 
     data = request.get_json(silent=True) or {}
 
-    email = str(data.get("email") or "").strip().lower()
+    email = clean_text(data.get("email"), 254).lower()
     password = data.get("password") or ""
 
     if not email or not isinstance(password, str):
@@ -275,7 +391,11 @@ def login():
     with db() as con:
 
         user = con.execute(
-            "SELECT * FROM users WHERE email=?",
+            """
+            SELECT *
+            FROM users
+            WHERE email=?
+            """,
             (email,)
         ).fetchone()
 
@@ -308,7 +428,7 @@ def admin_login():
 
     data = request.get_json(silent=True) or {}
 
-    username = str(data.get("username") or "").strip()
+    username = clean_text(data.get("username"), 100)
     password = data.get("password") or ""
 
     if not username or not isinstance(password, str):
@@ -319,7 +439,11 @@ def admin_login():
     with db() as con:
 
         admin = con.execute(
-            "SELECT * FROM admins WHERE username=?",
+            """
+            SELECT *
+            FROM admins
+            WHERE username=?
+            """,
             (username,)
         ).fetchone()
 
@@ -370,29 +494,27 @@ def create_suggestion():
     photo = request.files.get("photo")
 
     name = (
-        request.form.get("name", "").strip()
+        clean_text(request.form.get("name", ""), 100)
         or "Anonymous citizen"
     )
 
-    category = request.form.get(
-        "category", ""
-    ).strip()
+    category = clean_text(
+        request.form.get("category", ""),
+        100
+    )
 
-    area = request.form.get(
-        "area", ""
-    ).strip()
+    area = clean_text(
+        request.form.get("area", ""),
+        200
+    )
 
-    description = request.form.get(
-        "description", ""
-    ).strip()
+    description = clean_text(
+        request.form.get("description", ""),
+        5000
+    )
 
-    latitude = request.form.get(
-        "latitude", ""
-    ).strip()
-
-    longitude = request.form.get(
-        "longitude", ""
-    ).strip()
+    latitude = request.form.get("latitude", "").strip()
+    longitude = request.form.get("longitude", "").strip()
 
     # Validate optional coordinates.
     try:
@@ -412,7 +534,7 @@ def create_suggestion():
             error="Invalid location coordinates."
         ), 400
 
-    # Photo remains mandatory.
+    # Mandatory fields.
     if not all([
         photo,
         photo.filename,
@@ -425,36 +547,30 @@ def create_suggestion():
             error="Category, area, description, and a photo are mandatory."
         ), 400
 
-    # Accept different image filename extensions.
-    # No PNG/JPG/WEBP-only whitelist is used.
-    # No application-level 5 MB limit is applied.
+    # Accept image formats based on their MIME type.
+    # No fixed JPG/PNG/WEBP-only extension list.
+    # No application-level 5 MB upload limit.
+    mime_type = (photo.mimetype or "").lower()
 
-    safe_original_name = secure_filename(
-        photo.filename
-    )
+    if not mime_type.startswith("image/"):
 
-    extension = Path(
-        safe_original_name
-    ).suffix.lower()
+        return jsonify(
+            error="Please upload a valid image."
+        ), 400
 
-    # Keep an available extension where possible.
-    # The original user filename is never used as the saved filename.
-    if not extension or len(extension) > 20:
-        extension = ".upload"
+    extension = image_extension(photo)
 
-    filename = (
-        uuid.uuid4().hex + extension
-    )
+    filename = uuid.uuid4().hex + extension
 
     filepath = UPLOAD_DIR / filename
 
-    # Save the uploaded file.
+    # Save uploaded image.
     try:
 
         photo.save(filepath)
 
         if not filepath.exists() or filepath.stat().st_size == 0:
-            raise OSError("Empty uploaded file")
+            raise OSError("Empty uploaded image")
 
     except Exception:
 
@@ -463,8 +579,12 @@ def create_suggestion():
         except OSError:
             pass
 
+        app.logger.exception(
+            "Image upload failed"
+        )
+
         return jsonify(
-            error="Unable to save the uploaded photo. Please try again."
+            error="Unable to save the uploaded image. Please try again."
         ), 500
 
     # Generate unique tracking ID.
@@ -472,7 +592,7 @@ def create_suggestion():
         "DSB-" + uuid.uuid4().hex[:10].upper()
     )
 
-    # Store suggestion details in database.
+    # Save suggestion details.
     try:
 
         with db() as con:
@@ -533,6 +653,8 @@ def create_suggestion():
 @app.get("/api/track/<tracking_id>")
 def track(tracking_id):
 
+    tracking_id = tracking_id.strip().upper()
+
     with db() as con:
 
         row = con.execute(
@@ -553,7 +675,7 @@ def track(tracking_id):
             FROM suggestions
             WHERE tracking_id=?
             """,
-            (tracking_id.strip().upper(),)
+            (tracking_id,)
         ).fetchone()
 
     if not row:
@@ -564,9 +686,11 @@ def track(tracking_id):
 
     result = row_to_dict(row)
 
+    photo_name = result.pop("photo")
+
     result["photoUrl"] = url_for(
         "static",
-        filename="uploads/" + result.pop("photo")
+        filename="uploads/" + Path(photo_name).name
     )
 
     return jsonify(result)
@@ -585,13 +709,28 @@ def admin_suggestions():
             error="Admin access required."
         ), 403
 
-    status = request.args.get(
-        "status", ""
-    ).strip()
+    status = clean_text(
+        request.args.get("status", ""),
+        50
+    )
 
-    search = request.args.get(
-        "q", ""
-    ).strip()
+    search = clean_text(
+        request.args.get("q", ""),
+        200
+    )
+
+    valid_statuses = [
+        "Submitted",
+        "Under Review",
+        "In Progress",
+        "Resolved"
+    ]
+
+    if status and status not in valid_statuses:
+
+        return jsonify(
+            error="Invalid status filter."
+        ), 400
 
     sql = """
         SELECT *
@@ -618,9 +757,9 @@ def admin_suggestions():
             )
         """
 
-        args += [
+        args.extend([
             f"%{search}%"
-        ] * 5
+        ] * 5)
 
     sql += " ORDER BY created_at DESC"
 
@@ -645,24 +784,21 @@ def admin_suggestions():
                 (current_status,)
             ).fetchone()[0]
 
-            for current_status in [
-                "Submitted",
-                "Under Review",
-                "In Progress",
-                "Resolved"
-            ]
+            for current_status in valid_statuses
         }
 
         stats["Total"] = con.execute(
             "SELECT COUNT(*) FROM suggestions"
         ).fetchone()[0]
 
-    # Add photo URLs for dashboard records.
+    # Add uploaded image URLs.
     for row in rows:
+
+        photo_name = row.pop("photo")
 
         row["photoUrl"] = url_for(
             "static",
-            filename="uploads/" + row.pop("photo")
+            filename="uploads/" + Path(photo_name).name
         )
 
     return jsonify(
@@ -687,17 +823,20 @@ def update_suggestion(tracking_id):
     data = request.get_json(silent=True) or {}
 
     status = data.get("status", "")
+    response = data.get("admin_response", "")
 
-    response = data.get(
-        "admin_response", ""
-    )
+    if not isinstance(status, str):
+        return jsonify(
+            error="Invalid status."
+        ), 400
 
     if not isinstance(response, str):
         return jsonify(
             error="Invalid Admin response."
         ), 400
 
-    response = response.strip()
+    status = status.strip()
+    response = response.strip()[:5000]
 
     valid_statuses = [
         "Submitted",
@@ -711,6 +850,8 @@ def update_suggestion(tracking_id):
         return jsonify(
             error="Choose a valid status."
         ), 400
+
+    tracking_id = tracking_id.strip().upper()
 
     with db() as con:
 
@@ -726,11 +867,13 @@ def update_suggestion(tracking_id):
             (
                 status,
                 response,
-                tracking_id.strip().upper()
+                tracking_id
             )
         )
 
-    if not cur.rowcount:
+        updated = cur.rowcount
+
+    if not updated:
 
         return jsonify(
             error="Suggestion not found."
@@ -752,6 +895,8 @@ def delete_suggestion(tracking_id):
             error="Admin access required."
         ), 403
 
+    tracking_id = tracking_id.strip().upper()
+
     with db() as con:
 
         row = con.execute(
@@ -760,7 +905,7 @@ def delete_suggestion(tracking_id):
             FROM suggestions
             WHERE tracking_id=?
             """,
-            (tracking_id.strip().upper(),)
+            (tracking_id,)
         ).fetchone()
 
         if not row:
@@ -774,10 +919,10 @@ def delete_suggestion(tracking_id):
             DELETE FROM suggestions
             WHERE tracking_id=?
             """,
-            (tracking_id.strip().upper(),)
+            (tracking_id,)
         )
 
-    # Delete the associated uploaded photo.
+    # Delete associated uploaded image.
     try:
 
         photo_path = (
@@ -789,7 +934,7 @@ def delete_suggestion(tracking_id):
     except OSError:
 
         app.logger.warning(
-            "Unable to delete uploaded photo for %s",
+            "Unable to delete uploaded image for %s",
             tracking_id
         )
 
