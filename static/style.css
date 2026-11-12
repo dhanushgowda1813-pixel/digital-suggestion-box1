@@ -419,7 +419,10 @@ a {
 
 .government-button,
 .outline-button,
-.danger-button {
+.danger-button,
+.primary-btn,
+.secondary-btn,
+.danger-btn {
   border-radius: 9px;
   padding: 12px 19px;
   min-height: 44px;
@@ -428,28 +431,33 @@ a {
   transition: .2s;
 }
 
-.government-button {
+.government-button,
+.primary-btn {
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
 }
 
-.government-button:hover {
+.government-button:hover,
+.primary-btn:hover {
   background: #103765;
   transform: translateY(-2px);
 }
 
-.outline-button {
+.outline-button,
+.secondary-btn {
   background: transparent;
   border-color: var(--primary);
   color: var(--primary);
 }
 
-.outline-button:hover {
+.outline-button:hover,
+.secondary-btn:hover {
   background: var(--primary-light);
 }
 
-.danger-button {
+.danger-button,
+.danger-btn {
   background: var(--danger);
   color: white;
 }
@@ -763,18 +771,23 @@ button:disabled {
   gap: 17px;
 }
 
-.form-field {
+.form-field,
+.form-group {
   display: flex;
   flex-direction: column;
   gap: 7px;
   color: var(--text);
   font-size: 13px;
   font-weight: 700;
+  min-width: 0;
 }
 
 .form-field input,
 .form-field select,
 .form-field textarea,
+.form-group input,
+.form-group select,
+.form-group textarea,
 .theme-picker select,
 .admin-toolbar input,
 .admin-toolbar select {
@@ -792,6 +805,9 @@ button:disabled {
 .form-field input:focus,
 .form-field select:focus,
 .form-field textarea:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
 .theme-picker select:focus,
 .admin-toolbar input:focus,
 .admin-toolbar select:focus {
@@ -799,18 +815,22 @@ button:disabled {
   box-shadow: 0 0 0 3px var(--primary-light);
 }
 
-.form-field textarea {
+.form-field textarea,
+.form-group textarea {
   resize: vertical;
   min-height: 100px;
 }
 
-.form-field input[type="file"] {
+.form-field input[type="file"],
+.form-group input[type="file"] {
   padding: 10px;
   max-width: 100%;
 }
 
 .form-field input::placeholder,
 .form-field textarea::placeholder,
+.form-group input::placeholder,
+.form-group textarea::placeholder,
 .admin-toolbar input::placeholder {
   color: var(--muted);
   opacity: .8;
@@ -840,18 +860,183 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
+/* ==================== PASSWORD SHOW / HIDE ==================== */
+
+.password-wrapper,
+.password-field,
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.password-wrapper input,
+.password-field input,
+.password-input-wrap input {
+  width: 100%;
+  padding-right: 52px;
+}
+
+.password-toggle,
+.password-eye,
+.toggle-password {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.password-toggle:hover,
+.password-eye:hover,
+.toggle-password:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ==================== PHOTO PREVIEW ==================== */
+
 .photo-preview {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   max-width: 100%;
+  min-width: 0;
 }
 
-.photo-preview img {
+.photo-preview img,
+.photo-preview-image {
+  display: block;
+  width: auto;
   max-width: 100%;
   height: auto;
+  max-height: 420px;
   object-fit: contain;
+  object-position: center;
   border-radius: 10px;
+  background: var(--surface-soft);
+}
+
+.photo-preview-image {
+  width: 100%;
+}
+
+.photo-preview figure {
+  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* ==================== LOCATION / GPS / MAP ==================== */
+
+.location-section,
+.location-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.location-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.location-actions button {
+  min-height: 42px;
+}
+
+.location-status,
+.location-help {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.location-status.success {
+  color: var(--success);
+}
+
+.location-status.error {
+  color: var(--danger);
+}
+
+.location-map,
+#locationMap,
+.leaflet-container {
+  width: 100%;
+  height: 320px;
+  min-height: 260px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-soft);
+  z-index: 1;
+}
+
+.leaflet-container {
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.location-suggestions {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 230px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  z-index: 20;
+}
+
+.location-suggestion {
+  width: 100%;
+  padding: 11px 13px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.location-suggestion:last-child {
+  border-bottom: 0;
+}
+
+.location-suggestion:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.location-suggestion:focus-visible {
+  background: var(--primary-light);
+}
+
+.location-actions .primary-btn,
+.location-actions .secondary-btn,
+.location-actions .government-button,
+.location-actions .outline-button {
+  flex: 0 0 auto;
 }
 
 /* ==================== SUCCESS AND ERROR ==================== */
@@ -952,14 +1137,22 @@ button:disabled {
 .tracking-photo {
   display: block;
   margin-top: 10px;
+  width: 100%;
   max-width: 100%;
+  min-width: 0;
 }
 
 .tracking-photo img {
+  display: block;
+  width: auto;
   max-width: 100%;
   height: auto;
+  max-height: 600px;
   object-fit: contain;
+  object-position: center;
   border-radius: 10px;
+  background: var(--surface-soft);
+  margin: 0 auto;
 }
 
 .small-text {
@@ -1030,7 +1223,8 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.admin-record .form-field {
+.admin-record .form-field,
+.admin-record .form-group {
   margin-top: 15px;
 }
 
@@ -1347,6 +1541,45 @@ button:disabled {
   .government-footer {
     padding: 30px 18px max(18px, env(safe-area-inset-bottom));
   }
+
+  /* Mobile password controls */
+
+  .password-toggle,
+  .password-eye,
+  .toggle-password {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Mobile map */
+
+  .location-map,
+  #locationMap,
+  .leaflet-container {
+    height: 280px;
+    min-height: 240px;
+  }
+
+  .location-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .location-actions button {
+    width: 100%;
+  }
+
+  /* Mobile photo visibility */
+
+  .photo-preview img,
+  .photo-preview-image,
+  .tracking-photo img {
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 420px;
+    object-fit: contain;
+  }
 }
 
 /* ==================== SMALL PHONES ==================== */
@@ -1376,6 +1609,13 @@ button:disabled {
   .stats-grid {
     gap: 7px;
   }
+
+  .location-map,
+  #locationMap,
+  .leaflet-container {
+    height: 240px;
+    min-height: 220px;
+  }
 }
 
 /* ==================== DARK THEME DETAILS ==================== */
@@ -1395,16 +1635,34 @@ body[data-theme="dark"] .admin-icon {
   color: #c7a6f4;
 }
 
-body[data-theme="dark"] .government-button {
+body[data-theme="dark"] .government-button,
+body[data-theme="dark"] .primary-btn {
   color: #10243b;
 }
 
-body[data-theme="dark"] .government-button:hover {
+body[data-theme="dark"] .government-button:hover,
+body[data-theme="dark"] .primary-btn:hover {
   background: #a7cefa;
 }
 
 body[data-theme="dark"] .tricolour .white {
   background: #e8e8e8;
+}
+
+body[data-theme="dark"] .password-toggle,
+body[data-theme="dark"] .password-eye,
+body[data-theme="dark"] .toggle-password {
+  color: var(--muted);
+}
+
+body[data-theme="dark"] .leaflet-container {
+  background: #213247;
+}
+
+body[data-theme="dark"] .leaflet-popup-content-wrapper,
+body[data-theme="dark"] .leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--text);
 }
 
 /* ==================== ANDROID / APK SUPPORT ==================== */
@@ -1419,10 +1677,33 @@ button,
 .government-button,
 .outline-button,
 .danger-button,
+.primary-btn,
+.secondary-btn,
+.danger-btn,
 .back,
 .navlink {
   -webkit-user-select: none;
   user-select: none;
+}
+
+/* Prevent mobile horizontal overflow */
+
+.panel,
+.panel-wrap,
+.admin-record,
+.success-panel,
+.tracking-result,
+.app-form,
+.form-field,
+.form-group {
+  min-width: 0;
+  max-width: 100%;
+}
+
+input,
+textarea,
+select {
+  max-width: 100%;
 }
 
 /* ==================== REDUCED MOTION ==================== */
