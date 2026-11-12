@@ -4,8 +4,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
   <meta name="theme-color" content="#174b86">
-  <meta name="description" content="Digital Citizen Feedback System for Local Governance and Public Participation">
+  <meta name="description" content="JANASETU - Digital Citizen Feedback System for Local Governance and Public Participation">
+
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -19,68 +21,20 @@
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='app-icon.svg') }}">
 
   <!-- LEAFLET MAP STYLES -->
-  <link rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-        crossorigin="">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  >
 
-  <!-- WEBSITE STYLESHEET -->
+  <!-- JANASETU WEBSITE STYLES -->
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-
-  <!-- JANASETU HEADER -->
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-    }
-
-    .janasetu-banner-header {
-      display: block;
-      width: 100%;
-      max-width: none;
-      margin: 0;
-      padding: 0;
-      background: #ffffff;
-      overflow: hidden;
-      box-sizing: border-box;
-    }
-
-    .janasetu-banner-link {
-      display: block;
-      width: 100%;
-      max-width: none;
-      margin: 0;
-      padding: 0;
-      text-decoration: none;
-      line-height: 0;
-    }
-
-    .janasetu-banner-image {
-      display: block;
-      width: 100%;
-      height: 180px;
-      max-width: 100%;
-      max-height: none;
-      margin: 0;
-      padding: 0;
-      object-fit: fill;
-      object-position: center;
-    }
-
-    @media (max-width: 600px) {
-      .janasetu-banner-image {
-        width: 100%;
-        height: 110px;
-      }
-    }
-  </style>
 </head>
 
 <body>
 
-  <!-- TOP GOVERNMENT-STYLE STRIP -->
+  <!-- TOP INFORMATION STRIP -->
   <div class="top-strip">
     <div class="top-strip-inner">
       <span>ಕರ್ನಾಟಕ | KARNATAKA</span>
@@ -97,25 +51,32 @@
 
   <!-- MAIN JANASETU BANNER -->
   <header class="government-header janasetu-banner-header">
-    <a href="#home" class="janasetu-banner-link" aria-label="JANASETU home">
+    <a
+      href="#home"
+      class="janasetu-banner-link"
+      aria-label="JANASETU home"
+    >
       <img
         class="janasetu-banner-image"
         src="{{ url_for('static', filename='janasetu-banner.png') }}"
         alt="JANASETU - Building a Better Tomorrow. ಹಂಚಿಕೊಳ್ಳಿ • ಸೂಚಿಸಿ • ಉತ್ತಮಗೊಳಿಸಿ."
         fetchpriority="high"
-        decoding="async">
+        decoding="async"
+      >
     </a>
   </header>
 
-  <!-- NAVIGATION -->
+  <!-- MAIN NAVIGATION -->
   <nav class="main-nav" id="nav" aria-label="Main navigation">
 
-    <button class="menu-toggle"
-            id="menuToggle"
-            type="button"
-            aria-label="Open navigation menu"
-            aria-controls="navMenu"
-            aria-expanded="false">
+    <button
+      class="menu-toggle"
+      id="menuToggle"
+      type="button"
+      aria-label="Open navigation menu"
+      aria-controls="navMenu"
+      aria-expanded="false"
+    >
       <span></span>
       <span></span>
       <span></span>
@@ -123,7 +84,9 @@
 
     <div class="nav-menu" id="navMenu" hidden>
 
-      <button class="navlink" type="button" data-view="home">Home</button>
+      <button class="navlink" type="button" data-view="home">
+        Home
+      </button>
 
       <button class="navlink" type="button" data-view="submit">
         Submit Feedback
@@ -141,15 +104,25 @@
         Administrator
       </button>
 
-      <button class="navlink" id="logoutButton" type="button" hidden>
+      <button
+        class="navlink"
+        id="logoutButton"
+        type="button"
+        hidden
+      >
         Logout
       </button>
 
+      <!-- THEME SELECTOR -->
       <label class="theme-picker">
         <span>Theme</span>
+
         <select id="themeSelect" aria-label="Choose website theme">
           <option value="light">Light</option>
           <option value="dark">Dark</option>
+          <option value="ocean">Ocean</option>
+          <option value="sunset">Sunset</option>
+          <option value="forest">Forest</option>
         </select>
       </label>
 
@@ -159,7 +132,7 @@
   <!-- MAIN APPLICATION -->
   <main id="app">
 
-    <!-- MAIN HERO SECTION -->
+    <!-- HOME PAGE -->
     <section class="welcome-banner" id="home">
 
       <div class="welcome-illustration">
@@ -168,7 +141,8 @@
           src="{{ url_for('static', filename='civic-banner-main.png') }}"
           alt="Citizens and local communities working together for better public services"
           fetchpriority="high"
-          decoding="async">
+          decoding="async"
+        >
       </div>
 
       <div class="welcome-content">
@@ -190,13 +164,23 @@
         </p>
 
         <div class="welcome-actions">
-          <button class="government-button" type="button" data-view="submit">
+
+          <button
+            class="government-button"
+            type="button"
+            data-view="submit"
+          >
             Submit Your Feedback <span>→</span>
           </button>
 
-          <button class="outline-button" type="button" data-view="track">
+          <button
+            class="outline-button"
+            type="button"
+            data-view="track"
+          >
             Track Application
           </button>
+
         </div>
 
         <div class="welcome-points">
@@ -227,38 +211,74 @@
     <!-- SERVICE CARDS -->
     <section class="service-grid">
 
-      <button class="service-card" type="button" data-view="submit">
+      <button
+        class="service-card"
+        type="button"
+        data-view="submit"
+      >
         <span class="service-icon submit-icon">✎</span>
+
         <span class="service-card-content">
           <strong>Submit Feedback</strong>
-          <small>Report a local issue or share a suggestion with the local administration.</small>
+
+          <small>
+            Report a local issue or share a suggestion with the local administration.
+          </small>
+
           <span class="service-link">Submit now →</span>
         </span>
       </button>
 
-      <button class="service-card" type="button" data-view="track">
+      <button
+        class="service-card"
+        type="button"
+        data-view="track"
+      >
         <span class="service-icon track-icon">⌕</span>
+
         <span class="service-card-content">
           <strong>Track Application</strong>
-          <small>Check the status of your submitted feedback using your tracking ID.</small>
+
+          <small>
+            Check the status of your submitted feedback using your tracking ID.
+          </small>
+
           <span class="service-link">Track now →</span>
         </span>
       </button>
 
-      <button class="service-card" type="button" data-view="login">
+      <button
+        class="service-card"
+        type="button"
+        data-view="login"
+      >
         <span class="service-icon citizen-icon">♙</span>
+
         <span class="service-card-content">
           <strong>Citizen Login</strong>
-          <small>Access your citizen account and submit feedback through the portal.</small>
+
+          <small>
+            Access your citizen account and submit feedback through the portal.
+          </small>
+
           <span class="service-link">Login →</span>
         </span>
       </button>
 
-      <button class="service-card" type="button" data-view="admin-login">
+      <button
+        class="service-card"
+        type="button"
+        data-view="admin-login"
+      >
         <span class="service-icon admin-icon">▤</span>
+
         <span class="service-card-content">
           <strong>Administrator</strong>
-          <small>Review submissions, manage requests and update application progress.</small>
+
+          <small>
+            Review submissions, manage requests and update application progress.
+          </small>
+
           <span class="service-link">Admin access →</span>
         </span>
       </button>
@@ -269,9 +289,14 @@
     <section class="civic-features-section">
 
       <div class="civic-features-content">
+
         <span class="section-eyebrow">COMMUNITY DEVELOPMENT</span>
 
         <h2>Building better communities together</h2>
+
+        <p class="kannada-subtitle">
+          ನಮ್ಮ ಊರು, ನಮ್ಮ ಜವಾಬ್ದಾರಿ
+        </p>
 
         <p>
           Citizen participation helps identify local problems,
@@ -284,15 +309,17 @@
           <span>✓ Share ideas and suggestions</span>
           <span>✓ Follow application progress</span>
         </div>
+
       </div>
 
       <div class="civic-features-image-wrap">
         <img
           class="civic-features-image"
           src="{{ url_for('static', filename='civic-banner-features.png') }}"
-          alt="Community participation and improvement of local public facilities"
+          alt="Community members participating in neighbourhood development"
           loading="lazy"
-          decoding="async">
+          decoding="async"
+        >
       </div>
 
     </section>
@@ -309,6 +336,7 @@
 
         <div class="process-item">
           <span class="process-number">01</span>
+
           <div>
             <strong>Submit</strong>
             <p>Share your issue with the required details and photo.</p>
@@ -317,6 +345,7 @@
 
         <div class="process-item">
           <span class="process-number">02</span>
+
           <div>
             <strong>Review</strong>
             <p>Your submission can be reviewed by the administrator.</p>
@@ -325,6 +354,7 @@
 
         <div class="process-item">
           <span class="process-number">03</span>
+
           <div>
             <strong>Track progress</strong>
             <p>Follow the latest status and administrator response online.</p>
@@ -340,12 +370,14 @@
           <img
             class="citizen-help-image"
             src="{{ url_for('static', filename='citizen-help-illustration.webp') }}"
-            alt="Illustration representing citizens helping their community"
+            alt="Citizens helping one another and improving their community"
             loading="lazy"
-            decoding="async">
+            decoding="async"
+          >
         </div>
 
         <div class="citizen-help-content">
+
           <span class="section-eyebrow">YOUR VOICE MATTERS</span>
 
           <h3>Small suggestions can create meaningful change.</h3>
@@ -355,16 +387,25 @@
             concerns, ideas and suggestions through this digital platform.
           </p>
 
-          <button class="government-button" type="button" data-view="submit">
+          <button
+            class="government-button"
+            type="button"
+            data-view="submit"
+          >
             Share Your Feedback →
           </button>
+
         </div>
 
       </div>
     </section>
 
     <!-- DYNAMIC APPLICATION PANEL -->
-    <section class="panel-wrap" id="panel" aria-live="polite"></section>
+    <section
+      class="panel-wrap"
+      id="panel"
+      aria-live="polite"
+    ></section>
 
   </main>
 
@@ -375,45 +416,62 @@
 
       <div class="footer-brand">
         <strong>JANASETU - Digital Citizen Feedback System</strong>
+
         <span>Local Governance & Citizen Participation</span>
+
         <small>ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ</small>
       </div>
 
       <div class="footer-purpose">
         <strong>Citizen participation matters.</strong>
-        <span>Every suggestion is an opportunity to improve our community.</span>
+
+        <span>
+          Every suggestion is an opportunity to improve our community.
+        </span>
       </div>
 
     </div>
 
     <div class="footer-bottom">
-      <span>Academic Project | Karnataka-inspired public service portal</span>
-      <span>© JANASETU - Digital Citizen Feedback System</span>
+
+      <span>
+        JANASETU | Citizen Feedback & Community Participation
+      </span>
+
+      <span>
+        © JANASETU - Digital Citizen Feedback System
+      </span>
+
     </div>
 
     <p class="disclaimer">
-      This is an academic demonstration project and is not an official
-      Karnataka Government or Government of India website.
+      JANASETU is an independent citizen feedback platform and is not
+      an official Karnataka Government or Government of India website.
     </p>
 
   </footer>
 
   <!-- NOTIFICATION MESSAGE -->
-  <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
 
   <!-- LEAFLET MAP LIBRARY -->
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""
-    defer>
-  </script>
+    defer
+  ></script>
 
-  <!-- APPLICATION JAVASCRIPT -->
+  <!-- JANASETU APPLICATION JAVASCRIPT -->
   <script
     src="{{ url_for('static', filename='app.js') }}"
-    defer>
-  </script>
+    defer
+  ></script>
 
 </body>
 </html>
