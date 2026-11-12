@@ -1,9 +1,18 @@
 
 /* =========================================================
-   DIGITAL CITIZEN FEEDBACK SYSTEM
+   JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
    Responsive Web Application + Android APK
-   Compatible with the existing Flask backend
+   Features:
+   - Citizen and Admin authentication
+   - Password visibility
+   - Optional feedback name
+   - GPS current location
+   - OpenStreetMap and Leaflet
+   - Area and place autocomplete
+   - Feedback submission and photo preview
+   - Public tracking
+   - Admin dashboard
    ========================================================= */
 
 "use strict";
@@ -24,6 +33,14 @@ let currentView = "";
 let currentUser = null;
 let adminItems = [];
 let activePhotoURL = null;
+
+let feedbackMap = null;
+let feedbackMarker = null;
+let selectedLatitude = null;
+let selectedLongitude = null;
+let autocompleteTimer = null;
+let lastSearchTime = 0;
+let locationRequestActive = false;
 
 /* -------------------- COMMON FUNCTIONS -------------------- */
 
@@ -78,6 +95,7 @@ async function api(url, options = {}) {
   try {
     response = await fetch(url, {
       ...options,
+      credentials: "same-origin",
       headers
     });
   } catch {
@@ -115,6 +133,8 @@ function setLoading(button, loading, originalText = "Submit") {
 function shell(title, lead, body, wide = false) {
   if (!appPanel) return;
 
+  destroyFeedbackMap();
+
   appPanel.innerHTML = `
     <div class="panel ${wide ? "wide" : ""}">
 
@@ -140,16 +160,64 @@ function shell(title, lead, body, wide = false) {
 }
 
 function formField(label, name, type = "text", required = true) {
+  const safeLabel = escapeHTML(label);
+  const safeName = escapeHTML(name);
+  const safeType = escapeHTML(type);
+
+  if (type === "password") {
+    return `
+      <label class="form-field">
+
+        <span>${safeLabel}</span>
+
+        <div class="password-field">
+
+          <input
+            type="password"
+            name="${safeName}"
+            autocomplete="current-password"
+            ${required ? "required" : ""}
+          >
+
+          <button
+            type="button"
+            class="password-toggle"
+            aria-label="Show password"
+            aria-pressed="false"
+            title="Show password"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width="21"
+              height="21"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+
+        </div>
+
+      </label>
+    `;
+  }
+
   return `
     <label class="form-field">
 
-      <span>${escapeHTML(label)}</span>
+      <span>${safeLabel}</span>
 
       <input
-        type="${escapeHTML(type)}"
-        name="${escapeHTML(name)}"
+        type="${safeType}"
+        name="${safeName}"
+        ${type === "email" ? 'autocomplete="email"' : 'autocomplete="off"'}
         ${required ? "required" : ""}
-        autocomplete="off"
       >
 
     </label>
@@ -170,6 +238,71 @@ function releasePhotoPreview() {
     activePhotoURL = null;
   }
 }
+
+/* -------------------- PASSWORD VISIBILITY -------------------- */
+
+document.addEventListener("click", event => {
+  const toggle = event.target.closest(".password-toggle");
+
+  if (!toggle) return;
+
+  const wrapper = toggle.closest(".password-field");
+  const input = wrapper?.querySelector("input");
+
+  if (!input) return;
+
+  const showing = input.type === "password";
+
+  input.type = showing ? "text" : "password";
+
+  toggle.setAttribute(
+    "aria-label",
+    showing ? "Hide password" : "Show password"
+  );
+
+  toggle.setAttribute(
+    "aria-pressed",
+    String(showing)
+  );
+
+  toggle.title = showing ? "Hide password" : "Show password";
+
+  toggle.innerHTML = showing
+    ? `
+      <svg
+        viewBox="0 0 24 24"
+        width="21"
+        height="21"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 3l18 18"/>
+        <path d="M10.6 10.6a2 2 0 002.8 2.8"/>
+        <path d="M9.9 5.2A10.8 10.8 0 0112 5c6.4 0 10 7 10 7a15.8 15.8 0 01-4.1 4.8"/>
+        <path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.7 10.7 0 004.1-.8"/>
+      </svg>
+    `
+    : `
+      <svg
+        viewBox="0 0 24 24"
+        width="21"
+        height="21"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    `;
+});
 
 /* -------------------- NAVIGATION -------------------- */
 
@@ -286,6 +419,8 @@ if (themeSelect) {
 /* -------------------- HOME PAGE -------------------- */
 
 function homeView() {
+  destroyFeedbackMap();
+
   if (appPanel) {
     appPanel.innerHTML = "";
   }
@@ -526,6 +661,557 @@ function adminLoginView() {
   });
 }
 
+/* =========================================================
+   LOCATION AND MAP FUNCTIONS
+   ========================================================= */
+
+/* -------------------- DESTROY MAP -------------------- */
+
+function destroyFeedbackMap() {
+  if (autocompleteTimer) {
+    clearTimeout(autocompleteTimer);
+    autocompleteTimer = null;
+  }
+
+  if (feedbackMap) {
+    feedbackMap.remove();
+    feedbackMap = null;
+    feedbackMarker = null;
+  }
+
+  selectedLatitude = null;
+  selectedLongitude = null;
+}
+
+/* -------------------- UPDATE LOCATION COORDINATES -------------------- */
+
+function updateLocationCoordinates(latitude, longitude) {
+  selectedLatitude = Number(latitude);
+  selectedLongitude = Number(longitude);
+
+  const latInput = document.getElementById("latitudeInput");
+  const lngInput = document.getElementById("longitudeInput");
+
+  if (latInput) {
+    latInput.value = selectedLatitude;
+  }
+
+  if (lngInput) {
+    lngInput.value = selectedLongitude;
+  }
+}
+
+/* -------------------- LOCATION MESSAGE -------------------- */
+
+function locationMessage(message, isError = false) {
+  const element = document.getElementById("locationMessage");
+
+  if (!element) return;
+
+  element.textContent = message;
+  element.classList.toggle("error", isError);
+}
+
+/* -------------------- REVERSE GEOCODING -------------------- */
+
+async function reverseGeocode(latitude, longitude) {
+  const url = new URL(
+    "https://nominatim.openstreetmap.org/reverse"
+  );
+
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("lat", latitude);
+  url.searchParams.set("lon", longitude);
+  url.searchParams.set("zoom", "18");
+  url.searchParams.set("addressdetails", "1");
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      "Accept": "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Unable to identify this location.");
+  }
+
+  return response.json();
+}
+
+/* -------------------- EXTRACT AREA NAME -------------------- */
+
+function extractAreaName(result) {
+  const address = result.address || {};
+
+  const parts = [
+    address.neighbourhood,
+    address.suburb,
+    address.village,
+    address.town,
+    address.city_district,
+    address.city,
+    address.county,
+    address.state
+  ].filter(Boolean);
+
+  const uniqueParts = [...new Set(parts)];
+
+  return uniqueParts.slice(0, 3).join(", ") ||
+    result.display_name ||
+    "";
+}
+
+/* -------------------- SET SELECTED LOCATION -------------------- */
+
+function setSelectedLocation(latitude, longitude, zoom = 16) {
+  if (!feedbackMap) return;
+
+  const position = [
+    Number(latitude),
+    Number(longitude)
+  ];
+
+  updateLocationCoordinates(
+    position[0],
+    position[1]
+  );
+
+  if (!feedbackMarker) {
+    feedbackMarker = L.marker(position, {
+      draggable: true
+    }).addTo(feedbackMap);
+
+    feedbackMarker.on("dragend", async () => {
+      const point = feedbackMarker.getLatLng();
+
+      updateLocationCoordinates(
+        point.lat,
+        point.lng
+      );
+
+      locationMessage("Updating selected map location...");
+
+      try {
+        const result = await reverseGeocode(
+          point.lat,
+          point.lng
+        );
+
+        const area = extractAreaName(result);
+
+        const areaInput = document.getElementById("areaInput");
+
+        if (areaInput && area) {
+          areaInput.value = area;
+        }
+
+        locationMessage(
+          area
+            ? `Selected location: ${area}`
+            : "Map location selected."
+        );
+
+      } catch {
+        locationMessage(
+          "Map location selected. Enter the area name manually."
+        );
+      }
+    });
+
+  } else {
+    feedbackMarker.setLatLng(position);
+  }
+
+  feedbackMap.setView(position, zoom);
+}
+
+/* -------------------- GPS CURRENT LOCATION -------------------- */
+
+async function useCurrentLocation() {
+  if (locationRequestActive) return;
+
+  if (!navigator.geolocation) {
+    toast("Location access is not supported by this device.");
+    return;
+  }
+
+  if (!feedbackMap) {
+    toast("Map is not ready yet.");
+    return;
+  }
+
+  const button = document.getElementById("currentLocationButton");
+
+  locationRequestActive = true;
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Getting location...";
+  }
+
+  locationMessage("Requesting permission to access your location...");
+
+  navigator.geolocation.getCurrentPosition(
+    async position => {
+      const latitude = position.coords.latitude;
+      const longitude = position.coords.longitude;
+
+      setSelectedLocation(latitude, longitude, 17);
+
+      locationMessage("Your current location was detected.");
+
+      try {
+        const result = await reverseGeocode(
+          latitude,
+          longitude
+        );
+
+        const area = extractAreaName(result);
+
+        const areaInput = document.getElementById("areaInput");
+
+        if (areaInput && area) {
+          areaInput.value = area;
+        }
+
+        locationMessage(
+          area
+            ? `Current location: ${area}`
+            : "Current location selected successfully."
+        );
+
+      } catch {
+        locationMessage(
+          "GPS location selected. Please enter your area name."
+        );
+      }
+
+      locationRequestActive = false;
+
+      if (button) {
+        button.disabled = false;
+        button.textContent = "◎ Use Current Location";
+      }
+    },
+
+    error => {
+      let message = "Unable to access your location.";
+
+      if (error.code === error.PERMISSION_DENIED) {
+        message = "Location permission denied. Allow location access in your browser.";
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        message = "Your current location is unavailable.";
+      } else if (error.code === error.TIMEOUT) {
+        message = "Location request timed out. Please try again.";
+      }
+
+      locationMessage(message, true);
+      toast(message);
+
+      locationRequestActive = false;
+
+      if (button) {
+        button.disabled = false;
+        button.textContent = "◎ Use Current Location";
+      }
+    },
+
+    {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 60000
+    }
+  );
+}
+
+/* -------------------- MAP INITIALIZATION -------------------- */
+
+function initializeFeedbackMap() {
+  const mapElement = document.getElementById("feedbackMap");
+
+  if (!mapElement) return;
+
+  if (typeof L === "undefined") {
+    locationMessage(
+      "Map library could not load. Check your internet connection.",
+      true
+    );
+
+    return;
+  }
+
+  if (feedbackMap) {
+    feedbackMap.remove();
+  }
+
+  // Default map centre: Bengaluru, Karnataka.
+  feedbackMap = L.map("feedbackMap", {
+    zoomControl: true,
+    scrollWheelZoom: true
+  }).setView([13.0827, 77.5877], 11);
+
+  L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
+    }
+  ).addTo(feedbackMap);
+
+  feedbackMap.on("click", async event => {
+    const latitude = event.latlng.lat;
+    const longitude = event.latlng.lng;
+
+    setSelectedLocation(latitude, longitude, 16);
+
+    locationMessage("Finding the selected area...");
+
+    try {
+      const result = await reverseGeocode(
+        latitude,
+        longitude
+      );
+
+      const area = extractAreaName(result);
+      const areaInput = document.getElementById("areaInput");
+
+      if (areaInput && area) {
+        areaInput.value = area;
+      }
+
+      locationMessage(
+        area
+          ? `Selected area: ${area}`
+          : "Map location selected."
+      );
+
+    } catch {
+      locationMessage(
+        "Location selected. Please enter the area name manually."
+      );
+    }
+  });
+
+  setTimeout(() => {
+    if (feedbackMap) {
+      feedbackMap.invalidateSize();
+    }
+  }, 250);
+}
+
+/* -------------------- PLACE AUTOCOMPLETE -------------------- */
+
+async function searchPlaces(query) {
+  const url = new URL(
+    "https://nominatim.openstreetmap.org/search"
+  );
+
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("q", query);
+  url.searchParams.set("limit", "6");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("countrycodes", "in");
+
+  const response = await fetch(url.toString(), {
+    headers: {
+      "Accept": "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error("Place search is temporarily unavailable.");
+  }
+
+  return response.json();
+}
+
+/* -------------------- DISPLAY PLACE SUGGESTIONS -------------------- */
+
+function showPlaceSuggestions(results) {
+  const suggestions = document.getElementById("areaSuggestions");
+
+  if (!suggestions) return;
+
+  suggestions.innerHTML = "";
+
+  if (!results.length) {
+    const empty = document.createElement("div");
+
+    empty.className = "place-no-results";
+    empty.textContent = "No matching places found.";
+
+    suggestions.appendChild(empty);
+    suggestions.hidden = false;
+
+    return;
+  }
+
+  results.forEach(result => {
+    const item = document.createElement("button");
+
+    item.type = "button";
+    item.className = "place-suggestion";
+
+    const title = document.createElement("strong");
+    title.textContent =
+      extractAreaName(result) ||
+      result.name ||
+      "Selected place";
+
+    const description = document.createElement("small");
+    description.textContent = result.display_name || "";
+
+    item.appendChild(title);
+    item.appendChild(description);
+
+    item.addEventListener("click", () => {
+      selectSuggestedPlace(result);
+    });
+
+    suggestions.appendChild(item);
+  });
+
+  suggestions.hidden = false;
+}
+
+/* -------------------- SELECT PLACE -------------------- */
+
+function selectSuggestedPlace(result) {
+  const latitude = Number(result.lat);
+  const longitude = Number(result.lon);
+
+  const areaInput = document.getElementById("areaInput");
+  const suggestions = document.getElementById("areaSuggestions");
+
+  const area =
+    extractAreaName(result) ||
+    result.name ||
+    result.display_name;
+
+  if (areaInput) {
+    areaInput.value = area;
+  }
+
+  if (suggestions) {
+    suggestions.innerHTML = "";
+    suggestions.hidden = true;
+  }
+
+  setSelectedLocation(latitude, longitude, 16);
+
+  locationMessage(
+    `Selected location: ${area}`
+  );
+}
+
+/* -------------------- AREA INPUT SEARCH -------------------- */
+
+function initializePlaceAutocomplete() {
+  const areaInput = document.getElementById("areaInput");
+  const suggestions = document.getElementById("areaSuggestions");
+
+  if (!areaInput || !suggestions) return;
+
+  areaInput.addEventListener("input", () => {
+    const query = areaInput.value.trim();
+
+    if (autocompleteTimer) {
+      clearTimeout(autocompleteTimer);
+    }
+
+    suggestions.innerHTML = "";
+    suggestions.hidden = true;
+
+    // A manually changed area must be selected again
+    // or located on the map to update coordinates.
+    selectedLatitude = null;
+    selectedLongitude = null;
+
+    const latInput = document.getElementById("latitudeInput");
+    const lngInput = document.getElementById("longitudeInput");
+
+    if (latInput) latInput.value = "";
+    if (lngInput) lngInput.value = "";
+
+    if (query.length < 3) return;
+
+    autocompleteTimer = setTimeout(async () => {
+      try {
+        // Keep requests spaced to respect the public
+        // OpenStreetMap Nominatim usage policy.
+        const now = Date.now();
+        const wait = Math.max(
+          0,
+          1100 - (now - lastSearchTime)
+        );
+
+        await new Promise(resolve => setTimeout(resolve, wait));
+
+        lastSearchTime = Date.now();
+
+        const results = await searchPlaces(query);
+
+        // Do not display results for outdated searches.
+        if (areaInput.value.trim() !== query) return;
+
+        showPlaceSuggestions(results);
+
+      } catch (error) {
+        if (areaInput.value.trim() === query) {
+          suggestions.innerHTML = "";
+
+          const message = document.createElement("div");
+          message.className = "place-no-results";
+          message.textContent = "Place search unavailable. You can enter the area manually.";
+
+          suggestions.appendChild(message);
+          suggestions.hidden = false;
+        }
+      }
+    }, 750);
+  });
+
+  areaInput.addEventListener("focus", () => {
+    if (
+      suggestions.children.length > 0 &&
+      areaInput.value.trim().length >= 3
+    ) {
+      suggestions.hidden = false;
+    }
+  });
+
+  document.addEventListener("click", event => {
+    if (
+      !event.target.closest(".location-search-wrap")
+    ) {
+      suggestions.hidden = true;
+    }
+  });
+}
+
+/* -------------------- INITIALIZE LOCATION CONTROLS -------------------- */
+
+function initializeLocationControls() {
+  initializeFeedbackMap();
+  initializePlaceAutocomplete();
+
+  const currentLocationButton = document.getElementById(
+    "currentLocationButton"
+  );
+
+  if (currentLocationButton) {
+    currentLocationButton.addEventListener(
+      "click",
+      useCurrentLocation
+    );
+  }
+}
+
+/* =========================================================
+   PHOTO UPLOAD AND FEEDBACK SUBMISSION
+   ========================================================= */
+
 /* -------------------- PHOTO VALIDATION -------------------- */
 
 function validatePhoto(file) {
@@ -569,11 +1255,11 @@ function submitView() {
 
   shell(
     "Submit Your Feedback",
-    "Describe the local issue and upload a photograph as evidence.",
+    "Describe the local issue, select its location and upload a photograph.",
     `
       <form id="suggestionForm" class="app-form">
 
-        ${formField("Your Name (optional)", "name", "text", false)}
+        ${formField("Your Name (Optional)", "name", "text", false)}
 
         <label class="form-field">
 
@@ -619,8 +1305,97 @@ function submitView() {
 
         </label>
 
-        ${formField("Area / Locality", "area")}
+        <!-- LOCATION SEARCH -->
+        <div class="form-field location-field">
 
+          <span>Area / Place *</span>
+
+          <div class="location-search-wrap">
+
+            <input
+              type="text"
+              name="area"
+              id="areaInput"
+              placeholder="Type an area, road or place..."
+              autocomplete="off"
+              required
+            >
+
+            <div
+              id="areaSuggestions"
+              class="area-suggestions"
+              hidden
+            ></div>
+
+          </div>
+
+          <small class="form-note">
+            Start typing at least 3 characters to find nearby places.
+          </small>
+
+        </div>
+
+        <!-- CURRENT LOCATION -->
+        <div class="location-controls">
+
+          <button
+            type="button"
+            class="location-button"
+            id="currentLocationButton"
+          >
+            ◎ Use Current Location
+          </button>
+
+          <span id="locationMessage" class="location-message">
+            Search for a place or use your current location.
+          </span>
+
+        </div>
+
+        <!-- HIDDEN COORDINATES -->
+        <input
+          type="hidden"
+          name="latitude"
+          id="latitudeInput"
+          value=""
+        >
+
+        <input
+          type="hidden"
+          name="longitude"
+          id="longitudeInput"
+          value=""
+        >
+
+        <!-- MAP -->
+        <div class="map-section">
+
+          <div class="map-heading">
+            <strong>Select the issue location</strong>
+
+            <small>
+              Search for a place or tap the map to select a location.
+            </small>
+          </div>
+
+          <div
+            id="feedbackMap"
+            class="feedback-map"
+            role="application"
+            aria-label="Map for selecting feedback location"
+          ></div>
+
+          <p class="map-help">
+            You can drag the map marker to adjust the exact location.
+          </p>
+
+          <p class="map-attribution">
+            Map data © OpenStreetMap contributors
+          </p>
+
+        </div>
+
+        <!-- DESCRIPTION -->
         <label class="form-field">
 
           <span>Describe Your Issue *</span>
@@ -634,6 +1409,7 @@ function submitView() {
 
         </label>
 
+        <!-- PHOTO -->
         <label class="form-field">
 
           <span>Upload Photo *</span>
@@ -663,6 +1439,8 @@ function submitView() {
       </form>
     `
   );
+
+  initializeLocationControls();
 
   const form = document.getElementById("suggestionForm");
   const photoInput = document.getElementById("photoInput");
@@ -694,7 +1472,7 @@ function submitView() {
     image.style.width = "100%";
     image.style.maxWidth = "260px";
     image.style.height = "auto";
-    image.style.maxHeight = "220px";
+    image.style.maxHeight = "none";
     image.style.objectFit = "contain";
     image.style.borderRadius = "12px";
 
@@ -715,6 +1493,17 @@ function submitView() {
     const button = form.querySelector('[type="submit"]');
     const formData = new FormData(form);
 
+    // Name is optional.
+    // The backend uses "Anonymous citizen" if left blank.
+
+    if (
+      !formData.get("latitude") ||
+      !formData.get("longitude")
+    ) {
+      formData.delete("latitude");
+      formData.delete("longitude");
+    }
+
     setLoading(button, true, "Submit Feedback");
 
     try {
@@ -726,6 +1515,7 @@ function submitView() {
       const trackingId = result.trackingId;
 
       releasePhotoPreview();
+      destroyFeedbackMap();
 
       shell(
         "Feedback Submitted Successfully!",
@@ -805,6 +1595,10 @@ function submitView() {
   });
 }
 
+/* =========================================================
+   PUBLIC FEEDBACK TRACKING
+   ========================================================= */
+
 /* -------------------- TRACK FEEDBACK -------------------- */
 
 function trackView() {
@@ -877,6 +1671,8 @@ function trackView() {
     }
   });
 }
+
+/* -------------------- TRACKING RESULT -------------------- */
 
 function showTrackingResult(data, container) {
   const currentIndex = statuses.indexOf(data.status);
@@ -960,6 +1756,18 @@ function showTrackingResult(data, container) {
           : ""
       }
 
+      ${
+        data.latitude && data.longitude
+          ? `
+            <p>
+              <strong>Location coordinates:</strong>
+              ${escapeHTML(data.latitude)},
+              ${escapeHTML(data.longitude)}
+            </p>
+          `
+          : ""
+      }
+
       <p class="small-text">
         Last updated:
         ${escapeHTML(data.updated_at || "Not available")}
@@ -968,6 +1776,10 @@ function showTrackingResult(data, container) {
     </div>
   `;
 }
+
+/* =========================================================
+   ADMIN DASHBOARD
+   ========================================================= */
 
 /* -------------------- ADMIN DASHBOARD -------------------- */
 
@@ -1334,7 +2146,11 @@ async function deleteAdminRecord(trackingId) {
   }
 }
 
-/* -------------------- SESSION AND LOGOUT -------------------- */
+/* =========================================================
+   SESSION AND LOGOUT
+   ========================================================= */
+
+/* -------------------- LOAD SESSION -------------------- */
 
 async function loadSession() {
   try {
@@ -1352,6 +2168,8 @@ async function loadSession() {
   }
 }
 
+/* -------------------- LOGOUT -------------------- */
+
 async function logout() {
   try {
     await api("/api/logout", {
@@ -1359,7 +2177,6 @@ async function logout() {
     });
 
     currentUser = null;
-
     adminItems = [];
 
     toast("You have been logged out.");
@@ -1371,7 +2188,9 @@ async function logout() {
   }
 }
 
-/* -------------------- SERVICE WORKER -------------------- */
+/* =========================================================
+   SERVICE WORKER
+   ========================================================= */
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -1385,7 +2204,9 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-/* -------------------- START APPLICATION -------------------- */
+/* =========================================================
+   START APPLICATION
+   ========================================================= */
 
 (async function startApplication() {
   await loadSession();
