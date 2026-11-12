@@ -16,6 +16,7 @@
    - Admin dashboard
    - Status updates and deletion
    - Session and logout management
+   - Full-page navigation
    ========================================================= */
 
 "use strict";
@@ -154,12 +155,59 @@ function updateAuthUI() {
   }
 }
 
-/* -------------------- PAGE SHELL -------------------- */
+/* =========================================================
+   FULL-PAGE LAYOUT CONTROL
+   ========================================================= */
+
+/*
+   Homepage sections remain visible on Home.
+
+   When another menu option is selected:
+   - Homepage sections are hidden.
+   - The selected page panel is displayed.
+   - Header and navigation are not affected.
+*/
+
+function setPageLayout(showInnerPage) {
+  const homeSections = [
+    document.getElementById("home"),
+    document.querySelector(".services-heading"),
+    document.querySelector(".service-grid"),
+    document.querySelector(".civic-features-section"),
+    document.querySelector(".process-section")
+  ].filter(Boolean);
+
+  homeSections.forEach(section => {
+    section.hidden = showInnerPage;
+
+    // Ensures hidden sections stay hidden even if CSS
+    // contains a display property for these sections.
+    section.style.display = showInnerPage ? "none" : "";
+  });
+
+  if (appPanel) {
+    appPanel.hidden = !showInnerPage;
+
+    appPanel.style.display = showInnerPage ? "" : "none";
+  }
+
+  document.body.classList.toggle(
+    "inner-page-active",
+    showInnerPage
+  );
+}
+
+/* =========================================================
+   PAGE SHELL
+   ========================================================= */
 
 function shell(title, lead, body, wide = false) {
   if (!appPanel) return;
 
   destroyFeedbackMap();
+
+  // Hide the homepage and display the selected page.
+  setPageLayout(true);
 
   appPanel.innerHTML = `
     <div class="panel ${wide ? "wide" : ""}">
@@ -179,13 +227,17 @@ function shell(title, lead, body, wide = false) {
     </div>
   `;
 
-  appPanel.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
+  // Open the selected page from the top.
+  // No sliding or smooth scrolling.
+  window.scrollTo({
+    top: 0,
+    behavior: "auto"
   });
 }
 
-/* -------------------- FORM FIELD GENERATOR -------------------- */
+/* =========================================================
+   FORM FIELD GENERATOR
+   ========================================================= */
 
 function formField(label, name, type = "text", required = true) {
   const safeLabel = escapeHTML(label);
@@ -254,7 +306,9 @@ function formField(label, name, type = "text", required = true) {
   `;
 }
 
-/* -------------------- STATUS BADGE -------------------- */
+/* =========================================================
+   STATUS BADGE
+   ========================================================= */
 
 function statusBadge(status) {
   return `
@@ -309,8 +363,7 @@ document.addEventListener("click", event => {
       >
         <path d="M3 3l18 18"/>
         <path d="M10.6 10.6a2 2 0 002.8 2.8"/>
-        <path d="M9.9 5.2A10.8 10.8 0 0112 5c6.4 0 10 7 10 7a15.8 15.8 0 01-4.1 4.8"/>
-        <path d="M6.2 6.2C3.5 8 2 12 2 12s3.6 7 10 7a10.7 10.7 0 004.1-.8"/>
+        <path d="M9.9 5.2A10.8 10.8 0 0112 5c6.4 0 10 7 10 7s-3.6 7-10 7-10-7-10-7 1.5-4 4.2-5.8"/>
       </svg>
     `
     : `
@@ -345,6 +398,7 @@ function closeMenu() {
 
   if (toggle) {
     toggle.setAttribute("aria-expanded", "false");
+
     toggle.setAttribute(
       "aria-label",
       "Open navigation menu"
@@ -372,11 +426,14 @@ function view(name) {
   (views[name] || homeView)();
 }
 
+/* -------------------- NAVIGATION CLICK HANDLER -------------------- */
+
 document.addEventListener("click", event => {
   const button = event.target.closest("[data-view]");
 
   if (button) {
     event.preventDefault();
+
     view(button.dataset.view);
   }
 });
@@ -442,7 +499,9 @@ function applyTheme(theme) {
 
 try {
   const savedTheme = localStorage.getItem("citizenTheme");
+
   applyTheme(savedTheme || "light");
+
 } catch {
   applyTheme("light");
 }
@@ -464,13 +523,16 @@ function homeView() {
     appPanel.innerHTML = "";
   }
 
+  // Restore the homepage and hide the inner-page panel.
+  setPageLayout(false);
+
   currentView = "home";
 
   updateAuthUI();
 
   window.scrollTo({
     top: 0,
-    behavior: "smooth"
+    behavior: "auto"
   });
 }
 
