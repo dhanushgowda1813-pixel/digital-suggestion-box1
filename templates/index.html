@@ -101,6 +101,20 @@
 
     <section class="welcome-banner" id="home">
 
+      <!-- MAIN IMAGE FIRST -->
+
+      <div class="welcome-illustration">
+
+        <img
+          class="civic-main-image"
+          src="{{ url_for('static', filename='civic-banner-main.png') }}"
+          alt="Citizens and local communities working together for better public services"
+          fetchpriority="high">
+
+      </div>
+
+      <!-- TEXT AND BUTTONS BELOW IMAGE -->
+
       <div class="welcome-content">
 
         <span class="welcome-tag">
@@ -135,26 +149,6 @@
           <span>✓ Citizen participation</span>
           <span>✓ Transparent updates</span>
           <span>✓ Easy tracking</span>
-        </div>
-
-      </div>
-
-      <div class="welcome-illustration">
-
-        <div class="illustration-heading">
-          <span>TOGETHER FOR BETTER COMMUNITIES</span>
-          <strong>People. Participation. Progress.</strong>
-        </div>
-
-        <img
-          class="civic-main-image"
-          src="{{ url_for('static', filename='civic-banner-main.png') }}"
-          alt="Citizens and local communities working together for better public services"
-          fetchpriority="high">
-
-        <div class="illustration-caption">
-          <strong>PEOPLE FIRST</strong>
-          <span>Every voice can make a difference</span>
         </div>
 
       </div>
@@ -326,6 +320,7 @@
         <div class="citizen-help-content">
           <span class="section-eyebrow">YOUR VOICE MATTERS</span>
           <h3>Small suggestions can create meaningful change.</h3>
+
           <p>
             Participate in improving your neighbourhood by sharing
             concerns, ideas and suggestions through this digital platform.
