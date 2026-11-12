@@ -1,7 +1,9 @@
 
 /* =========================================================
    DIGITAL CITIZEN FEEDBACK SYSTEM
-   Complete Responsive Government-Style Design
+   Professional Responsive Design
+   Web Application + Android APK
+   Themes: Light and Dark
    ========================================================= */
 
 /* ==================== THEMES ==================== */
@@ -43,45 +45,6 @@ body[data-theme="dark"] {
   --shadow: 0 10px 30px rgba(0,0,0,.22);
 }
 
-body[data-theme="ocean"] {
-  --primary: #087e91;
-  --primary-dark: #075d70;
-  --primary-light: #e0f5f7;
-  --accent: #e5a84b;
-  --background: #eff8fa;
-  --surface: #ffffff;
-  --surface-soft: #f0fafb;
-  --text: #153b47;
-  --muted: #607e86;
-  --border: #cfe5e9;
-}
-
-body[data-theme="sunset"] {
-  --primary: #a94d35;
-  --primary-dark: #813722;
-  --primary-light: #fff0e9;
-  --accent: #d9a044;
-  --background: #fff7f2;
-  --surface: #ffffff;
-  --surface-soft: #fff2eb;
-  --text: #432a23;
-  --muted: #856b61;
-  --border: #f0dcd1;
-}
-
-body[data-theme="forest"] {
-  --primary: #276849;
-  --primary-dark: #194b34;
-  --primary-light: #e7f4eb;
-  --accent: #d2aa50;
-  --background: #f1f7f1;
-  --surface: #ffffff;
-  --surface-soft: #f3f8f2;
-  --text: #203b2c;
-  --muted: #687d6e;
-  --border: #d7e6d8;
-}
-
 /* ==================== RESET ==================== */
 
 * {
@@ -91,6 +54,7 @@ body[data-theme="forest"] {
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 90px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -100,14 +64,21 @@ body {
   color: var(--text);
   line-height: 1.6;
   transition: background .25s, color .25s;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
-button, input, select, textarea {
+button,
+input,
+select,
+textarea {
   font: inherit;
 }
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 img {
@@ -122,6 +93,11 @@ a {
 
 [hidden] {
   display: none !important;
+}
+
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* ==================== TOP STRIP ==================== */
@@ -270,7 +246,7 @@ a {
   top: 0;
   z-index: 1000;
   min-height: 54px;
-  background: var(--primary-dark);
+  background: #103765;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -309,6 +285,7 @@ a {
   right: max(24px, calc((100% - 1150px)/2));
   top: calc(100% + 5px);
   width: 265px;
+  max-width: calc(100vw - 24px);
   padding: 12px;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -377,11 +354,17 @@ a {
   overflow: hidden;
 }
 
-.civic-main-image {
+/* Full image visibility: no forced cropping */
+
+.civic-main-image,
+.civic-features-image,
+.citizen-help-image {
+  display: block;
   width: 100%;
-  max-height: 420px;
-  min-height: 220px;
-  object-fit: cover;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -439,6 +422,7 @@ a {
 .danger-button {
   border-radius: 9px;
   padding: 12px 19px;
+  min-height: 44px;
   font-weight: 700;
   border: 1px solid transparent;
   transition: .2s;
@@ -451,7 +435,7 @@ a {
 }
 
 .government-button:hover {
-  background: var(--primary-dark);
+  background: #103765;
   transform: translateY(-2px);
 }
 
@@ -468,6 +452,12 @@ a {
 .danger-button {
   background: var(--danger);
   color: white;
+}
+
+button:disabled {
+  opacity: .55;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 .welcome-points {
@@ -523,7 +513,7 @@ a {
 
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 17px;
   margin-bottom: 55px;
 }
@@ -579,6 +569,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  min-width: 0;
 }
 
 .service-card-content strong {
@@ -642,13 +633,6 @@ a {
   background: var(--primary-light);
 }
 
-.civic-features-image {
-  width: 100%;
-  min-height: 260px;
-  max-height: 340px;
-  object-fit: cover;
-}
-
 /* ==================== PROCESS SECTION ==================== */
 
 .process-section {
@@ -662,7 +646,7 @@ a {
 
 .process-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
 }
 
@@ -713,12 +697,6 @@ a {
   border-radius: 13px;
 }
 
-.citizen-help-image {
-  width: 100%;
-  max-height: 260px;
-  object-fit: cover;
-}
-
 .citizen-help-content h3 {
   font-size: 25px;
   line-height: 1.35;
@@ -737,6 +715,7 @@ a {
 }
 
 .panel {
+  width: 100%;
   max-width: 760px;
   margin: 0 auto;
   padding: 32px;
@@ -768,6 +747,7 @@ a {
   color: var(--primary);
   border-radius: 8px;
   padding: 9px 13px;
+  min-height: 40px;
   font-weight: 700;
 }
 
@@ -799,6 +779,8 @@ a {
 .admin-toolbar input,
 .admin-toolbar select {
   width: 100%;
+  min-width: 0;
+  min-height: 44px;
   padding: 12px 13px;
   color: var(--text);
   background: var(--surface-soft);
@@ -810,6 +792,7 @@ a {
 .form-field input:focus,
 .form-field select:focus,
 .form-field textarea:focus,
+.theme-picker select:focus,
 .admin-toolbar input:focus,
 .admin-toolbar select:focus {
   border-color: var(--primary);
@@ -823,6 +806,14 @@ a {
 
 .form-field input[type="file"] {
   padding: 10px;
+  max-width: 100%;
+}
+
+.form-field input::placeholder,
+.form-field textarea::placeholder,
+.admin-toolbar input::placeholder {
+  color: var(--muted);
+  opacity: .8;
 }
 
 .form-note {
@@ -836,6 +827,7 @@ a {
   border: 0;
   color: var(--primary);
   font-weight: 800;
+  padding: 6px;
 }
 
 .text-button:hover {
@@ -845,12 +837,21 @@ a {
 .form-message {
   color: var(--danger);
   font-size: 13px;
+  overflow-wrap: anywhere;
 }
 
 .photo-preview {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.photo-preview img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 /* ==================== SUCCESS AND ERROR ==================== */
@@ -862,6 +863,7 @@ a {
   border-radius: 13px;
   padding: 22px;
   margin-top: 20px;
+  overflow-wrap: anywhere;
 }
 
 .success-panel h3,
@@ -890,6 +892,7 @@ a {
   border-radius: 10px;
   color: var(--muted);
   margin-top: 15px;
+  overflow-wrap: anywhere;
 }
 
 .error-panel {
@@ -949,6 +952,14 @@ a {
 .tracking-photo {
   display: block;
   margin-top: 10px;
+  max-width: 100%;
+}
+
+.tracking-photo img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 .small-text {
@@ -960,14 +971,14 @@ a {
 
 .admin-toolbar {
   display: grid;
-  grid-template-columns: 1fr 190px auto;
+  grid-template-columns: minmax(0, 1fr) 190px auto;
   gap: 10px;
   margin-bottom: 20px;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 10px;
   margin: 20px 0;
 }
@@ -979,6 +990,7 @@ a {
   padding: 15px;
   background: var(--primary-light);
   border-radius: 11px;
+  min-width: 0;
 }
 
 .stat-card span {
@@ -1001,6 +1013,7 @@ a {
   background: var(--surface-soft);
   border: 1px solid var(--border);
   border-radius: 13px;
+  overflow-wrap: anywhere;
 }
 
 .admin-record-header {
@@ -1090,7 +1103,7 @@ a {
 #toast {
   position: fixed;
   left: 50%;
-  bottom: 25px;
+  bottom: max(25px, env(safe-area-inset-bottom));
   transform: translate(-50%, 20px);
   background: #172b43;
   color: #fff;
@@ -1102,6 +1115,7 @@ a {
   pointer-events: none;
   z-index: 2000;
   transition: .25s;
+  width: max-content;
   max-width: calc(100% - 30px);
   text-align: center;
 }
@@ -1111,11 +1125,11 @@ a {
   transform: translate(-50%, 0);
 }
 
-/* ==================== MOBILE ==================== */
+/* ==================== TABLET ==================== */
 
 @media (max-width: 900px) {
   .service-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .civic-features-section {
@@ -1124,9 +1138,21 @@ a {
   }
 
   .stats-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .government-header {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  .main-nav {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
+
+/* ==================== MOBILE ==================== */
 
 @media (max-width: 600px) {
   #app {
@@ -1136,6 +1162,7 @@ a {
   .top-strip-inner {
     padding: 7px 12px;
     font-size: 9px;
+    flex-wrap: wrap;
   }
 
   .government-header {
@@ -1194,9 +1221,16 @@ a {
     border-radius: 14px;
   }
 
-  .civic-main-image {
-    min-height: 170px;
-    max-height: 250px;
+  /* Keep the complete original image visible on mobile */
+
+  .civic-main-image,
+  .civic-features-image,
+  .citizen-help-image {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    object-fit: contain;
   }
 
   .welcome-content {
@@ -1260,11 +1294,6 @@ a {
     font-size: 26px;
   }
 
-  .civic-features-image {
-    min-height: 190px;
-    max-height: 250px;
-  }
-
   .process-grid {
     grid-template-columns: 1fr;
   }
@@ -1279,6 +1308,7 @@ a {
 
   .panel {
     padding: 21px 16px;
+    border-radius: 14px;
   }
 
   .panel h2 {
@@ -1290,7 +1320,7 @@ a {
   }
 
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .stat-card {
@@ -1299,6 +1329,10 @@ a {
 
   .stat-card strong {
     font-size: 21px;
+  }
+
+  .admin-record {
+    padding: 15px;
   }
 
   .footer-main {
@@ -1311,15 +1345,95 @@ a {
   }
 
   .government-footer {
-    padding: 30px 18px 18px;
+    padding: 30px 18px max(18px, env(safe-area-inset-bottom));
   }
 }
+
+/* ==================== SMALL PHONES ==================== */
+
+@media (max-width: 360px) {
+  #app {
+    width: calc(100% - 18px);
+  }
+
+  .identity-text h1 {
+    font-size: 14px;
+  }
+
+  .civic-seal {
+    width: 47px;
+    height: 47px;
+  }
+
+  .welcome-content h2 {
+    font-size: 27px;
+  }
+
+  .panel {
+    padding: 18px 12px;
+  }
+
+  .stats-grid {
+    gap: 7px;
+  }
+}
+
+/* ==================== DARK THEME DETAILS ==================== */
+
+body[data-theme="dark"] .track-icon {
+  background: #193c3a;
+  color: #78d7c7;
+}
+
+body[data-theme="dark"] .citizen-icon {
+  background: #49351f;
+  color: #f0c477;
+}
+
+body[data-theme="dark"] .admin-icon {
+  background: #392d50;
+  color: #c7a6f4;
+}
+
+body[data-theme="dark"] .government-button {
+  color: #10243b;
+}
+
+body[data-theme="dark"] .government-button:hover {
+  background: #a7cefa;
+}
+
+body[data-theme="dark"] .tricolour .white {
+  background: #e8e8e8;
+}
+
+/* ==================== ANDROID / APK SUPPORT ==================== */
+
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+button,
+.government-button,
+.outline-button,
+.danger-button,
+.back,
+.navlink {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ==================== REDUCED MOTION ==================== */
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
 }
