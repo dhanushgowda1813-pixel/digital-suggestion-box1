@@ -1,376 +1,604 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
 
-    <title>JanaSetu | Digital Citizen Feedback System</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  >
 
-    <meta name="theme-color" content="#174b86">
-    <meta name="description" content="JanaSetu Digital Citizen Feedback System">
+  <meta name="theme-color" content="#174b86">
 
-    <link rel="manifest"
-          href="{{ url_for('static', filename='manifest.json') }}">
+  <meta
+    name="description"
+    content="Digital Citizen Feedback System for Local Governance and Public Participation"
+  >
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="default"
+  >
+  <meta
+    name="apple-mobile-web-app-title"
+    content="Citizen Feedback"
+  >
+
+  <meta name="application-name" content="Citizen Feedback">
+
+  <title>Digital Citizen Feedback System | Karnataka</title>
+
+  <!-- PWA CONFIGURATION -->
+  <link
+    rel="manifest"
+    href="{{ url_for('static', filename='manifest.json') }}"
+  >
+
+  <link
+    rel="apple-touch-icon"
+    href="{{ url_for('static', filename='app-icon.svg') }}"
+  >
+
+  <!-- WEBSITE STYLESHEET -->
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}"
+  >
 </head>
 
 <body>
 
-    <div class="top-strip">
-        JANASETU — DIGITAL CITIZEN FEEDBACK SYSTEM
+  <!-- TOP GOVERNMENT-STYLE STRIP -->
+
+  <div class="top-strip">
+    <div class="top-strip-inner">
+      <span>ಕರ್ನಾಟಕ | KARNATAKA</span>
+      <span>Citizen Participation • Local Governance</span>
+    </div>
+  </div>
+
+  <!-- NATIONAL COLOUR STRIP -->
+
+  <div class="tricolour" aria-hidden="true">
+    <span class="saffron"></span>
+    <span class="white"></span>
+    <span class="green"></span>
+  </div>
+
+  <!-- MAIN HEADER -->
+
+  <header class="government-header">
+
+    <a
+      href="#home"
+      class="identity"
+      aria-label="Digital Citizen Feedback System home"
+    >
+
+      <div class="civic-seal" aria-hidden="true">
+        <div class="seal-inner">
+          <span class="seal-symbol">✦</span>
+          <span class="seal-kannada">ಕರ್ನಾಟಕ</span>
+          <span class="seal-caption">CITIZEN SERVICES</span>
+        </div>
+      </div>
+
+      <div class="identity-text">
+        <span class="identity-kannada">
+          ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ
+        </span>
+
+        <h1>Digital Citizen Feedback System</h1>
+
+        <p>Local Governance & Public Participation</p>
+      </div>
+
+    </a>
+
+    <div class="header-right">
+      <span class="header-label">CITIZEN SERVICE PORTAL</span>
+      <span class="header-subtitle">
+        Your Voice • Better Communities
+      </span>
     </div>
 
-    <div class="tricolour">
-        <span></span>
-        <span></span>
-        <span></span>
-    </div>
+  </header>
 
-    <header class="government-header">
+  <!-- NAVIGATION -->
 
-        <div class="header-left">
+  <nav
+    class="main-nav"
+    id="nav"
+    aria-label="Main navigation"
+  >
 
-            <img
-                src="{{ url_for('static', filename='janasetu-logo.jpeg') }}"
-                class="janasetu-logo"
-                alt="JanaSetu Logo"
-            >
+    <!-- THREE-LINE HAMBURGER MENU -->
 
-            <div class="identity">
+    <button
+      class="menu-toggle"
+      id="menuToggle"
+      type="button"
+      aria-label="Open navigation menu"
+      aria-controls="navMenu"
+      aria-expanded="false"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
 
-                <div class="kannada-title">
-                    ಜನಸೇತು
-                </div>
+    <!-- NAVIGATION OPTIONS -->
 
-                <h1>JANASETU</h1>
+    <div class="nav-menu" id="navMenu" hidden>
 
-                <p>Digital Citizen Feedback System</p>
+      <button class="navlink" type="button" data-view="home">
+        Home
+      </button>
 
-            </div>
+      <button class="navlink" type="button" data-view="submit">
+        Submit Feedback
+      </button>
 
-        </div>
+      <button class="navlink" type="button" data-view="track">
+        Track Application
+      </button>
 
-        <div class="header-right">
-            <span class="portal-label">CITIZEN SERVICE PORTAL</span>
-            <p>Voice of Citizens, Better Communities</p>
-        </div>
+      <button class="navlink" type="button" data-view="login">
+        Citizen Login
+      </button>
 
-    </header>
+      <button class="navlink" type="button" data-view="admin-login">
+        Administrator
+      </button>
 
-    <nav class="main-navigation">
+      <!-- ONLY LIGHT AND DARK THEMES -->
 
-        <button
-            class="menu-toggle"
-            id="menuToggle"
-            type="button"
-            aria-label="Open navigation menu"
-            aria-expanded="false"
+      <label class="theme-picker">
+
+        <span>Theme</span>
+
+        <select
+          id="themeSelect"
+          aria-label="Choose website theme"
         >
-            <span></span>
-            <span></span>
-            <span></span>
-        </button>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
 
-        <div class="nav-menu" id="navMenu">
+      </label>
 
-            <button class="nav-button" data-view="home">
-                Home
-            </button>
+    </div>
 
-            <button class="nav-button" data-view="submit">
-                Submit Feedback
-            </button>
+  </nav>
 
-            <button class="nav-button" data-view="track">
-                Track Feedback
-            </button>
+  <!-- MAIN APPLICATION -->
 
-            <button class="nav-button" data-view="login">
-                Citizen Login
-            </button>
+  <main id="app">
 
-            <button class="nav-button" data-view="admin-login">
-                Admin Login
-            </button>
+    <!-- MAIN HERO SECTION -->
 
-            <div class="theme-control">
-                <label for="themeSelect">Theme</label>
+    <section class="welcome-banner" id="home">
 
-                <select id="themeSelect">
-                    <option value="light">Light</option>
-                    <option value="dark">Dark</option>
-                </select>
-            </div>
+      <!-- MAIN IMAGE -->
 
-        </div>
+      <div class="welcome-illustration">
 
-    </nav>
+        <img
+          class="civic-main-image"
+          src="{{ url_for('static', filename='civic-banner-main.png') }}"
+          alt="Citizens and local communities working together for better public services"
+          fetchpriority="high"
+          decoding="async"
+        >
 
-    <main id="app">
+      </div>
 
-        <section class="home-section" id="home">
+      <!-- HERO CONTENT -->
 
-            <div class="welcome-banner">
+      <div class="welcome-content">
 
-                <div class="welcome-content">
+        <span class="welcome-tag">
+          <span class="live-dot"></span>
+          DIGITAL CITIZEN SERVICES
+        </span>
 
-                    <span class="welcome-tag">
-                        WELCOME TO JANASETU
-                    </span>
+        <h2>
+          A better community<br>
+          begins with <span>your voice.</span>
+        </h2>
 
-                    <h2>
-                        Your Voice Can Make
-                        <span>A Difference</span>
-                    </h2>
-
-                    <p>
-                        Share your suggestions, report local problems
-                        and contribute towards building better
-                        communities through a simple digital platform.
-                    </p>
-
-                    <div class="home-actions">
-
-                        <button
-                            class="primary-button"
-                            data-view="submit"
-                        >
-                            Submit Feedback
-                        </button>
-
-                        <button
-                            class="secondary-button"
-                            data-view="track"
-                        >
-                            Track Your Feedback
-                        </button>
-
-                    </div>
-
-                </div>
-
-                <div class="welcome-illustration">
-
-                    <img
-                        src="{{ url_for('static', filename='civic-banner-main.png') }}"
-                        class="civic-main-image"
-                        alt="Citizen participation illustration"
-                    >
-
-                </div>
-
-            </div>
-
-            <section class="services-section">
-
-                <div class="section-heading">
-                    <span>OUR SERVICES</span>
-                    <h2>Citizen Services</h2>
-
-                    <p>
-                        Simple digital services to connect citizens
-                        with their local administration.
-                    </p>
-                </div>
-
-                <div class="service-grid">
-
-                    <button class="service-card" data-view="submit">
-
-                        <div class="service-icon">📝</div>
-
-                        <h3>Submit Feedback</h3>
-
-                        <p>
-                            Share suggestions and report problems.
-                        </p>
-
-                    </button>
-
-                    <button class="service-card" data-view="track">
-
-                        <div class="service-icon">🔍</div>
-
-                        <h3>Track Status</h3>
-
-                        <p>
-                            Check the progress of submitted feedback.
-                        </p>
-
-                    </button>
-
-                    <button class="service-card" data-view="login">
-
-                        <div class="service-icon">👤</div>
-
-                        <h3>Citizen Account</h3>
-
-                        <p>
-                            Access your account and submissions.
-                        </p>
-
-                    </button>
-
-                    <button class="service-card" data-view="admin-login">
-
-                        <div class="service-icon">🛡️</div>
-
-                        <h3>Admin Portal</h3>
-
-                        <p>
-                            Manage feedback through the admin dashboard.
-                        </p>
-
-                    </button>
-
-                </div>
-
-            </section>
-
-            <section class="civic-features-section">
-
-                <div class="civic-features-content">
-
-                    <span>COMMUNITY PARTICIPATION</span>
-
-                    <h2>
-                        Together We Build
-                        Better Communities
-                    </h2>
-
-                    <p>
-                        JanaSetu provides a digital platform where
-                        citizens can communicate their concerns,
-                        share ideas and follow the progress of
-                        submitted feedback.
-                    </p>
-
-                </div>
-
-                <img
-                    src="{{ url_for('static', filename='civic-banner-features.png') }}"
-                    alt="Community development"
-                    class="civic-features-image"
-                >
-
-            </section>
-
-            <section class="process-section">
-
-                <div class="section-heading">
-
-                    <span>HOW IT WORKS</span>
-
-                    <h2>Simple Four-Step Process</h2>
-
-                </div>
-
-                <div class="process-grid">
-
-                    <div class="process-card">
-                        <span>01</span>
-                        <h3>Submit</h3>
-                        <p>Submit your feedback with the required details.</p>
-                    </div>
-
-                    <div class="process-card">
-                        <span>02</span>
-                        <h3>Review</h3>
-                        <p>The Admin reviews the submitted feedback.</p>
-                    </div>
-
-                    <div class="process-card">
-                        <span>03</span>
-                        <h3>Progress</h3>
-                        <p>Follow the progress using your tracking ID.</p>
-                    </div>
-
-                    <div class="process-card">
-                        <span>04</span>
-                        <h3>Resolution</h3>
-                        <p>Check the final status and Admin response.</p>
-                    </div>
-
-                </div>
-
-            </section>
-
-            <section class="citizen-help-section">
-
-                <img
-                    src="{{ url_for('static', filename='citizen-help-illustration.webp') }}"
-                    alt="Citizen assistance"
-                >
-
-                <div>
-                    <h2>Your Feedback Matters</h2>
-
-                    <p>
-                        Every suggestion can contribute to positive
-                        changes in our communities.
-                    </p>
-
-                    <button
-                        class="primary-button"
-                        data-view="submit"
-                    >
-                        Share Your Feedback
-                    </button>
-                </div>
-
-            </section>
-
-        </section>
-
-        <section
-            class="panel-wrap"
-            id="panel"
-            aria-live="polite"
-        ></section>
-
-    </main>
-
-    <footer class="government-footer">
-
-        <div class="footer-brand">
-
-            <img
-                src="{{ url_for('static', filename='janasetu-logo.jpeg') }}"
-                class="footer-logo"
-                alt="JanaSetu Logo"
-            >
-
-            <div>
-                <h3>JANASETU</h3>
-                <p>Digital Citizen Feedback System</p>
-            </div>
-
-        </div>
-
-        <p class="footer-purpose">
-            A digital platform for citizen participation,
-            feedback and community development.
+        <p>
+          Have a concern about roads, water supply, waste management
+          or public facilities? Share your feedback and follow its
+          progress through one simple digital platform.
         </p>
 
-        <div class="footer-bottom">
-            © 2026 JanaSetu. All Rights Reserved.
+        <div class="welcome-actions">
+
+          <button
+            class="government-button"
+            type="button"
+            data-view="submit"
+          >
+            Submit Your Feedback <span>→</span>
+          </button>
+
+          <button
+            class="outline-button"
+            type="button"
+            data-view="track"
+          >
+            Track Application
+          </button>
+
         </div>
 
-        <p class="footer-disclaimer">
-            This is an academic project developed for educational
-            and demonstration purposes.
+        <div class="welcome-points">
+          <span>✓ Citizen participation</span>
+          <span>✓ Transparent updates</span>
+          <span>✓ Easy tracking</span>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- CITIZEN SERVICES -->
+
+    <section class="services-heading">
+
+      <div>
+        <span class="section-eyebrow">CITIZEN SERVICES</span>
+
+        <h2>How can we help you?</h2>
+
+        <p>Choose a service to get started.</p>
+      </div>
+
+      <div class="service-heading-note">
+        ಸೇವೆಯೇ ನಮ್ಮ ಧ್ಯೇಯ
+
+        <small>Service is our commitment</small>
+      </div>
+
+    </section>
+
+    <!-- SERVICE CARDS -->
+
+    <section class="service-grid">
+
+      <!-- SUBMIT FEEDBACK -->
+
+      <button
+        class="service-card"
+        type="button"
+        data-view="submit"
+      >
+
+        <span class="service-icon submit-icon">✎</span>
+
+        <span class="service-card-content">
+
+          <strong>Submit Feedback</strong>
+
+          <small>
+            Report a local issue or share a suggestion with the local administration.
+          </small>
+
+          <span class="service-link">Submit now →</span>
+
+        </span>
+
+      </button>
+
+      <!-- TRACK APPLICATION -->
+
+      <button
+        class="service-card"
+        type="button"
+        data-view="track"
+      >
+
+        <span class="service-icon track-icon">⌕</span>
+
+        <span class="service-card-content">
+
+          <strong>Track Application</strong>
+
+          <small>
+            Check the status of your submitted feedback using your tracking ID.
+          </small>
+
+          <span class="service-link">Track now →</span>
+
+        </span>
+
+      </button>
+
+      <!-- CITIZEN LOGIN -->
+
+      <button
+        class="service-card"
+        type="button"
+        data-view="login"
+      >
+
+        <span class="service-icon citizen-icon">♙</span>
+
+        <span class="service-card-content">
+
+          <strong>Citizen Login</strong>
+
+          <small>
+            Access your citizen account and submit feedback through the portal.
+          </small>
+
+          <span class="service-link">Login →</span>
+
+        </span>
+
+      </button>
+
+      <!-- ADMIN LOGIN -->
+
+      <button
+        class="service-card"
+        type="button"
+        data-view="admin-login"
+      >
+
+        <span class="service-icon admin-icon">▤</span>
+
+        <span class="service-card-content">
+
+          <strong>Administrator</strong>
+
+          <small>
+            Review submissions, manage requests and update application progress.
+          </small>
+
+          <span class="service-link">Admin access →</span>
+
+        </span>
+
+      </button>
+
+    </section>
+
+    <!-- COMMUNITY PARTICIPATION SECTION -->
+
+    <section class="civic-features-section">
+
+      <div class="civic-features-content">
+
+        <span class="section-eyebrow">
+          COMMUNITY DEVELOPMENT
+        </span>
+
+        <h2>Building better communities together</h2>
+
+        <p>
+          Citizen participation helps identify local problems,
+          improve public facilities and encourage transparent
+          communication between people and local administration.
         </p>
 
-    </footer>
+        <div class="civic-feature-points">
 
-    <div id="toast" class="toast"></div>
+          <span>✓ Report neighbourhood issues</span>
 
-    <script
-        src="{{ url_for('static', filename='app.js') }}"
-        defer
-    ></script>
+          <span>✓ Share ideas and suggestions</span>
+
+          <span>✓ Follow application progress</span>
+
+        </div>
+
+      </div>
+
+      <div class="civic-features-image-wrap">
+
+        <img
+          class="civic-features-image"
+          src="{{ url_for('static', filename='civic-banner-features.png') }}"
+          alt="Community participation and improvement of local public facilities"
+          loading="lazy"
+          decoding="async"
+        >
+
+      </div>
+
+    </section>
+
+    <!-- HOW THE SYSTEM WORKS -->
+
+    <section class="process-section">
+
+      <div class="process-heading">
+
+        <span class="section-eyebrow">
+          SIMPLE & TRANSPARENT
+        </span>
+
+        <h2>How the system works</h2>
+
+      </div>
+
+      <div class="process-grid">
+
+        <!-- STEP 1 -->
+
+        <div class="process-item">
+
+          <span class="process-number">01</span>
+
+          <div>
+            <strong>Submit</strong>
+
+            <p>
+              Share your issue with the required details and photo.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- STEP 2 -->
+
+        <div class="process-item">
+
+          <span class="process-number">02</span>
+
+          <div>
+            <strong>Review</strong>
+
+            <p>
+              Your submission can be reviewed by the administrator.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- STEP 3 -->
+
+        <div class="process-item">
+
+          <span class="process-number">03</span>
+
+          <div>
+            <strong>Track progress</strong>
+
+            <p>
+              Follow the latest status and administrator response online.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- CITIZEN HELP SECTION -->
+
+      <div class="citizen-help-section">
+
+        <div class="citizen-help-image-wrap">
+
+          <img
+            class="citizen-help-image"
+            src="{{ url_for('static', filename='citizen-help-illustration.webp') }}"
+            alt="Illustration representing citizens helping their community"
+            loading="lazy"
+            decoding="async"
+          >
+
+        </div>
+
+        <div class="citizen-help-content">
+
+          <span class="section-eyebrow">
+            YOUR VOICE MATTERS
+          </span>
+
+          <h3>
+            Small suggestions can create meaningful change.
+          </h3>
+
+          <p>
+            Participate in improving your neighbourhood by sharing
+            concerns, ideas and suggestions through this digital platform.
+          </p>
+
+          <button
+            class="government-button"
+            type="button"
+            data-view="submit"
+          >
+            Share Your Feedback →
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- DYNAMIC APPLICATION PANEL -->
+
+    <section
+      class="panel-wrap"
+      id="panel"
+      aria-live="polite"
+    ></section>
+
+  </main>
+
+  <!-- FOOTER -->
+
+  <footer class="government-footer">
+
+    <div class="footer-main">
+
+      <div class="footer-brand">
+
+        <strong>Digital Citizen Feedback System</strong>
+
+        <span>
+          Local Governance & Citizen Participation
+        </span>
+
+        <small>
+          ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ
+        </small>
+
+      </div>
+
+      <div class="footer-purpose">
+
+        <strong>Citizen participation matters.</strong>
+
+        <span>
+          Every suggestion is an opportunity to improve our community.
+        </span>
+
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+
+      <span>
+        Academic Project | Karnataka-inspired public service portal
+      </span>
+
+      <span>
+        © Digital Citizen Feedback System
+      </span>
+
+    </div>
+
+    <p class="disclaimer">
+      This is an academic demonstration project and is not an official
+      Karnataka Government or Government of India website.
+    </p>
+
+  </footer>
+
+  <!-- NOTIFICATION MESSAGE -->
+
+  <div
+    id="toast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+
+  <script
+    src="{{ url_for('static', filename='app.js') }}"
+    defer
+  ></script>
 
 </body>
 </html>
