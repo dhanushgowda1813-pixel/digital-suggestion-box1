@@ -1,8 +1,8 @@
 
 /* =========================================================
-   DIGITAL CITIZEN FEEDBACK SYSTEM
-   Professional Responsive Design
-   Web Application + Android APK
+   JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
+   Professional Responsive Application
+   Web + Android PWA
    Themes: Light and Dark
    ========================================================= */
 
@@ -23,7 +23,7 @@
   --success: #16834b;
   --danger: #c0392b;
   --warning: #b7791f;
-  --shadow: 0 10px 30px rgba(20,48,80,.08);
+  --shadow: 0 8px 24px rgba(20,48,80,.06);
   --radius: 16px;
 }
 
@@ -42,7 +42,7 @@ body[data-theme="dark"] {
   --success: #59ce91;
   --danger: #ff8077;
   --warning: #f0c36d;
-  --shadow: 0 10px 30px rgba(0,0,0,.22);
+  --shadow: 0 8px 24px rgba(0,0,0,.18);
 }
 
 /* ==================== RESET ==================== */
@@ -53,7 +53,7 @@ body[data-theme="dark"] {
 
 html {
   scroll-behavior: smooth;
-  scroll-padding-top: 90px;
+  scroll-padding-top: 85px;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -63,9 +63,9 @@ body {
   background: var(--background);
   color: var(--text);
   line-height: 1.6;
-  transition: background .25s, color .25s;
   min-height: 100vh;
   overflow-x: hidden;
+  transition: background .2s, color .2s;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -96,7 +96,7 @@ a {
 }
 
 :focus-visible {
-  outline: 3px solid var(--accent);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
 
@@ -106,13 +106,13 @@ a {
   background: #103765;
   color: #fff;
   font-size: 12px;
-  letter-spacing: .5px;
+  letter-spacing: .3px;
 }
 
 .top-strip-inner {
   max-width: 1200px;
   margin: auto;
-  padding: 8px 24px;
+  padding: 7px 24px;
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -121,7 +121,7 @@ a {
 /* ==================== TRICOLOUR ==================== */
 
 .tricolour {
-  height: 4px;
+  height: 3px;
   display: flex;
 }
 
@@ -141,17 +141,16 @@ a {
   background: #138808;
 }
 
-/* ==================== GOVERNMENT HEADER ==================== */
+/* ==================== HEADER ==================== */
 
 .government-header {
   background: var(--surface);
-  min-height: 112px;
-  padding: 18px max(24px, calc((100% - 1150px)/2));
+  min-height: 0;
+  padding: 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  border-bottom: 1px solid var(--border);
+  justify-content: center;
+  border: 0;
 }
 
 .identity {
@@ -166,7 +165,7 @@ a {
   height: 72px;
   border-radius: 50%;
   background: var(--primary-light);
-  border: 2px solid var(--accent);
+  border: 1px solid var(--border);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -239,61 +238,113 @@ a {
   color: var(--muted);
 }
 
+/* ==================== JANASETU IMAGE HEADER ==================== */
+
+.janasetu-banner-header {
+  width: 100%;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.janasetu-banner-link {
+  display: block;
+  width: 100%;
+  line-height: 0;
+  text-decoration: none;
+}
+
+.janasetu-banner-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 180px;
+  margin: 0;
+  object-fit: fill;
+  object-position: center;
+}
+
+@media (max-width: 600px) {
+  .janasetu-banner-image {
+    height: 110px;
+  }
+}
+
 /* ==================== NAVIGATION ==================== */
 
 .main-nav {
   position: sticky;
   top: 0;
   z-index: 1000;
-  min-height: 54px;
+  min-height: 52px;
   background: #103765;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 7px max(24px, calc((100% - 1150px)/2));
-  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  padding: 6px max(24px, calc((100% - 1150px)/2));
+  box-shadow: 0 2px 8px rgba(0,0,0,.09);
 }
 
+/* Refined menu button */
+
 .menu-toggle {
-  width: 45px;
-  height: 40px;
-  border: 1px solid rgba(255,255,255,.35);
-  border-radius: 8px;
+  width: 42px;
+  height: 38px;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 7px;
   background: transparent;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   gap: 5px;
+  transition: background .2s, border-color .2s;
 }
 
 .menu-toggle span {
   display: block;
-  width: 23px;
+  width: 20px;
   height: 2px;
   background: #fff;
-  border-radius: 5px;
-  transition: .2s;
+  border-radius: 3px;
+  transition: transform .2s, opacity .2s;
 }
 
 .menu-toggle:hover {
-  background: rgba(255,255,255,.13);
+  background: rgba(255,255,255,.09);
+  border-color: rgba(255,255,255,.45);
+}
+
+.menu-toggle:active {
+  background: rgba(255,255,255,.15);
+}
+
+.menu-toggle[aria-expanded="true"] span:first-child {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.menu-toggle[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-toggle[aria-expanded="true"] span:last-child {
+  transform: translateY(-7px) rotate(-45deg);
 }
 
 .nav-menu {
   position: absolute;
   right: max(24px, calc((100% - 1150px)/2));
-  top: calc(100% + 5px);
-  width: 265px;
+  top: calc(100% + 7px);
+  width: 255px;
   max-width: calc(100vw - 24px);
-  padding: 12px;
+  padding: 9px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  border-radius: 11px;
+  box-shadow: 0 12px 30px rgba(0,0,0,.13);
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 
 .nav-menu[hidden] {
@@ -305,10 +356,11 @@ a {
   text-align: left;
   padding: 11px 13px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
   color: var(--text);
   font-weight: 600;
+  transition: background .15s, color .15s;
 }
 
 .navlink:hover {
@@ -339,11 +391,13 @@ a {
   margin: 0 auto;
 }
 
+/* ==================== HOME HERO ==================== */
+
 .welcome-banner {
   margin: 30px 0 50px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 22px;
+  border-radius: 18px;
   overflow: hidden;
   box-shadow: var(--shadow);
 }
@@ -353,8 +407,6 @@ a {
   background: var(--primary-light);
   overflow: hidden;
 }
-
-/* Full image visibility: no forced cropping */
 
 .civic-main-image,
 .civic-features-image,
@@ -388,7 +440,6 @@ a {
   height: 8px;
   border-radius: 50%;
   background: var(--success);
-  box-shadow: 0 0 0 4px var(--primary-light);
 }
 
 .welcome-content h2 {
@@ -423,7 +474,7 @@ a {
 .primary-btn,
 .secondary-btn,
 .danger-btn {
-  border-radius: 9px;
+  border-radius: 8px;
   padding: 12px 19px;
   min-height: 44px;
   font-weight: 700;
@@ -441,7 +492,6 @@ a {
 .government-button:hover,
 .primary-btn:hover {
   background: #103765;
-  transform: translateY(-2px);
 }
 
 .outline-button,
@@ -542,7 +592,7 @@ button:disabled {
 }
 
 .service-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
   border-color: var(--primary);
 }
 
@@ -552,7 +602,7 @@ button:disabled {
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: 11px;
   font-size: 25px;
   background: var(--primary-light);
   color: var(--primary);
@@ -604,9 +654,9 @@ button:disabled {
   grid-template-columns: 1fr 1fr;
   gap: 35px;
   align-items: center;
-  padding: 38px;
+  padding: 30px;
   margin-bottom: 55px;
-  border-radius: 20px;
+  border-radius: 18px;
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
@@ -637,7 +687,7 @@ button:disabled {
 
 .civic-features-image-wrap {
   overflow: hidden;
-  border-radius: 15px;
+  border-radius: 13px;
   background: var(--primary-light);
 }
 
@@ -664,7 +714,7 @@ button:disabled {
   align-items: flex-start;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 13px;
   padding: 23px;
   box-shadow: var(--shadow);
 }
@@ -697,12 +747,12 @@ button:disabled {
   margin-top: 38px;
   padding: 30px;
   background: var(--primary-light);
-  border-radius: 18px;
+  border-radius: 16px;
 }
 
 .citizen-help-image-wrap {
   overflow: hidden;
-  border-radius: 13px;
+  border-radius: 12px;
 }
 
 .citizen-help-content h3 {
@@ -718,7 +768,7 @@ button:disabled {
 /* ==================== DYNAMIC PANEL ==================== */
 
 .panel-wrap {
-  scroll-margin-top: 85px;
+  scroll-margin-top: 70px;
   margin: 35px 0 55px;
 }
 
@@ -729,7 +779,7 @@ button:disabled {
   padding: 32px;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 16px;
   box-shadow: var(--shadow);
 }
 
@@ -750,17 +800,68 @@ button:disabled {
 }
 
 .back {
-  border: 0;
-  background: var(--primary-light);
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
   color: var(--primary);
-  border-radius: 8px;
+  border-radius: 7px;
   padding: 9px 13px;
   min-height: 40px;
   font-weight: 700;
 }
 
 .back:hover {
-  filter: brightness(.96);
+  background: var(--primary-light);
+}
+
+/* ==================== FULL APP SCREEN NAVIGATION ==================== */
+
+/* JavaScript adds this class when opening an inner screen.
+   Homepage sections disappear and the selected screen takes over. */
+
+body.app-screen-active #app {
+  width: min(1100px, calc(100% - 40px));
+  min-height: calc(100vh - 230px);
+  margin: 0 auto;
+}
+
+body.app-screen-active #home,
+body.app-screen-active .services-heading,
+body.app-screen-active .service-grid,
+body.app-screen-active .civic-features-section,
+body.app-screen-active .process-section,
+body.app-screen-active .citizen-help-section,
+body.app-screen-active .government-footer {
+  display: none !important;
+}
+
+body.app-screen-active .panel-wrap {
+  display: block;
+  min-height: calc(100vh - 240px);
+  margin: 0;
+  padding: 38px 0 55px;
+  scroll-margin-top: 65px;
+}
+
+body.app-screen-active .panel {
+  max-width: 800px;
+  min-height: 350px;
+  padding: 30px;
+  border-radius: 13px;
+  box-shadow: 0 3px 16px rgba(20,48,80,.045);
+}
+
+body.app-screen-active .panel.wide {
+  max-width: 1100px;
+}
+
+body.app-screen-active .panel h2 {
+  margin-top: 18px;
+}
+
+body.app-screen-active .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 /* ==================== FORMS ==================== */
@@ -798,7 +899,7 @@ button:disabled {
   color: var(--text);
   background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   outline: none;
 }
 
@@ -860,7 +961,7 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-/* ==================== PASSWORD SHOW / HIDE ==================== */
+/* ==================== PASSWORD CONTROLS ==================== */
 
 .password-wrapper,
 .password-field,
@@ -892,7 +993,7 @@ button:disabled {
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   background: transparent;
   color: var(--muted);
   font-size: 18px;
@@ -926,7 +1027,7 @@ button:disabled {
   max-height: 420px;
   object-fit: contain;
   object-position: center;
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface-soft);
 }
 
@@ -940,7 +1041,7 @@ button:disabled {
   min-width: 0;
 }
 
-/* ==================== LOCATION / GPS / MAP ==================== */
+/* ==================== LOCATION AND MAP ==================== */
 
 .location-section,
 .location-field {
@@ -984,7 +1085,7 @@ button:disabled {
   height: 320px;
   min-height: 260px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 11px;
   overflow: hidden;
   background: var(--surface-soft);
   z-index: 1;
@@ -1002,7 +1103,7 @@ button:disabled {
   overflow-y: auto;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 9px;
   box-shadow: var(--shadow);
   z-index: 20;
 }
@@ -1045,7 +1146,7 @@ button:disabled {
 .tracking-result {
   background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: 12px;
   padding: 22px;
   margin-top: 20px;
   overflow-wrap: anywhere;
@@ -1061,7 +1162,7 @@ button:disabled {
   background: var(--primary-light);
   color: var(--primary);
   padding: 15px;
-  border-radius: 10px;
+  border-radius: 9px;
   font-size: 20px;
   font-weight: 900;
   letter-spacing: 1px;
@@ -1074,7 +1175,7 @@ button:disabled {
   padding: 18px;
   background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 9px;
   color: var(--muted);
   margin-top: 15px;
   overflow-wrap: anywhere;
@@ -1150,7 +1251,7 @@ button:disabled {
   max-height: 600px;
   object-fit: contain;
   object-position: center;
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface-soft);
   margin: 0 auto;
 }
@@ -1182,7 +1283,7 @@ button:disabled {
   gap: 7px;
   padding: 15px;
   background: var(--primary-light);
-  border-radius: 11px;
+  border-radius: 10px;
   min-width: 0;
 }
 
@@ -1205,7 +1306,7 @@ button:disabled {
   padding: 20px;
   background: var(--surface-soft);
   border: 1px solid var(--border);
-  border-radius: 13px;
+  border-radius: 12px;
   overflow-wrap: anywhere;
 }
 
@@ -1302,7 +1403,7 @@ button:disabled {
   background: #172b43;
   color: #fff;
   padding: 12px 20px;
-  border-radius: 10px;
+  border-radius: 9px;
   box-shadow: var(--shadow);
   font-size: 13px;
   opacity: 0;
@@ -1335,14 +1436,13 @@ button:disabled {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .government-header {
+  .main-nav {
     padding-left: 20px;
     padding-right: 20px;
   }
 
-  .main-nav {
-    padding-left: 20px;
-    padding-right: 20px;
+  body.app-screen-active #app {
+    width: calc(100% - 32px);
   }
 }
 
@@ -1360,8 +1460,8 @@ button:disabled {
   }
 
   .government-header {
-    padding: 15px 13px;
-    min-height: 90px;
+    padding: 0;
+    min-height: 0;
   }
 
   .identity {
@@ -1402,7 +1502,13 @@ button:disabled {
   }
 
   .main-nav {
-    padding: 7px 13px;
+    padding: 6px 13px;
+    min-height: 48px;
+  }
+
+  .menu-toggle {
+    width: 39px;
+    height: 36px;
   }
 
   .nav-menu {
@@ -1412,10 +1518,8 @@ button:disabled {
 
   .welcome-banner {
     margin: 17px 0 35px;
-    border-radius: 14px;
+    border-radius: 13px;
   }
-
-  /* Keep the complete original image visible on mobile */
 
   .civic-main-image,
   .civic-features-image,
@@ -1502,7 +1606,7 @@ button:disabled {
 
   .panel {
     padding: 21px 16px;
-    border-radius: 14px;
+    border-radius: 12px;
   }
 
   .panel h2 {
@@ -1542,16 +1646,12 @@ button:disabled {
     padding: 30px 18px max(18px, env(safe-area-inset-bottom));
   }
 
-  /* Mobile password controls */
-
   .password-toggle,
   .password-eye,
   .toggle-password {
     width: 38px;
     height: 38px;
   }
-
-  /* Mobile map */
 
   .location-map,
   #locationMap,
@@ -1569,8 +1669,6 @@ button:disabled {
     width: 100%;
   }
 
-  /* Mobile photo visibility */
-
   .photo-preview img,
   .photo-preview-image,
   .tracking-photo img {
@@ -1579,6 +1677,25 @@ button:disabled {
     height: auto;
     max-height: 420px;
     object-fit: contain;
+  }
+
+  /* Inner app screens on mobile */
+
+  body.app-screen-active #app {
+    width: calc(100% - 24px);
+    min-height: calc(100vh - 170px);
+  }
+
+  body.app-screen-active .panel-wrap {
+    min-height: calc(100vh - 175px);
+    padding: 22px 0 35px;
+    margin: 0;
+  }
+
+  body.app-screen-active .panel {
+    min-height: 350px;
+    padding: 21px 16px;
+    border-radius: 12px;
   }
 }
 
@@ -1686,7 +1803,7 @@ button,
   user-select: none;
 }
 
-/* Prevent mobile horizontal overflow */
+/* Prevent horizontal overflow */
 
 .panel,
 .panel-wrap,
