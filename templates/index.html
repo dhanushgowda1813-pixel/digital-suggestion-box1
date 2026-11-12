@@ -62,22 +62,36 @@
 
   <nav class="main-nav" id="nav" aria-label="Main navigation">
 
-    <button class="navlink" data-view="home">Home</button>
-    <button class="navlink" data-view="submit">Submit Feedback</button>
-    <button class="navlink" data-view="track">Track Application</button>
-    <button class="navlink" data-view="login">Citizen Login</button>
-    <button class="navlink" data-view="admin-login">Administrator</button>
+    <button
+      class="menu-toggle"
+      id="menuToggle"
+      type="button"
+      aria-label="Open navigation menu"
+      aria-controls="navMenu"
+      aria-expanded="false">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
 
-    <label class="theme-picker">
-      <span>Theme</span>
-      <select id="themeSelect" aria-label="Choose website theme">
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
-        <option value="ocean">Ocean</option>
-        <option value="sunset">Sunset</option>
-        <option value="forest">Forest</option>
-      </select>
-    </label>
+    <div class="nav-menu" id="navMenu" hidden>
+      <button class="navlink" data-view="home">Home</button>
+      <button class="navlink" data-view="submit">Submit Feedback</button>
+      <button class="navlink" data-view="track">Track Application</button>
+      <button class="navlink" data-view="login">Citizen Login</button>
+      <button class="navlink" data-view="admin-login">Administrator</button>
+
+      <label class="theme-picker">
+        <span>Theme</span>
+        <select id="themeSelect" aria-label="Choose website theme">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+          <option value="ocean">Ocean</option>
+          <option value="sunset">Sunset</option>
+          <option value="forest">Forest</option>
+        </select>
+      </label>
+    </div>
 
   </nav>
 
