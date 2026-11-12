@@ -1,1868 +1,1173 @@
 
 /* =========================================================
    DIGITAL CITIZEN FEEDBACK SYSTEM
-   Complete responsive stylesheet
+   Complete Frontend JavaScript
+   Compatible with the existing Flask app.py and index.html
    ========================================================= */
 
-/* -------------------- THEME VARIABLES -------------------- */
+const appPanel = document.getElementById("panel");
+const toastEl = document.getElementById("toast");
 
-:root {
-  color-scheme: light;
-  --primary: #174b86;
-  --primary-dark: #103765;
-  --primary-light: #eaf2fb;
-  --accent: #d6a64a;
-  --background: #f4f7fb;
-  --surface: #ffffff;
-  --surface-soft: #f7f9fc;
-  --text: #172b43;
-  --muted: #64748b;
-  --border: #dce5ef;
-  --success: #16834b;
-  --danger: #c0392b;
-  --warning: #b7791f;
-  --shadow: 0 10px 30px rgba(20, 48, 80, 0.08);
-  --radius: 14px;
+const statuses = [
+  "Submitted",
+  "Under Review",
+  "In Progress",
+  "Resolved"
+];
+
+let currentView = "";
+let currentUser = null;
+let adminItems = [];
+
+/* -------------------- COMMON FUNCTIONS -------------------- */
+
+function toast(message) {
+  if (!toastEl) return;
+
+  toastEl.textContent = message;
+  toastEl.classList.add("show");
+
+  setTimeout(() => {
+    toastEl.classList.remove("show");
+  }, 3200);
 }
 
-body[data-theme="dark"] {
-  color-scheme: dark;
-  --primary: #80b7f4;
-  --primary-dark: #a7cefa;
-  --primary-light: #20354d;
-  --accent: #e7bd69;
-  --background: #101a28;
-  --surface: #192638;
-  --surface-soft: #213247;
-  --text: #e8f0fa;
-  --muted: #a9b8ca;
-  --border: #35475c;
-  --success: #59ce91;
-  --danger: #ff8077;
-  --warning: #f0c36d;
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
 }
 
-body[data-theme="ocean"] {
-  --primary: #087e91;
-  --primary-dark: #075d70;
-  --primary-light: #e0f5f7;
-  --accent: #e5a84b;
-  --background: #eff8fa;
-  --surface: #ffffff;
-  --surface-soft: #f0fafb;
-  --text: #153b47;
-  --muted: #607e86;
-  --border: #cfe5e9;
+async function api(url, options = {}) {
+  const headers = {
+    ...(options.body instanceof FormData
+      ? {}
+      : { "Content-Type": "application/json" }),
+    ...(options.headers || {})
+  };
+
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  let data = {};
+
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error || "Something went wrong.");
+  }
+
+  return data;
 }
 
-body[data-theme="sunset"] {
-  --primary: #a94d35;
-  --primary-dark: #813722;
-  --primary-light: #fff0e9;
-  --accent: #d9a044;
-  --background: #fff7f2;
-  --surface: #ffffff;
-  --surface-soft: #fff2eb;
-  --text: #432a23;
-  --muted: #856b61;
-  --border: #f0dcd1;
+function setLoading(button, loading, originalText = "Submit") {
+  if (!button) return;
+
+  button.disabled = loading;
+  button.textContent = loading ? "Please wait..." : originalText;
 }
 
-body[data-theme="forest"] {
-  --primary: #276849;
-  --primary-dark: #194b34;
-  --primary-light: #e7f4eb;
-  --accent: #d2aa50;
-  --background: #f1f7f1;
-  --surface: #ffffff;
-  --surface-soft: #f3f8f2;
-  --text: #203b2c;
-  --muted: #687d6e;
-  --border: #d7e6d8;
+function shell(title, lead, body, wide = false) {
+  if (!appPanel) return;
+
+  appPanel.innerHTML = `
+    <div class="panel ${wide ? "wide" : ""}">
+      <button class="back" data-view="home">
+        ← Back to home
+      </button>
+
+      <h2>${escapeHTML(title)}</h2>
+      <p class="lead">${escapeHTML(lead)}</p>
+
+      ${body}
+    </div>
+  `;
+
+  appPanel.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
 }
 
-/* -------------------- RESET & BASE -------------------- */
-
-* {
-  box-sizing: border-box;
+function formField(label, name, type = "text", required = true) {
+  return `
+    <label class="form-field">
+      <span>${escapeHTML(label)}</span>
+      <input
+        type="${type}"
+        name="${escapeHTML(name)}"
+        ${required ? "required" : ""}
+        autocomplete="off"
+      >
+    </label>
+  `;
 }
 
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 90px;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--background);
-  color: var(--text);
-  font-family: "Segoe UI", Arial, sans-serif;
-  font-size: 15px;
-  line-height: 1.6;
-  transition: background 0.2s ease, color 0.2s ease;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-img {
-  display: block;
-  max-width: 100%;
-}
-
-a {
-  color: var(--primary);
-  text-decoration: none;
-}
-
-a:hover {
-  text-decoration: underline;
-}
-
-::selection {
-  background: var(--primary-light);
-  color: var(--text);
-}
-
-/* -------------------- TOP STRIP -------------------- */
-
-.top-strip {
-  background: #17385f;
-  color: #ffffff;
-  padding: 7px 5%;
-  font-size: 11px;
-  letter-spacing: 0.6px;
-}
-
-.top-strip-inner {
-  max-width: 1250px;
-  margin: auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.tricolour {
-  display: flex;
-  height: 4px;
-}
-
-.tricolour span {
-  flex: 1;
-}
-
-.tricolour .saffron {
-  background: #ff9933;
-}
-
-.tricolour .white {
-  background: #ffffff;
-}
-
-.tricolour .green {
-  background: #138808;
-}
-
-/* -------------------- HEADER -------------------- */
-
-.government-header {
-  max-width: 1250px;
-  margin: auto;
-  padding: 18px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
-.identity {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  color: var(--text);
-  text-decoration: none;
-  min-width: 0;
-}
-
-.identity:hover {
-  text-decoration: none;
-}
-
-.civic-seal {
-  width: 70px;
-  height: 70px;
-  flex: 0 0 70px;
-  border: 2px solid var(--accent);
-  border-radius: 50%;
-  padding: 5px;
-  display: grid;
-  place-items: center;
-  background: var(--surface);
-}
-
-.seal-inner {
-  width: 100%;
-  height: 100%;
-  border: 1px solid var(--accent);
-  border-radius: 50%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.2;
-}
-
-.seal-symbol {
-  color: var(--accent);
-  font-size: 19px;
-}
-
-.seal-kannada {
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.seal-caption {
-  font-size: 5px;
-  letter-spacing: 0.4px;
-  color: var(--muted);
-}
-
-.identity-text {
-  min-width: 0;
-}
-
-.identity-kannada {
-  display: block;
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.identity-text h1 {
-  margin: 2px 0;
-  color: var(--primary-dark);
-  font-size: clamp(18px, 2.2vw, 26px);
-  line-height: 1.25;
-  font-weight: 800;
-}
-
-.identity-text p {
-  margin: 3px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.header-right {
-  display: flex;
-  flex-direction: column;
-  text-align: right;
-  gap: 3px;
-}
-
-.header-label {
-  color: var(--primary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1px;
-}
-
-.header-subtitle {
-  color: var(--muted);
-  font-size: 12px;
+function statusBadge(status) {
+  return `
+    <span class="status-badge">
+      ${escapeHTML(status)}
+    </span>
+  `;
 }
 
 /* -------------------- NAVIGATION -------------------- */
 
-.main-nav {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  min-height: 58px;
-  padding: 8px max(4%, calc((100% - 1250px) / 2));
-  display: flex;
-  align-items: center;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(20, 48, 80, 0.05);
-}
-
-.menu-toggle {
-  width: 44px;
-  height: 42px;
-  padding: 9px 10px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 5px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  background: var(--surface);
-  cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
-}
-
-.menu-toggle:hover,
-.menu-toggle:focus-visible {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  outline: none;
-}
-
-.menu-toggle span {
-  display: block;
-  width: 22px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--primary);
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.menu-toggle[aria-expanded="true"] span:first-child {
-  transform: translateY(7px) rotate(45deg);
-}
-
-.menu-toggle[aria-expanded="true"] span:nth-child(2) {
-  opacity: 0;
-}
-
-.menu-toggle[aria-expanded="true"] span:last-child {
-  transform: translateY(-7px) rotate(-45deg);
-}
-
-.nav-menu {
-  position: absolute;
-  top: calc(100% + 7px);
-  left: max(4%, calc((100% - 1250px) / 2));
-  min-width: 245px;
-  max-width: min(340px, 92vw);
-  padding: 9px;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-  box-shadow: 0 14px 35px rgba(20, 48, 80, 0.16);
-}
-
-.nav-menu[hidden] {
-  display: none;
-}
-
-.navlink {
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 650;
-  transition: 0.2s ease;
-}
-
-.navlink:hover,
-.navlink:focus-visible {
-  background: var(--primary-light);
-  color: var(--primary);
-  outline: none;
-}
-
-.theme-picker {
-  margin: 5px 0 0;
-  padding: 10px 12px 5px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  border-top: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.theme-picker select {
-  width: auto;
-  min-width: 105px;
-  padding: 7px 9px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--surface);
-  color: var(--text);
-}
-
-/* -------------------- MAIN CONTENT -------------------- */
-
-#app {
-  width: min(1200px, 92%);
-  margin: 28px auto 55px;
-}
-
-.section-eyebrow {
-  display: inline-block;
-  margin-bottom: 7px;
-  color: var(--primary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-}
-
-/* -------------------- HERO SECTION -------------------- */
-
-.welcome-banner {
-  display: grid;
-  grid-template-columns: 1.05fr 0.95fr;
-  align-items: center;
-  gap: 30px;
-  min-height: 390px;
-  padding: clamp(24px, 4vw, 48px);
-  overflow: hidden;
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
+function closeMenu() {
+  const menu = document.getElementById("navMenu");
+  const toggle = document.getElementById("menuToggle");
 
-.welcome-content {
-  position: relative;
-  z-index: 1;
-}
+  if (menu) menu.hidden = true;
 
-.welcome-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 11px;
-  border-radius: 30px;
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-label", "Open navigation menu");
+  }
 }
 
-.live-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  box-shadow: 0 0 0 4px rgba(22, 131, 75, 0.12);
-}
+function view(name) {
+  currentView = name;
 
-.welcome-content h2 {
-  margin: 18px 0 12px;
-  color: var(--text);
-  font-size: clamp(30px, 4.1vw, 48px);
-  line-height: 1.12;
-  letter-spacing: -1.5px;
-}
+  closeMenu();
 
-.welcome-content h2 span {
-  color: var(--primary);
-}
+  const views = {
+    home: homeView,
+    submit: submitView,
+    login: loginView,
+    register: registerView,
+    "admin-login": adminLoginView,
+    track: trackView,
+    admin: adminView
+  };
 
-.welcome-content > p {
-  max-width: 520px;
-  margin: 0;
-  color: var(--muted);
-  font-size: 15px;
-  line-height: 1.8;
+  (views[name] || homeView)();
 }
 
-.welcome-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 25px;
-}
+document.addEventListener("click", event => {
+  const button = event.target.closest("[data-view]");
 
-.government-button,
-.outline-button {
-  min-height: 44px;
-  padding: 11px 18px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 13px;
-  transition: transform 0.2s ease, background 0.2s ease;
-}
+  if (button) {
+    event.preventDefault();
+    view(button.dataset.view);
+  }
+});
 
-.government-button {
-  border: 1px solid var(--primary);
-  background: var(--primary);
-  color: #ffffff;
-}
+/* -------------------- HAMBURGER MENU -------------------- */
 
-.government-button:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-}
+const menuToggle = document.getElementById("menuToggle");
+const navMenu = document.getElementById("navMenu");
 
-.government-button span {
-  margin-left: 8px;
-}
+if (menuToggle && navMenu) {
+  menuToggle.addEventListener("click", () => {
+    const isOpen = !navMenu.hidden;
 
-.outline-button {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--primary);
-}
+    navMenu.hidden = isOpen;
 
-.outline-button:hover {
-  border-color: var(--primary);
-  background: var(--primary-light);
-}
+    menuToggle.setAttribute(
+      "aria-expanded",
+      String(!isOpen)
+    );
 
-.welcome-points {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 18px;
-  margin-top: 23px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
+    menuToggle.setAttribute(
+      "aria-label",
+      isOpen ? "Open navigation menu" : "Close navigation menu"
+    );
+  });
 }
 
-.welcome-points span::first-letter {
-  color: var(--success);
-}
+/* -------------------- THEME SELECTOR -------------------- */
 
-/* -------------------- HERO IMAGE -------------------- */
-
-.welcome-illustration {
-  position: relative;
-  min-width: 0;
-  padding: 14px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: var(--surface-soft);
-}
+const themeSelect = document.getElementById("themeSelect");
 
-.illustration-heading {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  margin-bottom: 12px;
-}
+function applyTheme(theme) {
+  const allowedThemes = [
+    "light",
+    "dark",
+    "ocean",
+    "sunset",
+    "forest"
+  ];
 
-.illustration-heading span {
-  color: var(--muted);
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1.1px;
-}
+  if (!allowedThemes.includes(theme)) {
+    theme = "light";
+  }
 
-.illustration-heading strong {
-  color: var(--primary);
-  font-size: 15px;
-}
+  document.body.dataset.theme = theme;
 
-.civic-main-image {
-  width: 100%;
-  height: 250px;
-  object-fit: contain;
-  object-position: center;
-  border-radius: 10px;
-}
+  if (themeSelect) {
+    themeSelect.value = theme;
+  }
 
-.illustration-caption {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  background: var(--primary-light);
+  try {
+    localStorage.setItem("citizenTheme", theme);
+  } catch (error) {
+    console.warn("Theme preference could not be saved.");
+  }
 }
 
-.illustration-caption strong {
-  color: var(--primary);
-  font-size: 10px;
-  letter-spacing: 0.8px;
+try {
+  const savedTheme = localStorage.getItem("citizenTheme");
+  applyTheme(savedTheme || "light");
+} catch {
+  applyTheme("light");
 }
 
-.illustration-caption span {
-  color: var(--muted);
-  font-size: 10px;
+if (themeSelect) {
+  themeSelect.addEventListener("change", event => {
+    applyTheme(event.target.value);
+  });
 }
 
-/* -------------------- SERVICES -------------------- */
-
-.services-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 20px;
-  margin: 48px 0 18px;
-}
+/* -------------------- HOME PAGE -------------------- */
 
-.services-heading h2,
-.process-heading h2 {
-  margin: 0;
-  color: var(--text);
-  font-size: 27px;
-  line-height: 1.25;
-}
+function homeView() {
+  if (appPanel) {
+    appPanel.innerHTML = "";
+  }
 
-.services-heading p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 13px;
-}
+  currentView = "home";
 
-.service-heading-note {
-  display: flex;
-  flex-direction: column;
-  color: var(--primary);
-  font-size: 14px;
-  font-weight: 800;
-  text-align: right;
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
 }
 
-.service-heading-note small {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 500;
-}
+/* -------------------- CITIZEN REGISTRATION -------------------- */
 
-.service-grid {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 15px;
-}
+function registerView() {
+  shell(
+    "Create Citizen Account",
+    "Register to submit feedback and participate in improving your community.",
+    `
+      <form id="registerForm" class="app-form">
 
-.service-card {
-  min-width: 0;
-  min-height: 205px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 19px;
-  text-align: left;
-  border: 1px solid var(--border);
-  border-radius: 13px;
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: 0 5px 18px rgba(20, 48, 80, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
+        ${formField("Full Name", "name")}
 
-.service-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--primary);
-  box-shadow: var(--shadow);
-}
+        ${formField("Email Address", "email", "email")}
 
-.service-icon {
-  width: 43px;
-  height: 43px;
-  display: grid;
-  place-items: center;
-  border-radius: 11px;
-  font-size: 22px;
-  font-weight: 700;
-}
+        ${formField("Password (minimum 8 characters)", "password", "password")}
 
-.submit-icon {
-  background: #eaf2fb;
-  color: #174b86;
-}
+        ${formField("Confirm Password", "confirmPassword", "password")}
 
-.track-icon {
-  background: #e9f7f2;
-  color: #16834b;
-}
+        <button type="submit" class="government-button">
+          Create Account
+        </button>
 
-.citizen-icon {
-  background: #fff4e7;
-  color: #b7791f;
-}
+        <p class="form-note">
+          Already registered?
+          <button type="button" class="text-button" data-view="login">
+            Login here
+          </button>
+        </p>
 
-.admin-icon {
-  background: #f1ebfa;
-  color: #7950a5;
-}
+        <div id="formMessage" class="form-message"></div>
 
-.service-card-content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 7px;
-}
+      </form>
+    `
+  );
 
-.service-card-content strong {
-  color: var(--text);
-  font-size: 14px;
-}
+  const form = document.getElementById("registerForm");
 
-.service-card-content small {
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
-}
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
 
-.service-link {
-  margin-top: 4px;
-  color: var(--primary);
-  font-size: 11px;
-  font-weight: 800;
-}
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
 
-/* -------------------- CIVIC FEATURES -------------------- */
-
-.civic-features-section {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: 35px;
-  margin-top: 50px;
-  padding: 32px;
-  border: 1px solid var(--border);
-  border-radius: 17px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
+    const name = formData.get("name").trim();
+    const email = formData.get("email").trim();
+    const password = formData.get("password");
+    const confirmPassword = formData.get("confirmPassword");
 
-.civic-features-content h2 {
-  margin: 0 0 12px;
-  color: var(--text);
-  font-size: 30px;
-  line-height: 1.2;
-}
+    if (password.length < 8) {
+      toast("Password must contain at least 8 characters.");
+      return;
+    }
 
-.civic-features-content p {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.8;
-}
+    if (password !== confirmPassword) {
+      toast("Passwords do not match.");
+      return;
+    }
 
-.civic-feature-points {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  margin-top: 18px;
-  color: var(--success);
-  font-size: 12px;
-  font-weight: 650;
-}
+    setLoading(button, true, "Create Account");
 
-.civic-features-image-wrap {
-  overflow: hidden;
-  border-radius: 13px;
-  background: var(--surface-soft);
-}
+    try {
+      await api("/api/register", {
+        method: "POST",
+        body: JSON.stringify({
+          name,
+          email,
+          password
+        })
+      });
 
-.civic-features-image {
-  width: 100%;
-  max-height: 310px;
-  object-fit: contain;
-}
+      toast("Account created successfully!");
 
-/* -------------------- PROCESS SECTION -------------------- */
+      await loadSession();
 
-.process-section {
-  margin-top: 50px;
-}
+      view("submit");
 
-.process-heading {
-  margin-bottom: 18px;
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      setLoading(button, false, "Create Account");
+    }
+  });
 }
 
-.process-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 15px;
-}
+/* -------------------- CITIZEN LOGIN -------------------- */
 
-.process-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  padding: 19px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface);
-}
+function loginView() {
+  shell(
+    "Citizen Login",
+    "Login to submit your feedback to the local administration.",
+    `
+      <form id="loginForm" class="app-form">
 
-.process-number {
-  flex: 0 0 42px;
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: 13px;
-  font-weight: 800;
-}
+        ${formField("Email Address", "email", "email")}
 
-.process-item strong {
-  color: var(--text);
-  font-size: 14px;
-}
+        ${formField("Password", "password", "password")}
 
-.process-item p {
-  margin: 5px 0 0;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.6;
-}
+        <button type="submit" class="government-button">
+          Login
+        </button>
 
-/* -------------------- CITIZEN HELP -------------------- */
-
-.citizen-help-section {
-  display: grid;
-  grid-template-columns: 0.8fr 1.2fr;
-  align-items: center;
-  gap: 25px;
-  margin-top: 25px;
-  padding: 25px;
-  border: 1px solid var(--border);
-  border-radius: 15px;
-  background: var(--primary-light);
-}
+        <p class="form-note">
+          Don't have an account?
+          <button type="button" class="text-button" data-view="register">
+            Create Account
+          </button>
+        </p>
 
-.citizen-help-image-wrap {
-  overflow: hidden;
-  border-radius: 10px;
-}
+        <div id="formMessage" class="form-message"></div>
 
-.citizen-help-image {
-  width: 100%;
-  max-height: 220px;
-  object-fit: contain;
-}
+      </form>
+    `
+  );
 
-.citizen-help-content h3 {
-  margin: 0 0 10px;
-  color: var(--text);
-  font-size: 24px;
-  line-height: 1.3;
-}
+  const form = document.getElementById("loginForm");
 
-.citizen-help-content p {
-  color: var(--muted);
-  font-size: 13px;
-  line-height: 1.7;
-}
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
 
-.citizen-help-content .government-button {
-  margin-top: 10px;
-}
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
 
-/* -------------------- DYNAMIC PANEL -------------------- */
+    setLoading(button, true, "Login");
 
-.panel-wrap {
-  margin-top: 35px;
-}
+    try {
+      await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({
+          email: formData.get("email").trim(),
+          password: formData.get("password")
+        })
+      });
 
-.panel,
-.app-panel,
-.form-panel,
-.auth-panel,
-.dashboard-panel {
-  width: 100%;
-  padding: 25px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
-  box-shadow: var(--shadow);
-}
+      toast("Login successful!");
 
-.panel h2,
-.app-panel h2,
-.form-panel h2,
-.auth-panel h2,
-.dashboard-panel h2 {
-  margin-top: 0;
-  color: var(--text);
-}
+      await loadSession();
 
-.panel p,
-.app-panel p,
-.form-panel p,
-.auth-panel p,
-.dashboard-panel p {
-  color: var(--muted);
-}
+      view("submit");
 
-.panel-heading,
-.form-heading {
-  margin-bottom: 20px;
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      setLoading(button, false, "Login");
+    }
+  });
 }
 
-.panel-heading h2,
-.form-heading h2 {
-  margin-bottom: 5px;
-  font-size: 23px;
-}
+/* -------------------- ADMIN LOGIN -------------------- */
 
-.panel-heading p,
-.form-heading p {
-  margin-top: 0;
-  font-size: 12px;
-}
+function adminLoginView() {
+  shell(
+    "Administrator Login",
+    "Authorized administrators can manage citizen feedback.",
+    `
+      <form id="adminLoginForm" class="app-form">
 
-/* -------------------- FORMS -------------------- */
+        ${formField("Admin Username", "username")}
 
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 15px;
-}
+        ${formField("Password", "password", "password")}
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-}
+        <button type="submit" class="government-button">
+          Administrator Login
+        </button>
 
-.form-group.full-width {
-  grid-column: 1 / -1;
-}
+        <div id="formMessage" class="form-message"></div>
 
-.form-group label {
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 700;
-}
+      </form>
+    `
+  );
 
-.form-group input,
-.form-group select,
-.form-group textarea,
-input,
-select,
-textarea {
-  max-width: 100%;
-}
+  const form = document.getElementById("adminLoginForm");
 
-.form-group input,
-.form-group select,
-.form-group textarea,
-.form-control {
-  width: 100%;
-  min-width: 0;
-  padding: 11px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
-  font-size: 13px;
-  outline: none;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
 
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus,
-.form-control:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-light);
-}
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
 
-.form-group textarea {
-  min-height: 110px;
-  resize: vertical;
-}
+    setLoading(button, true, "Administrator Login");
 
-.form-help {
-  color: var(--muted);
-  font-size: 10px;
-}
+    try {
+      await api("/api/admin-login", {
+        method: "POST",
+        body: JSON.stringify({
+          username: formData.get("username").trim(),
+          password: formData.get("password")
+        })
+      });
 
-.required {
-  color: var(--danger);
-}
+      toast("Administrator login successful!");
 
-.form-actions,
-.button-row,
-.action-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
-}
+      await loadSession();
 
-.btn {
-  min-height: 40px;
-  padding: 9px 16px;
-  border: 1px solid var(--primary);
-  border-radius: 8px;
-  background: var(--primary);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 750;
-  transition: background 0.2s ease, transform 0.2s ease;
-}
+      view("admin");
 
-.btn:hover {
-  background: var(--primary-dark);
-  transform: translateY(-1px);
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      setLoading(button, false, "Administrator Login");
+    }
+  });
 }
 
-.btn-secondary {
-  border-color: var(--border);
-  background: var(--surface);
-  color: var(--primary);
-}
+/* -------------------- SUBMIT FEEDBACK -------------------- */
 
-.btn-secondary:hover {
-  border-color: var(--primary);
-  background: var(--primary-light);
-}
+function submitView() {
+  if (!currentUser || currentUser.role !== "citizen") {
+    shell(
+      "Citizen Login Required",
+      "Please login to your citizen account before submitting feedback.",
+      `
+        <div class="action-buttons">
+          <button class="government-button" data-view="login">
+            Citizen Login
+          </button>
 
-.btn-danger {
-  border-color: var(--danger);
-  background: var(--danger);
-  color: #ffffff;
-}
+          <button class="outline-button" data-view="register">
+            Create Account
+          </button>
+        </div>
+      `
+    );
 
-.btn-success {
-  border-color: var(--success);
-  background: var(--success);
-  color: #ffffff;
-}
+    return;
+  }
 
-/* -------------------- AUTHENTICATION -------------------- */
+  shell(
+    "Submit Your Feedback",
+    "Describe the local issue and upload a photograph as evidence.",
+    `
+      <form id="suggestionForm" class="app-form">
 
-.auth-panel {
-  max-width: 520px;
-  margin: 0 auto;
-}
+        ${formField("Your Name (optional)", "name", "text", false)}
 
-.auth-panel form {
-  margin-top: 18px;
-}
+        <label class="form-field">
+          <span>Feedback Category *</span>
 
-.auth-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 10px;
-  margin-top: 15px;
-  font-size: 12px;
-}
+          <select name="category" required>
+            <option value="">Select a category</option>
+            <option value="Roads and Infrastructure">Roads and Infrastructure</option>
+            <option value="Water Supply">Water Supply</option>
+            <option value="Waste Management">Waste Management</option>
+            <option value="Street Lights">Street Lights</option>
+            <option value="Drainage">Drainage</option>
+            <option value="Public Facilities">Public Facilities</option>
+            <option value="Sanitation">Sanitation</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
 
-.auth-links button {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: var(--primary);
-  font-size: 12px;
-  font-weight: 700;
-}
+        ${formField("Area / Locality", "area")}
 
-/* -------------------- TRACKING -------------------- */
+        <label class="form-field">
+          <span>Describe Your Issue *</span>
 
-.tracking-form-row {
-  display: flex;
-  align-items: stretch;
-  gap: 10px;
-}
+          <textarea
+            name="description"
+            rows="5"
+            placeholder="Explain the problem or suggestion..."
+            required
+          ></textarea>
+        </label>
 
-.tracking-form-row input {
-  flex: 1;
-  min-width: 0;
-}
+        <label class="form-field">
+          <span>Upload Photo *</span>
 
-.tracking-submit {
-  flex: 0 0 auto;
-}
+          <input
+            type="file"
+            name="photo"
+            id="photoInput"
+            accept="image/*"
+            required
+          >
+        </label>
 
-.tracking-result,
-.status-result {
-  margin-top: 20px;
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface-soft);
-}
+        <div id="photoPreview" class="photo-preview"></div>
 
-.tracking-id {
-  display: inline-block;
-  padding: 7px 10px;
-  border-radius: 6px;
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: 13px;
-  font-weight: 800;
-  overflow-wrap: anywhere;
-}
+        <button type="submit" class="government-button">
+          Submit Feedback
+        </button>
 
-.status-badge {
-  display: inline-block;
-  padding: 5px 10px;
-  border-radius: 20px;
-  background: var(--primary-light);
-  color: var(--primary);
-  font-size: 10px;
-  font-weight: 800;
-}
+        <div id="formMessage" class="form-message"></div>
 
-.status-submitted {
-  background: #eaf2fb;
-  color: #174b86;
-}
+      </form>
+    `
+  );
 
-.status-review {
-  background: #fff4df;
-  color: #9b6715;
-}
+  const form = document.getElementById("suggestionForm");
+  const photoInput = document.getElementById("photoInput");
+  const preview = document.getElementById("photoPreview");
 
-.status-progress {
-  background: #e8f3ff;
-  color: #1764a5;
-}
+  photoInput.addEventListener("change", () => {
+    preview.innerHTML = "";
 
-.status-resolved {
-  background: #e7f6ec;
-  color: #16834b;
-}
+    const file = photoInput.files[0];
+
+    if (!file) return;
 
-/* -------------------- STATUS TIMELINE -------------------- */
-
-.status-timeline {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin: 20px 0;
-}
+    if (!file.type.startsWith("image/")) {
+      photoInput.value = "";
+      toast("Please select an image file.");
+      return;
+    }
 
-.timeline-step {
-  flex: 1 1 120px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 10px;
-  text-align: center;
-}
+    const image = document.createElement("img");
+    image.src = URL.createObjectURL(file);
+    image.alt = "Selected feedback photo";
+    image.style.maxWidth = "220px";
+    image.style.maxHeight = "180px";
+    image.style.borderRadius = "10px";
+
+    preview.appendChild(image);
+  });
 
-.timeline-step.active {
-  border-color: var(--success);
-  background: rgba(22, 131, 75, 0.08);
-  color: var(--success);
-  font-weight: 800;
-}
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
 
-/* -------------------- FILE UPLOAD -------------------- */
-
-.file-upload,
-.upload-box {
-  display: block;
-  padding: 18px;
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  background: var(--surface-soft);
-  text-align: center;
-}
+    if (!photoInput.files.length) {
+      toast("Please upload a photo.");
+      return;
+    }
+
+    const button = form.querySelector('[type="submit"]');
+    const formData = new FormData(form);
+
+    setLoading(button, true, "Submit Feedback");
+
+    try {
+      const result = await api("/api/suggestions", {
+        method: "POST",
+        body: formData
+      });
+
+      const trackingId = result.trackingId;
+
+      shell(
+        "Feedback Submitted Successfully!",
+        "Your feedback has been recorded. Save your tracking ID.",
+        `
+          <div class="success-panel">
+            <h3>Your Tracking ID</h3>
 
-.file-upload input,
-.upload-box input {
-  width: 100%;
-  margin-top: 10px;
-  font-size: 12px;
-}
+            <div class="tracking-code" id="newTrackingId">
+              ${escapeHTML(trackingId)}
+            </div>
 
-.image-preview,
-.preview-image {
-  max-width: 100%;
-  max-height: 220px;
-  margin-top: 12px;
-  border: 1px solid var(--border);
-  border-radius: 9px;
-  object-fit: contain;
-}
+            <button
+              type="button"
+              class="outline-button"
+              id="copyTrackingButton"
+            >
+              Copy Tracking ID
+            </button>
 
-/* -------------------- LOCATION / MAP -------------------- */
-
-.location-map,
-#mapPreview {
-  width: 100%;
-  min-height: 220px;
-  margin-top: 12px;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
+            <p>
+              Use this tracking ID to check the progress of your feedback.
+            </p>
 
-.map-preview iframe,
-.location-map iframe,
-#mapPreview iframe {
-  display: block;
-  width: 100%;
-  height: 220px;
-  border: 0;
+            <button
+              type="button"
+              class="government-button"
+              id="trackNewButton"
+            >
+              Track Your Feedback
+            </button>
+          </div>
+        `
+      );
+
+      document.getElementById("copyTrackingButton")
+        .addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(trackingId);
+            toast("Tracking ID copied!");
+          } catch {
+            toast("Please copy the tracking ID manually.");
+          }
+        });
+
+      document.getElementById("trackNewButton")
+        .addEventListener("click", () => {
+          view("track");
+          const input = document.getElementById("trackingInput");
+
+          if (input) {
+            input.value = trackingId;
+          }
+        });
+
+    } catch (error) {
+      toast(error.message);
+    } finally {
+      const currentButton = document.querySelector(
+        "#suggestionForm button[type='submit']"
+      );
+
+      if (currentButton) {
+        setLoading(currentButton, false, "Submit Feedback");
+      }
+    }
+  });
+}
+
+/* -------------------- TRACK FEEDBACK -------------------- */
+
+function trackView() {
+  shell(
+    "Track Your Feedback",
+    "Enter your tracking ID to check the current status of your application.",
+    `
+      <form id="trackForm" class="app-form">
+
+        <label class="form-field">
+          <span>Tracking ID</span>
+
+          <input
+            type="text"
+            id="trackingInput"
+            name="trackingId"
+            placeholder="Example: DSB-XXXXXXXXXX"
+            required
+          >
+        </label>
+
+        <button type="submit" class="government-button">
+          Track Application
+        </button>
+
+      </form>
+
+      <div id="trackingResult"></div>
+    `
+  );
+
+  const form = document.getElementById("trackForm");
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+
+    const input = document.getElementById("trackingInput");
+    const resultBox = document.getElementById("trackingResult");
+    const button = form.querySelector('[type="submit"]');
+
+    const trackingId = input.value.trim().toUpperCase();
+
+    if (!trackingId) {
+      toast("Please enter your tracking ID.");
+      return;
+    }
+
+    setLoading(button, true, "Track Application");
+    resultBox.innerHTML = "";
+
+    try {
+      const data = await api(
+        `/api/track/${encodeURIComponent(trackingId)}`
+      );
+
+      showTrackingResult(data, resultBox);
+
+    } catch (error) {
+      resultBox.innerHTML = `
+        <div class="error-panel">
+          ${escapeHTML(error.message)}
+        </div>
+      `;
+    } finally {
+      setLoading(button, false, "Track Application");
+    }
+  });
+}
+
+function showTrackingResult(data, container) {
+  const currentIndex = statuses.indexOf(data.status);
+
+  const timeline = statuses.map((status, index) => `
+    <div class="timeline-item ${index <= currentIndex ? "completed" : ""}">
+      <span class="timeline-dot"></span>
+      <div>
+        <strong>${escapeHTML(status)}</strong>
+      </div>
+    </div>
+  `).join("");
+
+  container.innerHTML = `
+    <div class="tracking-result">
+
+      <h3>Feedback Details</h3>
+
+      <p>
+        <strong>Tracking ID:</strong>
+        ${escapeHTML(data.tracking_id)}
+      </p>
+
+      <p>
+        <strong>Name:</strong>
+        ${escapeHTML(data.name)}
+      </p>
+
+      <p>
+        <strong>Category:</strong>
+        ${escapeHTML(data.category)}
+      </p>
+
+      <p>
+        <strong>Area:</strong>
+        ${escapeHTML(data.area)}
+      </p>
+
+      <p>
+        <strong>Description:</strong>
+        ${escapeHTML(data.description)}
+      </p>
+
+      <p>
+        <strong>Current Status:</strong>
+        ${statusBadge(data.status)}
+      </p>
+
+      <h3>Application Progress</h3>
+
+      <div class="status-timeline">
+        ${timeline}
+      </div>
+
+      <h3>Administrator Response</h3>
+
+      <p>
+        ${escapeHTML(data.admin_response || "No response has been added yet.")}
+      </p>
+
+      ${
+        data.photoUrl
+          ? `
+            <h3>Uploaded Photo</h3>
+            <img
+              src="${escapeHTML(data.photoUrl)}"
+              alt="Uploaded feedback"
+              class="tracking-photo"
+              style="max-width:100%;max-height:300px;border-radius:12px;"
+            >
+          `
+          : ""
+      }
+
+      <p class="small-text">
+        Last updated: ${escapeHTML(data.updated_at || "Not available")}
+      </p>
+
+    </div>
+  `;
 }
 
 /* -------------------- ADMIN DASHBOARD -------------------- */
 
-.admin-dashboard,
-.dashboard,
-.admin-content {
-  width: 100%;
+function adminView() {
+  if (!currentUser || currentUser.role !== "admin") {
+    shell(
+      "Administrator Login Required",
+      "Please login with administrator credentials.",
+      `
+        <button class="government-button" data-view="admin-login">
+          Administrator Login
+        </button>
+      `
+    );
+
+    return;
+  }
+
+  shell(
+    "Administrator Dashboard",
+    "Manage citizen feedback and update application progress.",
+    `
+      <div class="admin-toolbar">
+
+        <input
+          type="search"
+          id="adminSearch"
+          placeholder="Search by ID, name, area or category..."
+        >
+
+        <select id="adminStatusFilter">
+          <option value="">All Statuses</option>
+          ${statuses.map(status => `
+            <option value="${escapeHTML(status)}">
+              ${escapeHTML(status)}
+            </option>
+          `).join("")}
+        </select>
+
+        <button type="button" class="outline-button" id="refreshAdmin">
+          Refresh
+        </button>
+
+      </div>
+
+      <div id="adminStats" class="stats-grid"></div>
+
+      <div id="adminTable" class="admin-table-wrap">
+        Loading feedback...
+      </div>
+
+      <button type="button" class="outline-button" id="logoutButton">
+        Logout
+      </button>
+    `,
+    true
+  );
+
+  document.getElementById("adminSearch")
+    .addEventListener("input", renderAdminTable);
+
+  document.getElementById("adminStatusFilter")
+    .addEventListener("change", renderAdminTable);
+
+  document.getElementById("refreshAdmin")
+    .addEventListener("click", loadAdminData);
+
+  document.getElementById("logoutButton")
+    .addEventListener("click", logout);
+
+  loadAdminData();
 }
 
-.admin-stats,
-.stats-grid,
-.dashboard-stats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
-  margin: 20px 0;
-}
+async function loadAdminData() {
+  const table = document.getElementById("adminTable");
 
-.stat-card,
-.dashboard-stat {
-  min-width: 0;
-  padding: 17px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface-soft);
-}
+  if (table) {
+    table.textContent = "Loading feedback...";
+  }
 
-.stat-card strong,
-.dashboard-stat strong {
-  display: block;
-  color: var(--primary);
-  font-size: 25px;
-  line-height: 1.3;
-}
+  try {
+    const data = await api("/api/admin/suggestions");
 
-.stat-card span,
-.dashboard-stat span {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
-}
+    adminItems = data.items || [];
 
-.admin-toolbar,
-.dashboard-toolbar,
-.filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin: 18px 0;
-}
+    const stats = data.stats || {};
+    const statsBox = document.getElementById("adminStats");
 
-.admin-toolbar input,
-.dashboard-toolbar input,
-.filter-row input,
-.filter-row select {
-  flex: 1 1 180px;
-  min-width: 0;
-}
+    if (statsBox) {
+      const statNames = [
+        "Total",
+        "Submitted",
+        "Under Review",
+        "In Progress",
+        "Resolved"
+      ];
 
-.suggestion-list,
-.admin-list,
-.submission-list {
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-}
+      statsBox.innerHTML = statNames.map(name => `
+        <div class="stat-card">
+          <span>${escapeHTML(name)}</span>
+          <strong>${Number(stats[name] || 0)}</strong>
+        </div>
+      `).join("");
+    }
 
-.suggestion-card,
-.admin-card,
-.submission-card {
-  min-width: 0;
-  padding: 17px;
-  border: 1px solid var(--border);
-  border-radius: 11px;
-  background: var(--surface);
-}
+    renderAdminTable();
 
-.suggestion-card h3,
-.admin-card h3,
-.submission-card h3 {
-  margin: 0 0 7px;
-  font-size: 15px;
-  overflow-wrap: anywhere;
-}
-
-.suggestion-card p,
-.admin-card p,
-.submission-card p {
-  color: var(--muted);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.admin-card select {
-  max-width: 250px;
-}
-
-.admin-card textarea {
-  margin-top: 10px;
-}
-
-.admin-card img,
-.submission-card img {
-  max-width: 100%;
-  max-height: 200px;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-/* -------------------- TABLES -------------------- */
-
-.table-wrap {
-  width: 100%;
-  overflow-x: auto;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-th,
-td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-  vertical-align: top;
-}
-
-th {
-  background: var(--surface-soft);
-  color: var(--text);
-  font-weight: 800;
-}
-
-td {
-  color: var(--muted);
-}
-
-/* -------------------- FOOTER -------------------- */
-
-.government-footer {
-  margin-top: 60px;
-  padding: 30px max(4%, calc((100% - 1200px) / 2)) 18px;
-  background: #153758;
-  color: #ffffff;
-}
-
-.footer-main {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 25px;
-  padding-bottom: 25px;
-}
-
-.footer-brand,
-.footer-purpose {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.footer-brand strong,
-.footer-purpose strong {
-  color: #ffffff;
-  font-size: 15px;
-}
-
-.footer-brand span,
-.footer-purpose span {
-  color: #d0deec;
-  font-size: 12px;
-}
-
-.footer-brand small {
-  color: #b9cbdc;
-  font-size: 11px;
-}
-
-.footer-bottom {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px 20px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-  color: #c2d2e1;
-  font-size: 10px;
-}
-
-.disclaimer {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
-  color: #d0deec;
-  font-size: 10px;
-  text-align: center;
-}
-
-/* -------------------- TOAST -------------------- */
-
-#toast {
-  position: fixed;
-  right: 20px;
-  bottom: 20px;
-  z-index: 9999;
-  max-width: min(380px, calc(100% - 40px));
-  padding: 12px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 9px;
-  background: #183b5c;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 650;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(10px);
-  transition: 0.25s ease;
-  pointer-events: none;
-}
-
-#toast.show {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-}
-
-/* -------------------- EMPTY / ERROR / SUCCESS -------------------- */
-
-.empty-state,
-.no-results {
-  padding: 25px;
-  border: 1px dashed var(--border);
-  border-radius: 10px;
-  color: var(--muted);
-  text-align: center;
-  font-size: 13px;
-}
-
-.error,
-.error-message {
-  color: var(--danger);
-  font-size: 12px;
-}
-
-.success,
-.success-message {
-  color: var(--success);
-  font-size: 12px;
-}
-
-/* -------------------- ACCESSIBILITY -------------------- */
-
-button:focus-visible,
-a:focus-visible,
-select:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+  } catch (error) {
+    if (table) {
+      table.innerHTML = `
+        <div class="error-panel">
+          ${escapeHTML(error.message)}
+        </div>
+      `;
+    }
   }
 }
 
-/* -------------------- TABLET -------------------- */
+function renderAdminTable() {
+  const table = document.getElementById("adminTable");
 
-@media (max-width: 900px) {
+  if (!table) return;
 
-  .welcome-banner {
-    grid-template-columns: 1fr 0.9fr;
-    gap: 18px;
+  const search = (
+    document.getElementById("adminSearch")?.value || ""
+  ).toLowerCase();
+
+  const filter = (
+    document.getElementById("adminStatusFilter")?.value || ""
+  );
+
+  const filtered = adminItems.filter(item => {
+    const matchesSearch = [
+      item.tracking_id,
+      item.name,
+      item.area,
+      item.category
+    ].some(value =>
+      String(value || "").toLowerCase().includes(search)
+    );
+
+    const matchesStatus = !filter || item.status === filter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (!filtered.length) {
+    table.innerHTML = `
+      <div class="empty-state">
+        No feedback records found.
+      </div>
+    `;
+    return;
   }
 
-  .service-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+  table.innerHTML = `
+    <div class="admin-record-list">
 
-  .admin-stats,
-  .stats-grid,
-  .dashboard-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+      ${filtered.map(item => `
+        <article class="admin-record">
 
-  .header-right {
-    display: none;
-  }
+          <div class="admin-record-header">
+            <strong>${escapeHTML(item.tracking_id)}</strong>
+            ${statusBadge(item.status)}
+          </div>
 
+          <p>
+            <strong>Name:</strong>
+            ${escapeHTML(item.name)}
+          </p>
+
+          <p>
+            <strong>Category:</strong>
+            ${escapeHTML(item.category)}
+          </p>
+
+          <p>
+            <strong>Area:</strong>
+            ${escapeHTML(item.area)}
+          </p>
+
+          <p>
+            <strong>Description:</strong>
+            ${escapeHTML(item.description)}
+          </p>
+
+          ${
+            item.photoUrl
+              ? `
+                <img
+                  src="${escapeHTML(item.photoUrl)}"
+                  alt="Feedback photo"
+                  class="admin-photo"
+                  style="max-width:180px;max-height:140px;border-radius:10px;"
+                >
+              `
+              : ""
+          }
+
+          <label class="form-field">
+            <span>Update Status</span>
+
+            <select class="admin-status" data-id="${escapeHTML(item.tracking_id)}">
+              ${statuses.map(status => `
+                <option
+                  value="${escapeHTML(status)}"
+                  ${item.status === status ? "selected" : ""}
+                >
+                  ${escapeHTML(status)}
+                </option>
+              `).join("")}
+            </select>
+          </label>
+
+          <label class="form-field">
+            <span>Administrator Response</span>
+
+            <textarea
+              class="admin-response"
+              data-id="${escapeHTML(item.tracking_id)}"
+              rows="3"
+              placeholder="Write your response..."
+            >${escapeHTML(item.admin_response || "")}</textarea>
+          </label>
+
+          <div class="admin-actions">
+
+            <button
+              type="button"
+              class="government-button save-admin"
+              data-id="${escapeHTML(item.tracking_id)}"
+            >
+              Save Update
+            </button>
+
+            <button
+              type="button"
+              class="danger-button delete-admin"
+              data-id="${escapeHTML(item.tracking_id)}"
+            >
+              Delete
+            </button>
+
+          </div>
+
+        </article>
+      `).join("")}
+
+    </div>
+  `;
+
+  table.querySelectorAll(".save-admin").forEach(button => {
+    button.addEventListener("click", () => {
+      updateAdminRecord(button.dataset.id);
+    });
+  });
+
+  table.querySelectorAll(".delete-admin").forEach(button => {
+    button.addEventListener("click", () => {
+      deleteAdminRecord(button.dataset.id);
+    });
+  });
 }
 
-/* -------------------- MOBILE -------------------- */
+/* -------------------- ADMIN UPDATE -------------------- */
 
-@media (max-width: 650px) {
+async function updateAdminRecord(trackingId) {
+  const statusInput = document.querySelector(
+    `.admin-status[data-id="${CSS.escape(trackingId)}"]`
+  );
 
-  html {
-    scroll-padding-top: 110px;
+  const responseInput = document.querySelector(
+    `.admin-response[data-id="${CSS.escape(trackingId)}"]`
+  );
+
+  if (!statusInput || !responseInput) return;
+
+  try {
+    await api(
+      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: statusInput.value,
+          admin_response: responseInput.value
+        })
+      }
+    );
+
+    toast("Feedback updated successfully!");
+
+    await loadAdminData();
+
+  } catch (error) {
+    toast(error.message);
   }
-
-  body {
-    font-size: 14px;
-  }
-
-  .top-strip {
-    padding: 6px 12px;
-    font-size: 9px;
-  }
-
-  .top-strip-inner {
-    gap: 5px;
-  }
-
-  .top-strip-inner span:last-child {
-    text-align: right;
-  }
-
-  .government-header {
-    padding: 13px 14px;
-  }
-
-  .identity {
-    gap: 10px;
-  }
-
-  .civic-seal {
-    width: 53px;
-    height: 53px;
-    flex-basis: 53px;
-  }
-
-  .seal-symbol {
-    font-size: 15px;
-  }
-
-  .seal-kannada {
-    font-size: 7px;
-  }
-
-  .seal-caption {
-    font-size: 4px;
-  }
-
-  .identity-kannada {
-    font-size: 9px;
-  }
-
-  .identity-text h1 {
-    font-size: 16px;
-  }
-
-  .identity-text p {
-    font-size: 10px;
-  }
-
-  .main-nav {
-    position: sticky;
-    padding: 7px 13px;
-  }
-
-  .menu-toggle {
-    width: 42px;
-    height: 40px;
-  }
-
-  .nav-menu {
-    left: 12px;
-    top: calc(100% + 6px);
-    min-width: min(260px, calc(100vw - 24px));
-  }
-
-  .navlink {
-    padding: 10px 11px;
-    font-size: 12px;
-  }
-
-  .theme-picker {
-    width: auto;
-    justify-content: space-between;
-  }
-
-  #app {
-    width: calc(100% - 26px);
-    margin: 18px auto 35px;
-  }
-
-  .welcome-banner {
-    grid-template-columns: 1fr;
-    padding: 16px;
-    gap: 18px;
-    border-radius: 14px;
-  }
-
-  .welcome-illustration {
-    order: -1;
-    padding: 10px;
-  }
-
-  .welcome-content {
-    order: 0;
-  }
-
-  .welcome-content h2 {
-    font-size: 34px;
-    letter-spacing: -1px;
-  }
-
-  .welcome-content > p {
-    font-size: 13px;
-  }
-
-  .welcome-actions {
-    gap: 8px;
-  }
-
-  .government-button,
-  .outline-button {
-    padding: 10px 12px;
-    font-size: 11px;
-  }
-
-  .welcome-points {
-    gap: 8px 12px;
-    font-size: 10px;
-  }
-
-  .civic-main-image {
-    height: auto;
-    max-height: 230px;
-  }
-
-  .services-heading {
-    align-items: flex-start;
-    margin-top: 38px;
-  }
-
-  .services-heading h2,
-  .process-heading h2 {
-    font-size: 23px;
-  }
-
-  .service-heading-note {
-    display: none;
-  }
-
-  .service-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .service-card {
-    min-height: 190px;
-    padding: 14px;
-    gap: 11px;
-  }
-
-  .service-icon {
-    width: 37px;
-    height: 37px;
-    font-size: 20px;
-  }
-
-  .service-card-content strong {
-    font-size: 12px;
-  }
-
-  .service-card-content small {
-    font-size: 10px;
-  }
-
-  .service-link {
-    font-size: 10px;
-  }
-
-  .civic-features-section {
-    grid-template-columns: 1fr;
-    gap: 20px;
-    margin-top: 38px;
-    padding: 20px;
-  }
-
-  .civic-features-content h2 {
-    font-size: 24px;
-  }
-
-  .civic-features-image {
-    max-height: 230px;
-  }
-
-  .process-section {
-    margin-top: 38px;
-  }
-
-  .process-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .process-item {
-    padding: 15px;
-  }
-
-  .citizen-help-section {
-    grid-template-columns: 1fr;
-    padding: 17px;
-  }
-
-  .citizen-help-image {
-    max-height: 180px;
-  }
-
-  .citizen-help-content h3 {
-    font-size: 20px;
-  }
-
-  .panel-wrap {
-    margin-top: 25px;
-  }
-
-  .panel,
-  .app-panel,
-  .form-panel,
-  .auth-panel,
-  .dashboard-panel {
-    padding: 17px;
-    border-radius: 11px;
-  }
-
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 5px;
-  }
-
-  .tracking-form-row {
-    flex-direction: column;
-  }
-
-  .tracking-submit {
-    width: 100%;
-  }
-
-  .admin-stats,
-  .stats-grid,
-  .dashboard-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .stat-card,
-  .dashboard-stat {
-    padding: 12px;
-  }
-
-  .stat-card strong,
-  .dashboard-stat strong {
-    font-size: 21px;
-  }
-
-  .admin-toolbar,
-  .dashboard-toolbar,
-  .filter-row {
-    align-items: stretch;
-  }
-
-  .admin-toolbar > *,
-  .dashboard-toolbar > *,
-  .filter-row > * {
-    width: 100%;
-  }
-
-  .form-actions,
-  .button-row,
-  .action-buttons {
-    align-items: stretch;
-  }
-
-  .form-actions .btn,
-  .button-row .btn,
-  .action-buttons .btn {
-    flex: 1 1 auto;
-  }
-
-  .footer-main {
-    flex-direction: column;
-    gap: 18px;
-  }
-
-  .footer-bottom {
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .government-footer {
-    margin-top: 40px;
-    padding: 25px 18px 16px;
-  }
-
-  #toast {
-    right: 12px;
-    bottom: calc(12px + env(safe-area-inset-bottom));
-    max-width: calc(100% - 24px);
-  }
-
 }
 
-/* -------------------- SMALL PHONES -------------------- */
+/* -------------------- ADMIN DELETE -------------------- */
 
-@media (max-width: 380px) {
+async function deleteAdminRecord(trackingId) {
+  const confirmed = confirm(
+    `Are you sure you want to delete feedback ${trackingId}?`
+  );
 
-  .identity-text h1 {
-    font-size: 14px;
+  if (!confirmed) return;
+
+  try {
+    await api(
+      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    toast("Feedback deleted successfully!");
+
+    await loadAdminData();
+
+  } catch (error) {
+    toast(error.message);
   }
-
-  .identity-kannada {
-    font-size: 8px;
-  }
-
-  .welcome-content h2 {
-    font-size: 29px;
-  }
-
-  .service-card {
-    padding: 11px;
-  }
-
-  .service-card-content strong {
-    font-size: 11px;
-  }
-
-  .service-card-content small {
-    font-size: 9px;
-  }
-
-  .navlink {
-    padding: 9px 10px;
-    font-size: 11px;
-  }
-
 }
+
+/* -------------------- SESSION AND LOGOUT -------------------- */
+
+async function loadSession() {
+  try {
+    currentUser = await api("/api/session");
+
+    if (!currentUser.loggedIn) {
+      currentUser = null;
+    }
+
+    return currentUser;
+
+  } catch (error) {
+    currentUser = null;
+    return null;
+  }
+}
+
+async function logout() {
+  try {
+    await api("/api/logout", {
+      method: "POST"
+    });
+
+    currentUser = null;
+
+    toast("You have been logged out.");
+
+    view("home");
+
+  } catch (error) {
+    toast(error.message);
+  }
+}
+
+/* -------------------- SERVICE WORKER -------------------- */
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js")
+      .catch(error => {
+        console.warn("Service worker registration failed:", error);
+      });
+  });
+}
+
+/* -------------------- START APPLICATION -------------------- */
+
+(async function startApplication() {
+  await loadSession();
+
+  homeView();
+})();
