@@ -20,14 +20,6 @@ const statuses = [
   "Resolved"
 ];
 
-const allowedPhotoTypes = [
-  "image/png",
-  "image/jpeg",
-  "image/webp"
-];
-
-const MAX_PHOTO_SIZE = 5 * 1024 * 1024;
-
 let currentView = "";
 let currentUser = null;
 let adminItems = [];
@@ -541,14 +533,6 @@ function validatePhoto(file) {
     return "Please upload a photo.";
   }
 
-  if (!allowedPhotoTypes.includes(file.type)) {
-    return "Only PNG, JPG, JPEG and WEBP images are allowed.";
-  }
-
-  if (file.size > MAX_PHOTO_SIZE) {
-    return "Photo size must not exceed 5 MB.";
-  }
-
   return "";
 }
 
@@ -658,13 +642,12 @@ function submitView() {
             type="file"
             name="photo"
             id="photoInput"
-            accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp"
+            accept="image/*"
             required
           >
 
           <small class="form-note">
-            Accepted formats: PNG, JPG, JPEG and WEBP.
-            Maximum size: 5 MB.
+            Select a photo from your device or camera.
           </small>
 
         </label>
