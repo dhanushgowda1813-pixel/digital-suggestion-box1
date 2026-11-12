@@ -1,20 +1,40 @@
 
-from flask import Flask, render_template, request, jsonify, session, url_for
-from werkzeug.security import generate_password_hash, check_password_hash
+from flask import (
+    Flask,
+    render_template,
+    request,
+    jsonify,
+    session,
+    send_from_directory
+)
+
+from werkzeug.security import (
+    generate_password_hash,
+    check_password_hash
+)
+
 from werkzeug.utils import secure_filename
+
 from pathlib import Path
+from datetime import datetime
 import sqlite3
 import os
 import uuid
 
+
 # =========================================================
 # JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
-# Flask Backend
+# Complete Flask Backend
 # =========================================================
 
-BASE = Path(__file__).resolve().parent
-DB_PATH = BASE / "suggestions.db"
-UPLOAD_DIR = BASE / "static" / "uploads"
+
+# ==================== APP CONFIGURATION ====================
+
+BASE_DIR = Path(__file__).resolve().parent
+
+DB_PATH = BASE_DIR / "suggestions.db"
+
+UPLOAD_DIR = BASE_DIR / "static" / "uploads"
 
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -22,531 +42,583 @@ app = Flask(__name__)
 
 app.secret_key = os.environ.get(
     "DSB_SECRET_KEY",
-    "change-this-secret-before-deployment"
+    "janasetu-development-secret-change-before-production"
 )
 
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = (
-    os.environ.get("RENDER") is not None
+
+# No application-level 5 MB upload limit.
+# Actual upload limits may still be imposed by the hosting provider.
+
+
+# ==================== ADMIN CONFIGURATION ====================
+
+ADMIN_USERNAME = os.environ.get(
+    "ADMIN_USERNAME",
+    "admin"
 )
 
-# No application-level upload size limit.
-# Hosting providers may enforce their own limits.
+ADMIN_PASSWORD = os.environ.get(
+    "ADMIN_PASSWORD",
+    "ChangeMe123!"
+)
 
 
-# =========================================================
-# DATABASE CONNECTION
-# =========================================================
+# ==================== DATABASE ====================
 
-def db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def get_db():
+
+    connection = sqlite3.connect(DB_PATH)
+
+    connection.row_factory = sqlite3.Row
+
+    return connection
 
 
-# =========================================================
-# DATABASE INITIALIZATION
-# =========================================================
+def ensure_column(connection, table, column, definition):
 
-def init_db():
+    columns = [
+        row["name"]
+        for row in connection.execute(
+            f"PRAGMA table_info({table})"
+        ).fetchall()
+    ]
 
-    with db() as con:
+    if column not in columns:
 
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                email TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS suggestions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tracking_id TEXT UNIQUE NOT NULL,
-                user_id INTEGER,
-                name TEXT NOT NULL,
-                category TEXT NOT NULL,
-                area TEXT NOT NULL,
-                description TEXT NOT NULL,
-                photo TEXT NOT NULL,
-                status TEXT NOT NULL DEFAULT 'Submitted',
-                admin_response TEXT DEFAULT '',
-                latitude REAL,
-                longitude REAL,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY(user_id) REFERENCES users(id)
-            )
-        """)
-
-        columns = {
-            row["name"]
-            for row in con.execute(
-                "PRAGMA table_info(suggestions)"
-            ).fetchall()
-        }
-
-        if "latitude" not in columns:
-            con.execute(
-                "ALTER TABLE suggestions ADD COLUMN latitude REAL"
-            )
-
-        if "longitude" not in columns:
-            con.execute(
-                "ALTER TABLE suggestions ADD COLUMN longitude REAL"
-            )
-
-        con.execute("""
-            CREATE TABLE IF NOT EXISTS admins (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL
-            )
-        """)
-
-        username = os.environ.get(
-            "DSB_ADMIN_USER",
-            "admin"
+        connection.execute(
+            f"ALTER TABLE {table} ADD COLUMN {column} {definition}"
         )
 
-        password = os.environ.get(
-            "DSB_ADMIN_PASSWORD",
-            "ChangeMe123!"
+
+def initialize_database():
+
+    connection = get_db()
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            name TEXT,
+
+            email TEXT UNIQUE NOT NULL,
+
+            password_hash TEXT NOT NULL,
+
+            created_at TEXT
+
+        )
+    """)
+
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS suggestions (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            tracking_id TEXT UNIQUE NOT NULL,
+
+            user_id INTEGER,
+
+            name TEXT,
+
+            category TEXT NOT NULL,
+
+            area TEXT NOT NULL,
+
+            description TEXT NOT NULL,
+
+            photo TEXT NOT NULL,
+
+            status TEXT DEFAULT 'Submitted',
+
+            admin_response TEXT DEFAULT '',
+
+            latitude TEXT,
+
+            longitude TEXT,
+
+            created_at TEXT,
+
+            updated_at TEXT,
+
+            FOREIGN KEY(user_id) REFERENCES users(id)
+
+        )
+    """)
+
+    # Support databases created by earlier project versions.
+
+    user_columns = {
+        "name": "TEXT",
+        "email": "TEXT",
+        "password_hash": "TEXT",
+        "created_at": "TEXT"
+    }
+
+    suggestion_columns = {
+        "tracking_id": "TEXT",
+        "user_id": "INTEGER",
+        "name": "TEXT",
+        "category": "TEXT",
+        "area": "TEXT",
+        "description": "TEXT",
+        "photo": "TEXT",
+        "status": "TEXT DEFAULT 'Submitted'",
+        "admin_response": "TEXT DEFAULT ''",
+        "latitude": "TEXT",
+        "longitude": "TEXT",
+        "created_at": "TEXT",
+        "updated_at": "TEXT"
+    }
+
+    for column, definition in user_columns.items():
+
+        ensure_column(
+            connection,
+            "users",
+            column,
+            definition
         )
 
-        existing_admin = con.execute(
-            "SELECT id FROM admins WHERE username=?",
-            (username,)
-        ).fetchone()
+    for column, definition in suggestion_columns.items():
 
-        if not existing_admin:
-            con.execute(
-                """
-                INSERT INTO admins(username, password_hash)
-                VALUES(?, ?)
-                """,
-                (
-                    username,
-                    generate_password_hash(password)
-                )
-            )
+        ensure_column(
+            connection,
+            "suggestions",
+            column,
+            definition
+        )
+
+    connection.commit()
+
+    connection.close()
 
 
-# =========================================================
-# AUTHENTICATION HELPERS
-# =========================================================
+initialize_database()
+
+
+# ==================== COMMON HELPERS ====================
+
+def current_time():
+
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def json_error(message, status_code=400):
+
+    return jsonify({
+        "success": False,
+        "error": message
+    }), status_code
+
+
+def get_json_data():
+
+    return request.get_json(silent=True) or {}
+
 
 def is_admin():
+
     return session.get("role") == "admin"
 
 
 def is_citizen():
-    return (
-        session.get("role") == "citizen"
-        and session.get("user_id") is not None
+
+    return session.get("role") == "citizen"
+
+
+def suggestion_to_dict(row):
+
+    item = dict(row)
+
+    photo = item.get("photo")
+
+    photo_url = (
+        "/static/uploads/" + photo
+        if photo else None
     )
 
+    item["photoUrl"] = photo_url
 
-def row_to_dict(row):
-    return {
-        key: row[key]
-        for key in row.keys()
-    }
+    item["photo_url"] = photo_url
 
+    item["trackingId"] = item.get("tracking_id")
 
-def add_photo_url(item):
-    if item.get("photo"):
-        item["photoUrl"] = url_for(
-            "static",
-            filename="uploads/" + Path(item["photo"]).name
-        )
-        item.pop("photo", None)
-
-    # Compatibility with the frontend.
-    item["response"] = item.get("admin_response", "")
+    item["adminResponse"] = item.get("admin_response")
 
     return item
 
 
-# =========================================================
-# HOME PAGE
-# =========================================================
+# ==================== HOME PAGE ====================
 
 @app.route("/")
 def home():
+
     return render_template("index.html")
 
 
-# =========================================================
-# SERVICE WORKER
-# =========================================================
+# ==================== SERVICE WORKER ====================
 
-@app.get("/sw.js")
+@app.route("/sw.js")
 def service_worker():
-    return app.send_static_file("sw.js")
 
-
-# =========================================================
-# CURRENT SESSION
-# =========================================================
-
-@app.get("/api/session")
-def session_info():
-
-    return jsonify({
-        "loggedIn": is_citizen() or is_admin(),
-        "role": session.get("role"),
-        "name": session.get("name"),
-        "user": {
-            "name": session.get("name")
-        } if session.get("role") == "citizen" else None
-    })
-
-
-# =========================================================
-# CITIZEN REGISTRATION
-# =========================================================
-
-@app.post("/api/register")
-def register():
-
-    data = request.get_json(silent=True) or {}
-
-    name = str(data.get("name") or "").strip()
-    email = str(data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
-
-    # Name is optional.
-    if not name:
-        name = "Citizen"
-
-    if not email or "@" not in email:
-        return jsonify(
-            error="Please enter a valid email address."
-        ), 400
-
-    if not isinstance(password, str) or len(password) < 8:
-        return jsonify(
-            error="Password must contain at least 8 characters."
-        ), 400
-
-    try:
-
-        with db() as con:
-
-            cur = con.execute(
-                """
-                INSERT INTO users(name, email, password_hash)
-                VALUES(?, ?, ?)
-                """,
-                (
-                    name,
-                    email,
-                    generate_password_hash(password)
-                )
-            )
-
-            session.clear()
-
-            session.update(
-                user_id=cur.lastrowid,
-                role="citizen",
-                name=name
-            )
-
-    except sqlite3.IntegrityError:
-
-        return jsonify(
-            error="An account with this email already exists."
-        ), 409
-
-    return jsonify(
-        ok=True,
-        name=name
+    return send_from_directory(
+        BASE_DIR / "static",
+        "sw.js",
+        mimetype="application/javascript"
     )
 
 
-# =========================================================
-# CITIZEN LOGIN
-# =========================================================
+# ==================== SESSION CHECK ====================
 
-@app.post("/api/login")
+@app.route("/api/session", methods=["GET"])
+def check_session():
+
+    if is_admin():
+
+        return jsonify({
+
+            "success": True,
+
+            "logged_in": True,
+
+            "role": "admin",
+
+            "user": {
+                "name": "Admin",
+                "role": "admin"
+            }
+
+        })
+
+    if is_citizen():
+
+        user_id = session.get("user_id")
+
+        connection = get_db()
+
+        user = connection.execute(
+            "SELECT id, name, email FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+
+        connection.close()
+
+        if user:
+
+            return jsonify({
+
+                "success": True,
+
+                "logged_in": True,
+
+                "role": "citizen",
+
+                "user": dict(user)
+
+            })
+
+    session.clear()
+
+    return jsonify({
+
+        "success": True,
+
+        "logged_in": False,
+
+        "role": None,
+
+        "user": None
+
+    })
+
+
+# ==================== CITIZEN REGISTRATION ====================
+
+@app.route("/api/register", methods=["POST"])
+def register():
+
+    data = get_json_data()
+
+    name = (data.get("name") or "").strip()
+
+    email = (data.get("email") or "").strip().lower()
+
+    password = data.get("password") or ""
+
+    if not email or not password:
+
+        return json_error(
+            "Email and password are required."
+        )
+
+    if len(password) < 6:
+
+        return json_error(
+            "Password must contain at least 6 characters."
+        )
+
+    password_hash = generate_password_hash(password)
+
+    connection = get_db()
+
+    try:
+
+        connection.execute("""
+
+            INSERT INTO users (
+                name,
+                email,
+                password_hash,
+                created_at
+            )
+
+            VALUES (?, ?, ?, ?)
+
+        """, (
+            name or "Citizen",
+            email,
+            password_hash,
+            current_time()
+        ))
+
+        connection.commit()
+
+        return jsonify({
+
+            "success": True,
+
+            "message": "Registration successful."
+
+        }), 201
+
+    except sqlite3.IntegrityError:
+
+        return json_error(
+            "An account with this email already exists."
+        )
+
+    finally:
+
+        connection.close()
+
+
+# ==================== CITIZEN LOGIN ====================
+
+@app.route("/api/login", methods=["POST"])
 def login():
 
-    data = request.get_json(silent=True) or {}
+    data = get_json_data()
 
-    # Accept both frontend field names.
-    email = str(
-        data.get("email") or data.get("identity") or ""
+    email = (
+        data.get("email") or
+        data.get("identity") or ""
     ).strip().lower()
 
     password = data.get("password") or ""
 
-    if not email or not isinstance(password, str):
-        return jsonify(
-            error="Please enter your email and password."
-        ), 400
+    if not email or not password:
 
-    with db() as con:
+        return json_error(
+            "Please enter your email and password."
+        )
 
-        user = con.execute(
-            "SELECT * FROM users WHERE email=?",
-            (email,)
-        ).fetchone()
+    connection = get_db()
 
-    if not user or not check_password_hash(
+    user = connection.execute("""
+
+        SELECT *
+        FROM users
+        WHERE email = ?
+
+    """, (email,)).fetchone()
+
+    connection.close()
+
+    if not user:
+
+        return json_error(
+            "Invalid email or password.",
+            401
+        )
+
+    if not check_password_hash(
         user["password_hash"],
         password
     ):
 
-        return jsonify(
-            error="Email or password is incorrect."
-        ), 401
+        return json_error(
+            "Invalid email or password.",
+            401
+        )
 
     session.clear()
 
-    session.update(
-        user_id=user["id"],
-        role="citizen",
-        name=user["name"]
-    )
+    session["role"] = "citizen"
 
-    return jsonify(
-        ok=True,
-        user={
+    session["user_id"] = user["id"]
+
+    return jsonify({
+
+        "success": True,
+
+        "message": "Login successful.",
+
+        "role": "citizen",
+
+        "user": {
+            "id": user["id"],
             "name": user["name"],
             "email": user["email"]
         }
-    )
+
+    })
 
 
-# =========================================================
-# ADMIN LOGIN
-# =========================================================
+# ==================== ADMIN LOGIN ====================
 
-@app.post("/api/admin-login")
+@app.route("/api/admin-login", methods=["POST"])
 def admin_login():
 
-    data = request.get_json(silent=True) or {}
+    data = get_json_data()
 
-    username = str(data.get("username") or "").strip()
+    username = (data.get("username") or "").strip()
+
     password = data.get("password") or ""
 
-    if not username or not isinstance(password, str):
-        return jsonify(
-            error="Please enter your Admin username and password."
-        ), 400
-
-    with db() as con:
-
-        admin = con.execute(
-            "SELECT * FROM admins WHERE username=?",
-            (username,)
-        ).fetchone()
-
-    if not admin or not check_password_hash(
-        admin["password_hash"],
-        password
+    if (
+        username != ADMIN_USERNAME or
+        password != ADMIN_PASSWORD
     ):
 
-        return jsonify(
-            error="Admin username or password is incorrect."
-        ), 401
+        return json_error(
+            "Invalid admin username or password.",
+            401
+        )
 
     session.clear()
 
-    session.update(
-        role="admin",
-        name=admin["username"]
-    )
+    session["role"] = "admin"
 
-    return jsonify(
-        ok=True,
-        name=admin["username"]
-    )
+    return jsonify({
+
+        "success": True,
+
+        "message": "Admin login successful.",
+
+        "role": "admin"
+
+    })
 
 
-# =========================================================
-# LOGOUT
-# =========================================================
+# ==================== LOGOUT ====================
 
-@app.post("/api/logout")
+@app.route("/api/logout", methods=["POST"])
 def logout():
 
     session.clear()
 
-    return jsonify(ok=True)
+    return jsonify({
+
+        "success": True,
+
+        "message": "Logged out successfully."
+
+    })
 
 
-# =========================================================
-# CREATE CITIZEN SUGGESTION / COMPLAINT
-# =========================================================
+# ==================== SUBMIT FEEDBACK ====================
 
-@app.post("/api/suggestions")
-def create_suggestion():
+@app.route("/api/suggestions", methods=["POST"])
+def submit_suggestion():
 
-    if not is_citizen():
-        return jsonify(
-            error="Please log in as a citizen before submitting."
-        ), 401
+    category = (request.form.get("category") or "").strip()
+
+    area = (request.form.get("area") or "").strip()
+
+    description = (
+        request.form.get("description") or ""
+    ).strip()
+
+    name = (request.form.get("citizenName") or "").strip()
+
+    latitude = request.form.get("latitude") or None
+
+    longitude = request.form.get("longitude") or None
 
     photo = request.files.get("photo")
 
-    name = (
-        request.form.get("name", "").strip()
-        or session.get("name")
-        or "Anonymous citizen"
-    )
+    if not category or not area or not description:
 
-    category = request.form.get(
-        "category", ""
-    ).strip()
+        return json_error(
+            "Please fill in all required feedback details."
+        )
 
-    area = request.form.get(
-        "area", ""
-    ).strip()
+    if len(description) < 5:
 
-    description = request.form.get(
-        "description", ""
-    ).strip()
+        return json_error(
+            "Please provide a more detailed description."
+        )
 
-    latitude = request.form.get(
-        "latitude", ""
-    ).strip()
+    if not photo or not photo.filename:
 
-    longitude = request.form.get(
-        "longitude", ""
-    ).strip()
+        return json_error(
+            "Please upload a supporting photo."
+        )
 
-    # Validate optional coordinates.
-    try:
+    # Accept image formats supported by the browser.
+    # No fixed 5 MB application limit is imposed.
 
-        latitude = float(latitude) if latitude else None
-        longitude = float(longitude) if longitude else None
+    if not photo.mimetype or not photo.mimetype.startswith("image/"):
 
-        if latitude is not None and not -90 <= latitude <= 90:
-            raise ValueError()
+        return json_error(
+            "Please upload a valid image file."
+        )
 
-        if longitude is not None and not -180 <= longitude <= 180:
-            raise ValueError()
+    original_name = secure_filename(photo.filename)
 
-    except (ValueError, TypeError):
+    extension = Path(original_name).suffix.lower()
 
-        return jsonify(
-            error="Invalid location coordinates."
-        ), 400
+    if not extension:
+        extension = ".img"
 
-    # Photo is mandatory.
-    if not all([
-        photo,
-        photo.filename,
-        category,
-        area,
-        description
-    ]):
+    filename = str(uuid.uuid4()) + extension
 
-        return jsonify(
-            error="Category, area, description, and a photo are mandatory."
-        ), 400
-
-    # Accept image uploads without a PNG/JPG/WEBP-only whitelist.
-    # No application-level 5 MB limit is applied.
-    # The browser's image/* selector is not a security validation.
-
-    safe_original_name = secure_filename(photo.filename)
-
-    extension = Path(safe_original_name).suffix.lower()
-
-    if not extension or len(extension) > 20:
-        extension = ".upload"
-
-    filename = uuid.uuid4().hex + extension
     filepath = UPLOAD_DIR / filename
 
     try:
 
         photo.save(filepath)
 
-        if not filepath.exists() or filepath.stat().st_size == 0:
-            raise OSError("Empty uploaded file")
-
     except Exception:
 
-        filepath.unlink(missing_ok=True)
+        return json_error(
+            "Unable to save the uploaded photo.",
+            500
+        )
 
-        return jsonify(
-            error="Unable to save the uploaded photo. Please try again."
-        ), 500
+    tracking_id = "JAN-" + uuid.uuid4().hex[:10].upper()
 
-    tracking_id = "DSB-" + uuid.uuid4().hex[:10].upper()
+    user_id = (
+        session.get("user_id")
+        if is_citizen()
+        else None
+    )
+
+    timestamp = current_time()
+
+    connection = get_db()
 
     try:
 
-        with db() as con:
+        connection.execute("""
 
-            con.execute(
-                """
-                INSERT INTO suggestions(
-                    tracking_id,
-                    user_id,
-                    name,
-                    category,
-                    area,
-                    description,
-                    photo,
-                    latitude,
-                    longitude
-                )
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    tracking_id,
-                    session["user_id"],
-                    name,
-                    category,
-                    area,
-                    description,
-                    filename,
-                    latitude,
-                    longitude
-                )
-            )
+            INSERT INTO suggestions (
 
-    except Exception:
-
-        filepath.unlink(missing_ok=True)
-
-        app.logger.exception(
-            "Suggestion submission failed"
-        )
-
-        return jsonify(
-            error="Unable to submit your suggestion. Please try again."
-        ), 500
-
-    return jsonify(
-        ok=True,
-        trackingId=tracking_id
-    )
-
-
-# =========================================================
-# PUBLIC TRACKING
-# =========================================================
-
-@app.get("/api/track/<tracking_id>")
-def track(tracking_id):
-
-    with db() as con:
-
-        row = con.execute(
-            """
-            SELECT
                 tracking_id,
+                user_id,
                 name,
                 category,
                 area,
@@ -558,250 +630,384 @@ def track(tracking_id):
                 longitude,
                 created_at,
                 updated_at
-            FROM suggestions
-            WHERE tracking_id=?
-            """,
-            (tracking_id.strip().upper(),)
-        ).fetchone()
 
-    if not row:
-        return jsonify(
-            error="No suggestion found for this tracking ID."
-        ), 404
+            )
 
-    result = row_to_dict(row)
-    result = add_photo_url(result)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 
-    return jsonify(result)
+        """, (
+
+            tracking_id,
+            user_id,
+            name or "Citizen",
+            category,
+            area,
+            description,
+            filename,
+            "Submitted",
+            "",
+            latitude,
+            longitude,
+            timestamp,
+            timestamp
+
+        ))
+
+        connection.commit()
+
+    except Exception:
+
+        connection.close()
+
+        if filepath.exists():
+            filepath.unlink()
+
+        return json_error(
+            "Unable to submit feedback. Please try again.",
+            500
+        )
+
+    connection.close()
+
+    return jsonify({
+
+        "success": True,
+
+        "message": "Feedback submitted successfully.",
+
+        "tracking_id": tracking_id,
+
+        "trackingId": tracking_id,
+
+        "photoUrl": "/static/uploads/" + filename
+
+    }), 201
 
 
-# =========================================================
-# ADMIN DASHBOARD
-# =========================================================
+# ==================== PUBLIC FEEDBACK TRACKING ====================
 
-@app.get("/api/admin/suggestions")
-def admin_suggestions():
+@app.route("/api/track/<tracking_id>", methods=["GET"])
+def track_suggestion(tracking_id):
 
-    if not is_admin():
-        return jsonify(
-            error="Admin access required."
-        ), 403
+    connection = get_db()
 
-    status = request.args.get("status", "").strip()
-    search = request.args.get("q", "").strip()
+    row = connection.execute("""
 
-    sql = """
         SELECT *
         FROM suggestions
-        WHERE 1=1
-    """
+        WHERE tracking_id = ?
 
-    args = []
+    """, (tracking_id.strip().upper(),)).fetchone()
 
-    if status:
-        sql += " AND status=?"
-        args.append(status)
+    connection.close()
 
-    if search:
-        sql += """
-            AND (
-                tracking_id LIKE ?
-                OR name LIKE ?
-                OR area LIKE ?
-                OR category LIKE ?
-                OR description LIKE ?
-            )
-        """
+    if not row:
 
-        args += [f"%{search}%"] * 5
+        return json_error(
+            "No feedback found with this tracking ID.",
+            404
+        )
 
-    sql += " ORDER BY created_at DESC"
+    item = suggestion_to_dict(row)
 
-    with db() as con:
+    return jsonify({
 
-        rows = [
-            row_to_dict(row)
-            for row in con.execute(sql, args).fetchall()
-        ]
+        "success": True,
 
-        stats = {
-            current_status: con.execute(
-                """
-                SELECT COUNT(*)
-                FROM suggestions
-                WHERE status=?
-                """,
-                (current_status,)
-            ).fetchone()[0]
+        "suggestion": item,
 
-            for current_status in [
-                "Submitted",
-                "Under Review",
-                "In Progress",
-                "Resolved"
-            ]
-        }
+        **item
 
-        stats["Total"] = con.execute(
-            "SELECT COUNT(*) FROM suggestions"
-        ).fetchone()[0]
+    })
 
-    for row in rows:
-        add_photo_url(row)
 
-    # Return both capitalized and lowercase statistic keys.
-    frontend_stats = {
-        "Total": stats["Total"],
-        "Submitted": stats["Submitted"],
-        "Under Review": stats["Under Review"],
-        "In Progress": stats["In Progress"],
-        "Resolved": stats["Resolved"],
-        "total": stats["Total"],
-        "submitted": stats["Submitted"],
-        "underReview": stats["Under Review"],
-        "inProgress": stats["In Progress"],
-        "resolved": stats["Resolved"]
+# ==================== ADMIN / CITIZEN FEEDBACK LIST ====================
+
+@app.route("/api/admin/suggestions", methods=["GET"])
+def get_suggestions():
+
+    if not is_admin() and not is_citizen():
+
+        return json_error(
+            "Please login to view feedback.",
+            401
+        )
+
+    connection = get_db()
+
+    if is_admin():
+
+        rows = connection.execute("""
+
+            SELECT *
+            FROM suggestions
+            ORDER BY id DESC
+
+        """).fetchall()
+
+    else:
+
+        # Citizens can only view their own submissions.
+
+        rows = connection.execute("""
+
+            SELECT *
+            FROM suggestions
+            WHERE user_id = ?
+            ORDER BY id DESC
+
+        """, (session.get("user_id"),)).fetchall()
+
+    records = [
+        suggestion_to_dict(row)
+        for row in rows
+    ]
+
+    counts = {
+        "Submitted": 0,
+        "Under Review": 0,
+        "In Progress": 0,
+        "Resolved": 0
     }
 
-    return jsonify(
-        items=rows,
-        stats=frontend_stats
-    )
+    for item in records:
+
+        status = item.get("status") or "Submitted"
+
+        if status in counts:
+            counts[status] += 1
+
+    stats = {
+
+        "Total": len(records),
+
+        "Submitted": counts["Submitted"],
+
+        "Under Review": counts["Under Review"],
+
+        "In Progress": counts["In Progress"],
+
+        "Resolved": counts["Resolved"],
+
+        "total": len(records),
+
+        "submitted": counts["Submitted"],
+
+        "under_review": counts["Under Review"],
+
+        "in_progress": counts["In Progress"],
+
+        "resolved": counts["Resolved"]
+
+    }
+
+    connection.close()
+
+    return jsonify({
+
+        "success": True,
+
+        "suggestions": records,
+
+        "records": records,
+
+        "items": records,
+
+        "stats": stats
+
+    })
 
 
-# =========================================================
-# ADMIN UPDATE STATUS AND RESPONSE
-# =========================================================
+# ==================== UPDATE FEEDBACK ====================
 
-@app.patch("/api/admin/suggestions/<tracking_id>")
-def update_suggestion(tracking_id):
+@app.route(
+    "/api/admin/suggestions/<int:suggestion_id>",
+    methods=["PATCH"]
+)
+def update_suggestion(suggestion_id):
 
     if not is_admin():
-        return jsonify(
-            error="Admin access required."
-        ), 403
 
-    data = request.get_json(silent=True) or {}
+        return json_error(
+            "Admin access required.",
+            403
+        )
 
-    status = data.get("status", "")
+    data = get_json_data()
 
-    # Accept both frontend and backend response field names.
-    response = data.get(
-        "admin_response",
-        data.get("response", "")
-    )
+    status = (data.get("status") or "").strip()
 
-    if not isinstance(response, str):
-        return jsonify(
-            error="Invalid Admin response."
-        ), 400
+    admin_response = (
+        data.get("admin_response") or
+        data.get("response") or ""
+    ).strip()
 
-    response = response.strip()
-
-    valid_statuses = [
+    allowed_statuses = [
         "Submitted",
         "Under Review",
         "In Progress",
         "Resolved"
     ]
 
-    if status not in valid_statuses:
-        return jsonify(
-            error="Choose a valid status."
-        ), 400
+    if status not in allowed_statuses:
 
-    with db() as con:
-
-        cur = con.execute(
-            """
-            UPDATE suggestions
-            SET
-                status=?,
-                admin_response=?,
-                updated_at=CURRENT_TIMESTAMP
-            WHERE tracking_id=?
-            """,
-            (
-                status,
-                response,
-                tracking_id.strip().upper()
-            )
+        return json_error(
+            "Invalid feedback status."
         )
 
-    if not cur.rowcount:
-        return jsonify(
-            error="Suggestion not found."
-        ), 404
+    connection = get_db()
 
-    return jsonify(ok=True)
+    existing = connection.execute("""
+
+        SELECT id
+        FROM suggestions
+        WHERE id = ?
+
+    """, (suggestion_id,)).fetchone()
+
+    if not existing:
+
+        connection.close()
+
+        return json_error(
+            "Feedback record not found.",
+            404
+        )
+
+    connection.execute("""
+
+        UPDATE suggestions
+
+        SET
+            status = ?,
+            admin_response = ?,
+            updated_at = ?
+
+        WHERE id = ?
+
+    """, (
+
+        status,
+        admin_response,
+        current_time(),
+        suggestion_id
+
+    ))
+
+    connection.commit()
+
+    connection.close()
+
+    return jsonify({
+
+        "success": True,
+
+        "message": "Feedback updated successfully."
+
+    })
 
 
-# =========================================================
-# ADMIN DELETE SUGGESTION
-# =========================================================
+# ==================== DELETE FEEDBACK ====================
 
-@app.delete("/api/admin/suggestions/<tracking_id>")
-def delete_suggestion(tracking_id):
+@app.route(
+    "/api/admin/suggestions/<int:suggestion_id>",
+    methods=["DELETE"]
+)
+def delete_suggestion(suggestion_id):
 
     if not is_admin():
-        return jsonify(
-            error="Admin access required."
-        ), 403
 
-    with db() as con:
-
-        row = con.execute(
-            """
-            SELECT photo
-            FROM suggestions
-            WHERE tracking_id=?
-            """,
-            (tracking_id.strip().upper(),)
-        ).fetchone()
-
-        if not row:
-            return jsonify(
-                error="Suggestion not found."
-            ), 404
-
-        con.execute(
-            """
-            DELETE FROM suggestions
-            WHERE tracking_id=?
-            """,
-            (tracking_id.strip().upper(),)
+        return json_error(
+            "Admin access required.",
+            403
         )
 
-    try:
+    connection = get_db()
 
-        photo_path = UPLOAD_DIR / Path(row["photo"]).name
-        photo_path.unlink(missing_ok=True)
+    row = connection.execute("""
 
-    except OSError:
+        SELECT photo
+        FROM suggestions
+        WHERE id = ?
 
-        app.logger.warning(
-            "Unable to delete uploaded photo for %s",
-            tracking_id
+    """, (suggestion_id,)).fetchone()
+
+    if not row:
+
+        connection.close()
+
+        return json_error(
+            "Feedback record not found.",
+            404
         )
 
-    return jsonify(ok=True)
+    photo_filename = row["photo"]
+
+    connection.execute("""
+
+        DELETE FROM suggestions
+        WHERE id = ?
+
+    """, (suggestion_id,))
+
+    connection.commit()
+
+    connection.close()
+
+    if photo_filename:
+
+        photo_path = UPLOAD_DIR / Path(photo_filename).name
+
+        if photo_path.exists():
+
+            try:
+                photo_path.unlink()
+            except OSError:
+                pass
+
+    return jsonify({
+
+        "success": True,
+
+        "message": "Feedback deleted successfully."
+
+    })
 
 
-# =========================================================
-# INITIALIZE DATABASE
-# =========================================================
+# ==================== ERROR HANDLING ====================
 
-init_db()
+@app.errorhandler(404)
+def page_not_found(error):
+
+    if request.path.startswith("/api/"):
+
+        return json_error(
+            "Requested API endpoint was not found.",
+            404
+        )
+
+    return "Page not found.", 404
 
 
-# =========================================================
-# LOCAL DEVELOPMENT
-# =========================================================
+@app.errorhandler(500)
+def internal_server_error(error):
+
+    if request.path.startswith("/api/"):
+
+        return json_error(
+            "Internal server error. Please try again.",
+            500
+        )
+
+    return "Something went wrong.", 500
+
+
+# ==================== RUN APPLICATION ====================
 
 if __name__ == "__main__":
 
     app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=True
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 5000)),
+        debug=False
     )
