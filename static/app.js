@@ -200,11 +200,6 @@ function setPageLayout(showInnerPage) {
     appPanel.style.display = showInnerPage ? "" : "none";
   }
 
-  /*
-    Both classes are maintained for compatibility
-    with the application stylesheet.
-  */
-
   document.body.classList.toggle(
     "inner-page-active",
     showInnerPage
@@ -809,8 +804,6 @@ function adminLoginView() {
    LOCATION AND MAP FUNCTIONS
    ========================================================= */
 
-/* Destroy previous map */
-
 function destroyFeedbackMap() {
   if (autocompleteTimer) {
     clearTimeout(autocompleteTimer);
@@ -830,8 +823,6 @@ function destroyFeedbackMap() {
   locationRequestActive = false;
 }
 
-/* Update coordinates */
-
 function updateLocationCoordinates(latitude, longitude) {
   selectedLatitude = Number(latitude);
   selectedLongitude = Number(longitude);
@@ -848,8 +839,6 @@ function updateLocationCoordinates(latitude, longitude) {
   }
 }
 
-/* Location message */
-
 function locationMessage(message, isError = false) {
   const element = document.getElementById("locationMessage");
 
@@ -858,8 +847,6 @@ function locationMessage(message, isError = false) {
   element.textContent = message;
   element.classList.toggle("error", isError);
 }
-
-/* Reverse geocoding */
 
 async function reverseGeocode(latitude, longitude) {
   const url = new URL(
@@ -885,8 +872,6 @@ async function reverseGeocode(latitude, longitude) {
   return response.json();
 }
 
-/* Extract area name */
-
 function extractAreaName(result) {
   const address = result.address || {};
 
@@ -907,8 +892,6 @@ function extractAreaName(result) {
     result.display_name ||
     "";
 }
-
-/* Set selected map location */
 
 function setSelectedLocation(latitude, longitude, zoom = 16) {
   if (!feedbackMap) return;
@@ -970,8 +953,6 @@ function setSelectedLocation(latitude, longitude, zoom = 16) {
 
   feedbackMap.setView(position, zoom);
 }
-
-/* GPS current location */
 
 async function useCurrentLocation() {
   if (locationRequestActive) return;
@@ -1069,8 +1050,6 @@ async function useCurrentLocation() {
   );
 }
 
-/* Initialize map */
-
 function initializeFeedbackMap() {
   const mapElement = document.getElementById("feedbackMap");
 
@@ -1146,8 +1125,6 @@ function initializeFeedbackMap() {
   }, 250);
 }
 
-/* Search places */
-
 async function searchPlaces(query) {
   const url = new URL(
     "https://nominatim.openstreetmap.org/search"
@@ -1171,8 +1148,6 @@ async function searchPlaces(query) {
 
   return response.json();
 }
-
-/* Display place suggestions */
 
 function showPlaceSuggestions(results) {
   const suggestions = document.getElementById("areaSuggestions");
@@ -1223,8 +1198,6 @@ function showPlaceSuggestions(results) {
   suggestions.hidden = false;
 }
 
-/* Select suggested place */
-
 function selectSuggestedPlace(result) {
   const latitude = Number(result.lat);
   const longitude = Number(result.lon);
@@ -1258,8 +1231,6 @@ function selectSuggestedPlace(result) {
 
   locationMessage(`Selected location: ${area}`);
 }
-
-/* Area autocomplete */
 
 function initializePlaceAutocomplete() {
   const areaInput = document.getElementById("areaInput");
@@ -1357,8 +1328,6 @@ function initializePlaceAutocomplete() {
   });
 }
 
-/* Initialize location controls */
-
 function initializeLocationControls() {
   initializeFeedbackMap();
   initializePlaceAutocomplete();
@@ -1379,8 +1348,6 @@ function initializeLocationControls() {
    PHOTO UPLOAD AND FEEDBACK SUBMISSION
    ========================================================= */
 
-/* Photo validation */
-
 function validatePhoto(file) {
   if (!file) {
     return "Please upload a photo.";
@@ -1392,8 +1359,6 @@ function validatePhoto(file) {
 
   return "";
 }
-
-/* Submit feedback */
 
 function submitView() {
   if (!currentUser || currentUser.role !== "citizen") {
@@ -1754,7 +1719,7 @@ function trackView() {
             type="text"
             id="trackingInput"
             name="trackingId"
-            placeholder="Example: JAN-XXXXXXXXXX"
+            placeholder="Example: DSB-XXXXXXXXXX"
             required
           >
 
