@@ -226,14 +226,14 @@ a:hover {
 }
 
 .janasetu-banner-image {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  max-height: none;
-  margin: 0 auto;
-  object-fit: contain;
-  object-position: center;
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 auto !important;
+  object-fit: contain !important;
+  object-position: center !important;
 }
 
 /* Compatibility with previous banner class names */
