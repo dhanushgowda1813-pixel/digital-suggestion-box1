@@ -1,1627 +1,1009 @@
-
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
-   Separate Flask Pages - Complete Frontend JavaScript
-
-   Pages:
-   /              Home
-   /login         Citizen Login
-   /register      Citizen Registration
-   /admin-login   Admin Login
-   /submit        Submit Feedback
-   /track         Track Feedback
-   /admin         Admin Dashboard
-
-   Features:
-   - Citizen and Admin authentication
-   - Password visibility
-   - GPS current location
-   - OpenStreetMap and Leaflet
-   - Area and place autocomplete
-   - Feedback submission and photo preview
-   - Public tracking
-   - Admin dashboard
-   - Status updates and deletion
-   - Session and logout management
-   - Light and Dark themes
-   - PWA service worker
+   Multi-page Frontend JavaScript
    ========================================================= */
 
-"use strict";
+(() => {
+  "use strict";
 
-/* =========================================================
-   GLOBAL VARIABLES
-   ========================================================= */
+  const API = "";
+  const pageContent = document.getElementById("pageContent");
+  const page = pageContent?.dataset.page || "home";
+  const toastEl = document.getElementById("toast");
 
-const pageContent = document.getElementById("pageContent");
-const toastEl = document.getElementById("toast");
+  const STATUSES = [
+    "Submitted",
+    "Under Review",
+    "In Progress",
+    "Resolved"
+  ];
 
-const currentPage = pageContent?.dataset.page || "home";
+  let currentUser = null;
+  let adminItems = [];
+  let map = null;
+  let mapMarker = null;
+  let activePhotoURL = null;
+  let selectedLatitude = "";
+  let selectedLongitude = "";
+  let autocompleteTimer = null;
 
-const statuses = [
-  "Submitted",
-  "Under Review",
-  "In Progress",
-  "Resolved"
-];
+  /* -------------------- COMMON HELPERS -------------------- */
 
-let currentUser = null;
-let adminItems = [];
-let activePhotoURL = null;
+  const $ = (selector, root = document) =>
+    root.querySelector(selector);
 
-let feedbackMap = null;
-let feedbackMarker = null;
+  const $$ = (selector, root = document) =>
+    [...root.querySelectorAll(selector)];
 
-let selectedLatitude = null;
-let selectedLongitude = null;
-
-let autocompleteTimer = null;
-let autocompleteRequestId = 0;
-let lastSearchTime = 0;
-
-let locationRequestActive = false;
-let locationRequestId = 0;
-
-/* =========================================================
-   COMMON FUNCTIONS
-   ========================================================= */
-
-function toast(message) {
-  if (!toastEl) return;
-
-  toastEl.textContent = message;
-  toastEl.classList.add("show");
-
-  clearTimeout(toastEl.toastTimer);
-
-  toastEl.toastTimer = setTimeout(() => {
-    toastEl.classList.remove("show");
-  }, 3200);
-}
-
-function escapeHTML(value) {
-  return String(value ?? "").replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#039;"
-  })[char]);
-}
-
-function safeImageURL(value) {
-  const url = String(value || "").trim();
-
-  if (
-    url.startsWith("/") ||
-    url.startsWith("./") ||
-    url.startsWith("https://") ||
-    url.startsWith("http://")
-  ) {
-    return escapeHTML(url);
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[char]);
   }
 
-  return "";
-}
+  function showToast(message, type = "success") {
+    if (!toastEl) {
+      alert(message);
+      return;
+    }
 
-async function api(url, options = {}) {
-  const headers = {
-    ...(options.body instanceof FormData
-      ? {}
-      : { "Content-Type": "application/json" }),
-    ...(options.headers || {})
-  };
+    toastEl.textContent = message;
+    toastEl.className = `toast show ${type}`;
 
-  let response;
+    clearTimeout(showToast.timer);
 
-  try {
-    response = await fetch(url, {
-      ...options,
+    showToast.timer = setTimeout(() => {
+      toastEl.className = "toast";
+    }, 3500);
+  }
+
+  async function api(url, options = {}) {
+    const response = await fetch(API + url, {
       credentials: "same-origin",
-      headers
+      ...options,
+      headers: {
+        ...(options.body instanceof FormData
+          ? {}
+          : { "Content-Type": "application/json" }),
+        ...(options.headers || {})
+      }
     });
-  } catch {
-    throw new Error(
-      "Unable to connect. Please check your internet connection."
+
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+        data.error ||
+        `Request failed (${response.status})`
+      );
+    }
+
+    return data;
+  }
+
+  function setLoading(button, loading, loadingText = "Please wait...") {
+    if (!button) return;
+
+    if (loading) {
+      button.dataset.originalText = button.textContent;
+      button.disabled = true;
+      button.textContent = loadingText;
+    } else {
+      button.disabled = false;
+      button.textContent =
+        button.dataset.originalText || "Submit";
+    }
+  }
+
+  function formatDate(value) {
+    if (!value) return "Not available";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return date.toLocaleString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  }
+
+  function safeImageURL(url) {
+    if (!url) return "";
+
+    try {
+      const parsed = new URL(url, window.location.origin);
+
+      if (
+        parsed.protocol === "http:" ||
+        parsed.protocol === "https:"
+      ) {
+        return parsed.href;
+      }
+    } catch {
+      return "";
+    }
+
+    return "";
+  }
+
+  function navigate(url) {
+    window.location.href = url;
+  }
+
+  function getNextPage(defaultPage) {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+
+    if (next === "submit") return "/submit";
+
+    return defaultPage;
+  }
+
+  /* -------------------- THEME -------------------- */
+
+  function applyTheme(theme) {
+    const selected = theme === "dark" ? "dark" : "light";
+
+    document.body.dataset.theme = selected;
+
+    const selector = $("#themeSelect");
+
+    if (selector) {
+      selector.value = selected;
+    }
+
+    localStorage.setItem("citizenTheme", selected);
+  }
+
+  function initializeTheme() {
+    const saved = localStorage.getItem("citizenTheme") || "light";
+    applyTheme(saved);
+
+    $("#themeSelect")?.addEventListener("change", event => {
+      applyTheme(event.target.value);
+    });
+  }
+
+  /* -------------------- PASSWORD VISIBILITY -------------------- */
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest(".password-toggle");
+
+    if (!button) return;
+
+    const wrapper = button.closest(".password-field");
+    const input = wrapper?.querySelector("input");
+
+    if (!input) return;
+
+    const isPassword = input.type === "password";
+    input.type = isPassword ? "text" : "password";
+
+    button.textContent = isPassword ? "Hide" : "Show";
+    button.setAttribute(
+      "aria-label",
+      isPassword ? "Hide password" : "Show password"
     );
-  }
-
-  let data = {};
-
-  try {
-    data = await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      data.error || "Something went wrong. Please try again."
-    );
-  }
-
-  return data;
-}
-
-function setLoading(button, loading, originalText = "Submit") {
-  if (!button) return;
-
-  button.disabled = loading;
-  button.textContent = loading
-    ? "Please wait..."
-    : originalText;
-}
-
-function releasePhotoPreview() {
-  if (activePhotoURL) {
-    URL.revokeObjectURL(activePhotoURL);
-    activePhotoURL = null;
-  }
-}
-
-function scrollPageToTop() {
-  window.scrollTo({
-    top: 0,
-    behavior: "auto"
   });
-}
 
-/* =========================================================
-   AUTHENTICATION UI
-   ========================================================= */
+  /* -------------------- MOBILE NAVIGATION -------------------- */
 
-function updateAuthUI() {
-  const headerLogout = document.getElementById("logoutButton");
+  function initializeNavigation() {
+    const toggle = $("#menuToggle");
+    const menu = $("#navMenu");
 
-  if (headerLogout) {
-    headerLogout.hidden = !(
-      currentUser && currentUser.loggedIn
-    );
+    toggle?.addEventListener("click", () => {
+      const isOpen = menu?.classList.toggle("open");
+
+      toggle.setAttribute(
+        "aria-expanded",
+        String(Boolean(isOpen))
+      );
+    });
+
+    menu?.addEventListener("click", event => {
+      if (event.target.closest("a")) {
+        menu.classList.remove("open");
+        toggle?.setAttribute("aria-expanded", "false");
+      }
+    });
   }
-}
 
-/* =========================================================
-   INNER PAGE CONTENT
-   ========================================================= */
+  /* -------------------- SESSION -------------------- */
 
-/*
-   IMPORTANT:
+  async function loadSession() {
+    try {
+      const data = await api("/api/session");
 
-   The Flask template already displays:
-   - JANASETU banner
-   - Inner page heading
-   - Back to Home link
+      currentUser = data.user || null;
 
-   This function only inserts the page-specific content
-   inside #pageContent.
+      updateAuthenticationUI();
+      return data;
+    } catch {
+      currentUser = null;
+      updateAuthenticationUI();
+      return null;
+    }
+  }
 
-   It does NOT replace the entire page or header.
-*/
+  function updateAuthenticationUI() {
+    const logoutButton = $("#logoutButton");
 
-function shell(title, lead, body, wide = false) {
-  if (!pageContent) return;
+    if (logoutButton) {
+      logoutButton.hidden = !currentUser;
+    }
+  }
 
-  destroyFeedbackMap();
+  async function logout() {
+    try {
+      await api("/api/logout", {
+        method: "POST",
+        body: JSON.stringify({})
+      });
 
-  pageContent.innerHTML = `
-    <div class="panel ${wide ? "wide" : ""}">
-      ${body}
-    </div>
-  `;
+      currentUser = null;
+      showToast("Logged out successfully.");
+      navigate("/");
+    } catch (error) {
+      showToast(error.message, "error");
+    }
+  }
 
-  pageContent.dataset.page = currentPage;
+  $("#logoutButton")?.addEventListener("click", logout);
 
-  scrollPageToTop();
-}
+  /* =========================================================
+     REGISTRATION PAGE
+     ========================================================= */
 
-/* =========================================================
-   FORM FIELD GENERATOR
-   ========================================================= */
+  function renderRegisterPage() {
+    if (!pageContent) return;
 
-function formField(label, name, type = "text", required = true) {
-  const safeLabel = escapeHTML(label);
-  const safeName = escapeHTML(name);
-  const safeType = escapeHTML(type);
-
-  if (type === "password") {
-    return `
-      <label class="form-field">
-
-        <span>${safeLabel}</span>
-
-        <div class="password-field">
-
-          <input
-            type="password"
-            name="${safeName}"
-            autocomplete="current-password"
-            ${required ? "required" : ""}
-          >
-
-          <button
-            type="button"
-            class="password-toggle"
-            aria-label="Show password"
-            aria-pressed="false"
-            title="Show password"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              width="21"
-              height="21"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-
+    pageContent.innerHTML = `
+      <div class="app-panel auth-panel">
+        <div class="panel-heading">
+          <h2>Create Citizen Account</h2>
+          <p>Register to submit and track your feedback.</p>
         </div>
 
-      </label>
+        <form id="registerForm" class="app-form">
+          <div class="form-field">
+            <label for="registerName">Full Name</label>
+            <input
+              id="registerName"
+              name="name"
+              type="text"
+              placeholder="Enter your full name"
+              autocomplete="name"
+              required
+            >
+          </div>
+
+          <div class="form-field">
+            <label for="registerEmail">Email Address</label>
+            <input
+              id="registerEmail"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              autocomplete="email"
+              required
+            >
+          </div>
+
+          <div class="form-field">
+            <label for="registerPassword">Password</label>
+            <div class="password-field">
+              <input
+                id="registerPassword"
+                name="password"
+                type="password"
+                placeholder="Create a password"
+                autocomplete="new-password"
+                minlength="6"
+                required
+              >
+              <button type="button" class="password-toggle">Show</button>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="confirmPassword">Confirm Password</label>
+            <div class="password-field">
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                placeholder="Enter password again"
+                autocomplete="new-password"
+                required
+              >
+              <button type="button" class="password-toggle">Show</button>
+            </div>
+          </div>
+
+          <button class="primary-button" type="submit">
+            Create Account
+          </button>
+
+          <p class="form-note">
+            Already registered?
+            <a href="/login">Login here</a>
+          </p>
+        </form>
+      </div>
     `;
+
+    $("#registerForm")?.addEventListener("submit", handleRegister);
   }
 
-  const autocomplete = type === "email"
-    ? 'autocomplete="email"'
-    : 'autocomplete="off"';
-
-  return `
-    <label class="form-field">
-
-      <span>${safeLabel}</span>
-
-      <input
-        type="${safeType}"
-        name="${safeName}"
-        ${autocomplete}
-        ${required ? "required" : ""}
-      >
-
-    </label>
-  `;
-}
-
-/* =========================================================
-   STATUS BADGE
-   ========================================================= */
-
-function statusBadge(status) {
-  return `
-    <span class="status-badge">
-      ${escapeHTML(status)}
-    </span>
-  `;
-}
-
-/* =========================================================
-   PASSWORD VISIBILITY
-   ========================================================= */
-
-document.addEventListener("click", event => {
-  const toggle = event.target.closest(".password-toggle");
-
-  if (!toggle) return;
-
-  const wrapper = toggle.closest(".password-field");
-  const input = wrapper?.querySelector("input");
-
-  if (!input) return;
-
-  const showing = input.type === "password";
-
-  input.type = showing ? "text" : "password";
-
-  toggle.setAttribute(
-    "aria-label",
-    showing ? "Hide password" : "Show password"
-  );
-
-  toggle.setAttribute(
-    "aria-pressed",
-    String(showing)
-  );
-
-  toggle.title = showing ? "Hide password" : "Show password";
-
-  toggle.innerHTML = showing
-    ? `
-      <svg
-        viewBox="0 0 24 24"
-        width="21"
-        height="21"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M3 3l18 18"/>
-        <path d="M10.6 10.6a2 2 0 002.8 2.8"/>
-        <path d="M9.9 5.2A10.8 10.8 0 0112 5c6.4 0 10 7 10 7s-3.6 7-10 7-10-7-10-7 1.5-4 4.2-5.8"/>
-      </svg>
-    `
-    : `
-      <svg
-        viewBox="0 0 24 24"
-        width="21"
-        height="21"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/>
-        <circle cx="12" cy="12" r="3"/>
-      </svg>
-    `;
-});
-
-/* =========================================================
-   THEME SELECTOR
-   ONLY LIGHT AND DARK THEMES
-   ========================================================= */
-
-const themeSelect = document.getElementById("themeSelect");
-
-const allowedThemes = ["light", "dark"];
-
-function applyTheme(theme) {
-  const selectedTheme = allowedThemes.includes(theme)
-    ? theme
-    : "light";
-
-  document.body.dataset.theme = selectedTheme;
-
-  if (themeSelect) {
-    themeSelect.value = selectedTheme;
-  }
-
-  try {
-    localStorage.setItem("citizenTheme", selectedTheme);
-  } catch {
-    console.warn("Theme preference could not be saved.");
-  }
-}
-
-/* Restore saved theme on every page */
-
-try {
-  const savedTheme = localStorage.getItem("citizenTheme");
-
-  applyTheme(savedTheme || "light");
-
-} catch {
-  applyTheme("light");
-}
-
-/* Theme selector is present on the homepage */
-
-if (themeSelect) {
-  themeSelect.addEventListener("change", event => {
-    applyTheme(event.target.value);
-  });
-}
-
-/* =========================================================
-   HOME PAGE
-   ========================================================= */
-
-function homeView() {
-  destroyFeedbackMap();
-  releasePhotoPreview();
-
-  updateAuthUI();
-}
-
-/* =========================================================
-   CITIZEN REGISTRATION
-   ========================================================= */
-
-function registerView() {
-  if (!pageContent) return;
-
-  shell(
-    "Create Citizen Account",
-    "",
-    `
-      <form id="registerForm" class="app-form">
-
-        ${formField("Full Name", "name")}
-
-        ${formField("Email Address", "email", "email")}
-
-        ${formField(
-          "Password (minimum 8 characters)",
-          "password",
-          "password"
-        )}
-
-        ${formField(
-          "Confirm Password",
-          "confirmPassword",
-          "password"
-        )}
-
-        <button type="submit" class="government-button">
-          Create Account
-        </button>
-
-        <p class="form-note">
-          Already registered?
-
-          <a href="/login" class="text-button">
-            Login here
-          </a>
-        </p>
-
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  const form = document.getElementById("registerForm");
-
-  if (!form) return;
-
-  form.addEventListener("submit", async event => {
+  async function handleRegister(event) {
     event.preventDefault();
 
+    const form = event.currentTarget;
     const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
 
-    const name = String(formData.get("name") || "").trim();
-    const email = String(formData.get("email") || "").trim();
-    const password = String(formData.get("password") || "");
-    const confirmPassword = String(
-      formData.get("confirmPassword") || ""
-    );
-
-    if (!name || !email) {
-      toast("Please complete all required fields.");
-      return;
-    }
-
-    if (password.length < 8) {
-      toast("Password must contain at least 8 characters.");
-      return;
-    }
+    const name = $("#registerName").value.trim();
+    const email = $("#registerEmail").value.trim();
+    const password = $("#registerPassword").value;
+    const confirmPassword = $("#confirmPassword").value;
 
     if (password !== confirmPassword) {
-      toast("Passwords do not match.");
+      showToast("Passwords do not match.", "error");
       return;
     }
 
-    setLoading(button, true, "Create Account");
+    setLoading(button, true, "Creating account...");
 
     try {
       await api("/api/register", {
         method: "POST",
-        body: JSON.stringify({
-          name,
-          email,
-          password
-        })
+        body: JSON.stringify({ name, email, password })
       });
 
-      toast("Account created successfully!");
-
-      await loadSession();
-
-      window.location.href = "/submit";
-
+      showToast("Account created successfully.");
+      navigate("/login");
     } catch (error) {
-      toast(error.message);
-
+      showToast(error.message, "error");
     } finally {
-      if (button.isConnected) {
-        setLoading(button, false, "Create Account");
-      }
+      setLoading(button, false);
     }
-  });
-}
+  }
 
-/* =========================================================
-   CITIZEN LOGIN
-   ========================================================= */
+  /* =========================================================
+     CITIZEN LOGIN PAGE
+     ========================================================= */
 
-function loginView() {
-  if (!pageContent) return;
+  function renderLoginPage() {
+    if (!pageContent) return;
 
-  shell(
-    "Citizen Login",
-    "",
-    `
-      <form id="loginForm" class="app-form">
+    pageContent.innerHTML = `
+      <div class="app-panel auth-panel">
+        <div class="panel-heading">
+          <h2>Citizen Login</h2>
+          <p>Login to share your feedback with your community.</p>
+        </div>
 
-        ${formField("Email Address", "email", "email")}
+        <form id="loginForm" class="app-form">
+          <div class="form-field">
+            <label for="loginEmail">Email Address</label>
+            <input
+              id="loginEmail"
+              name="email"
+              type="email"
+              placeholder="Enter your registered email"
+              autocomplete="email"
+              required
+            >
+          </div>
 
-        ${formField("Password", "password", "password")}
+          <div class="form-field">
+            <label for="loginPassword">Password</label>
+            <div class="password-field">
+              <input
+                id="loginPassword"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+              >
+              <button type="button" class="password-toggle">Show</button>
+            </div>
+          </div>
 
-        <button type="submit" class="government-button">
-          Login
-        </button>
+          <button class="primary-button" type="submit">
+            Login
+          </button>
 
-        <p class="form-note">
-          Don't have an account?
+          <p class="form-note">
+            Don't have an account?
+            <a href="/register">Create an account</a>
+          </p>
+        </form>
+      </div>
+    `;
 
-          <a href="/register" class="text-button">
-            Create Account
-          </a>
-        </p>
+    $("#loginForm")?.addEventListener("submit", handleLogin);
+  }
 
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  const form = document.getElementById("loginForm");
-
-  if (!form) return;
-
-  form.addEventListener("submit", async event => {
+  async function handleLogin(event) {
     event.preventDefault();
 
+    const form = event.currentTarget;
     const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
 
-    setLoading(button, true, "Login");
+    const email = $("#loginEmail").value.trim();
+    const password = $("#loginPassword").value;
+
+    setLoading(button, true, "Logging in...");
 
     try {
       await api("/api/login", {
         method: "POST",
-        body: JSON.stringify({
-          email: String(formData.get("email") || "").trim(),
-          password: formData.get("password")
-        })
+        body: JSON.stringify({ email, password })
       });
 
-      toast("Login successful!");
-
-      await loadSession();
-
-      window.location.href = "/submit";
-
+      showToast("Login successful.");
+      navigate(getNextPage("/submit"));
     } catch (error) {
-      toast(error.message);
-
+      showToast(error.message, "error");
     } finally {
-      if (button.isConnected) {
-        setLoading(button, false, "Login");
-      }
+      setLoading(button, false);
     }
-  });
-}
+  }
 
-/* =========================================================
-   ADMIN LOGIN
-   ========================================================= */
+  /* =========================================================
+     ADMIN LOGIN PAGE
+     ========================================================= */
 
-function adminLoginView() {
-  if (!pageContent) return;
+  function renderAdminLoginPage() {
+    if (!pageContent) return;
 
-  shell(
-    "Administrator Login",
-    "",
-    `
-      <form id="adminLoginForm" class="app-form">
+    pageContent.innerHTML = `
+      <div class="app-panel auth-panel">
+        <div class="panel-heading">
+          <h2>Admin Login</h2>
+          <p>Authorized administrators can access the dashboard.</p>
+        </div>
 
-        ${formField("Admin Username", "username")}
+        <form id="adminLoginForm" class="app-form">
+          <div class="form-field">
+            <label for="adminUsername">Username</label>
+            <input
+              id="adminUsername"
+              name="username"
+              type="text"
+              placeholder="Enter admin username"
+              autocomplete="username"
+              required
+            >
+          </div>
 
-        ${formField("Password", "password", "password")}
+          <div class="form-field">
+            <label for="adminPassword">Password</label>
+            <div class="password-field">
+              <input
+                id="adminPassword"
+                name="password"
+                type="password"
+                placeholder="Enter admin password"
+                autocomplete="current-password"
+                required
+              >
+              <button type="button" class="password-toggle">Show</button>
+            </div>
+          </div>
 
-        <button type="submit" class="government-button">
-          Administrator Login
-        </button>
+          <button class="primary-button" type="submit">
+            Admin Login
+          </button>
+        </form>
+      </div>
+    `;
 
-        <div id="formMessage" class="form-message"></div>
+    $("#adminLoginForm")?.addEventListener(
+      "submit",
+      handleAdminLogin
+    );
+  }
 
-      </form>
-    `
-  );
-
-  const form = document.getElementById("adminLoginForm");
-
-  if (!form) return;
-
-  form.addEventListener("submit", async event => {
+  async function handleAdminLogin(event) {
     event.preventDefault();
 
+    const form = event.currentTarget;
     const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
 
-    setLoading(button, true, "Administrator Login");
+    const username = $("#adminUsername").value.trim();
+    const password = $("#adminPassword").value;
+
+    setLoading(button, true, "Verifying...");
 
     try {
       await api("/api/admin-login", {
         method: "POST",
-        body: JSON.stringify({
-          username: String(
-            formData.get("username") || ""
-          ).trim(),
-          password: formData.get("password")
-        })
+        body: JSON.stringify({ username, password })
       });
 
-      toast("Administrator login successful!");
-
-      await loadSession();
-
-      window.location.href = "/admin";
-
+      showToast("Admin login successful.");
+      navigate("/admin");
     } catch (error) {
-      toast(error.message);
-
+      showToast(error.message, "error");
     } finally {
-      if (button.isConnected) {
-        setLoading(button, false, "Administrator Login");
-      }
+      setLoading(button, false);
     }
-  });
-}
-
-/* =========================================================
-   LOCATION AND MAP FUNCTIONS
-   ========================================================= */
-
-function destroyFeedbackMap() {
-  if (autocompleteTimer) {
-    clearTimeout(autocompleteTimer);
-    autocompleteTimer = null;
   }
 
-  autocompleteRequestId++;
-
-  if (feedbackMap) {
-    feedbackMap.remove();
-    feedbackMap = null;
-    feedbackMarker = null;
-  }
-
-  selectedLatitude = null;
-  selectedLongitude = null;
-
-  locationRequestId++;
-  locationRequestActive = false;
-}
-
-function updateLocationCoordinates(latitude, longitude) {
-  selectedLatitude = Number(latitude);
-  selectedLongitude = Number(longitude);
-
-  const latInput = document.getElementById("latitudeInput");
-  const lngInput = document.getElementById("longitudeInput");
-
-  if (latInput) {
-    latInput.value = selectedLatitude;
-  }
-
-  if (lngInput) {
-    lngInput.value = selectedLongitude;
-  }
-}
-
-function locationMessage(message, isError = false) {
-  const element = document.getElementById("locationMessage");
-
-  if (!element) return;
-
-  element.textContent = message;
-  element.classList.toggle("error", isError);
-}
-
-async function reverseGeocode(latitude, longitude) {
-  const url = new URL(
-    "https://nominatim.openstreetmap.org/reverse"
-  );
-
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("lat", latitude);
-  url.searchParams.set("lon", longitude);
-  url.searchParams.set("zoom", "18");
-  url.searchParams.set("addressdetails", "1");
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      "Accept": "application/json"
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error("Unable to identify this location.");
-  }
-
-  return response.json();
-}
-
-function extractAreaName(result) {
-  const address = result.address || {};
-
-  const parts = [
-    address.neighbourhood,
-    address.suburb,
-    address.village,
-    address.town,
-    address.city_district,
-    address.city,
-    address.county,
-    address.state
-  ].filter(Boolean);
-
-  const uniqueParts = [...new Set(parts)];
-
-  return uniqueParts.slice(0, 3).join(", ") ||
-    result.display_name ||
-    "";
-}
-
-function setSelectedLocation(latitude, longitude, zoom = 16) {
-  if (!feedbackMap) return;
-
-  const position = [
-    Number(latitude),
-    Number(longitude)
-  ];
-
-  updateLocationCoordinates(
-    position[0],
-    position[1]
-  );
-
-  if (!feedbackMarker) {
-    feedbackMarker = L.marker(position, {
-      draggable: true
-    }).addTo(feedbackMap);
-
-    feedbackMarker.on("dragend", async () => {
-      const point = feedbackMarker.getLatLng();
-
-      updateLocationCoordinates(
-        point.lat,
-        point.lng
-      );
-
-      locationMessage("Updating selected map location...");
-
-      try {
-        const result = await reverseGeocode(
-          point.lat,
-          point.lng
-        );
-
-        const area = extractAreaName(result);
-        const areaInput = document.getElementById("areaInput");
-
-        if (areaInput && area) {
-          areaInput.value = area;
-        }
-
-        locationMessage(
-          area
-            ? `Selected location: ${area}`
-            : "Map location selected."
-        );
-
-      } catch {
-        locationMessage(
-          "Map location selected. Enter the area name manually."
-        );
-      }
-    });
-
-  } else {
-    feedbackMarker.setLatLng(position);
-  }
-
-  feedbackMap.setView(position, zoom);
-}
-
-async function useCurrentLocation() {
-  if (locationRequestActive) return;
-
-  if (!navigator.geolocation) {
-    const message =
-      "Location access is not supported by this browser or device.";
-
-    locationMessage(message, true);
-    toast(message);
-    return;
-  }
-
-  if (
-    window.isSecureContext === false &&
-    location.hostname !== "localhost" &&
-    location.hostname !== "127.0.0.1"
-  ) {
-    const message =
-      "Current location requires a secure HTTPS connection. Please open JANASETU using its HTTPS link.";
-
-    locationMessage(message, true);
-    toast(message);
-    return;
-  }
-
-  if (!feedbackMap) {
-    const message =
-      "The map is still loading. Please wait a moment and try again.";
-
-    locationMessage(message, true);
-    toast(message);
-    return;
-  }
-
-  const button = document.getElementById(
-    "currentLocationButton"
-  );
-
-  const requestId = ++locationRequestId;
-  const mapForRequest = feedbackMap;
-
-  locationRequestActive = true;
-
-  if (button) {
-    button.disabled = true;
-    button.textContent = "Getting location...";
-  }
-
-  locationMessage(
-    "Requesting permission to access your current location..."
-  );
-
-  const getPosition = options => new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(
-      resolve,
-      reject,
-      options
-    );
-  });
-
-  const finishRequest = () => {
-    if (requestId !== locationRequestId) return;
-
-    locationRequestActive = false;
-
-    if (button && button.isConnected) {
-      button.disabled = false;
-      button.textContent = "◎ Use Current Location";
-    }
-  };
-
-  try {
-    let position;
-
-    try {
-      position = await getPosition({
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 60000
-      });
-
-    } catch (firstError) {
-      if (firstError && firstError.code === 1) {
-        throw firstError;
-      }
-
-      locationMessage(
-        "Precise GPS is taking time. Trying an alternate location method..."
-      );
-
-      position = await getPosition({
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 300000
-      });
-    }
-
-    if (
-      requestId !== locationRequestId ||
-      feedbackMap !== mapForRequest
-    ) {
-      return;
-    }
-
-    const latitude = Number(position.coords.latitude);
-    const longitude = Number(position.coords.longitude);
-
-    if (
-      !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude) ||
-      latitude < -90 ||
-      latitude > 90 ||
-      longitude < -180 ||
-      longitude > 180
-    ) {
-      throw new Error(
-        "The device returned invalid location coordinates. Please try again."
-      );
-    }
-
-    setSelectedLocation(latitude, longitude, 17);
-
-    if (feedbackMap) {
-      setTimeout(() => {
-        if (feedbackMap === mapForRequest) {
-          feedbackMap.invalidateSize();
-        }
-      }, 150);
-    }
-
-    locationMessage(
-      "Location detected. Finding your area name..."
-    );
-
-    try {
-      const result = await reverseGeocode(
-        latitude,
-        longitude
-      );
-
-      if (requestId !== locationRequestId) return;
-
-      const area = extractAreaName(result);
-      const areaInput = document.getElementById("areaInput");
-
-      if (areaInput && area) {
-        areaInput.value = area;
-
-        areaInput.dispatchEvent(
-          new Event("change", { bubbles: true })
-        );
-      }
-
-      locationMessage(
-        area
-          ? `Current location detected: ${area}`
-          : "Your GPS location is selected. You can enter the area name manually."
-      );
-
-      toast(
-        area
-          ? "Current location detected successfully."
-          : "GPS coordinates detected successfully."
-      );
-
-    } catch {
-      if (requestId !== locationRequestId) return;
-
-      locationMessage(
-        "GPS coordinates detected. Area name lookup is unavailable; please enter your area name."
-      );
-
-      toast("Location detected. Please enter the area name.");
-    }
-
-  } catch (error) {
-    if (requestId !== locationRequestId) return;
-
-    let message =
-      "Unable to access your location. Please try again.";
-
-    if (error && error.code === 1) {
-      message =
-        "Location permission denied. Allow location access for this site in your browser settings, then try again.";
-
-    } else if (error && error.code === 2) {
-      message =
-        "Your device could not determine its location. Turn on device location services and try again.";
-
-    } else if (error && error.code === 3) {
-      message =
-        "Location request timed out. Check your GPS or internet connection and try again.";
-
-    } else if (error && error.message) {
-      message = error.message;
-    }
-
-    locationMessage(message, true);
-    toast(message);
-
-  } finally {
-    finishRequest();
-  }
-}
-
-function initializeFeedbackMap() {
-  const mapElement = document.getElementById("feedbackMap");
-
-  if (!mapElement) return;
-
-  if (typeof L === "undefined") {
-    locationMessage(
-      "Map library could not load. Check your internet connection.",
-      true
-    );
-
-    return;
-  }
-
-  if (feedbackMap) {
-    feedbackMap.remove();
-    feedbackMap = null;
-    feedbackMarker = null;
-  }
-
-  feedbackMap = L.map("feedbackMap", {
-    zoomControl: true,
-    scrollWheelZoom: true
-  }).setView([13.0827, 77.5877], 11);
-
-  L.tileLayer(
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
-    }
-  ).addTo(feedbackMap);
-
-  feedbackMap.on("click", async event => {
-    const latitude = event.latlng.lat;
-    const longitude = event.latlng.lng;
-
-    setSelectedLocation(latitude, longitude, 16);
-
-    locationMessage("Finding the selected area...");
-
-    try {
-      const result = await reverseGeocode(
-        latitude,
-        longitude
-      );
-
-      const area = extractAreaName(result);
-      const areaInput = document.getElementById("areaInput");
-
-      if (areaInput && area) {
-        areaInput.value = area;
-      }
-
-      locationMessage(
-        area
-          ? `Selected area: ${area}`
-          : "Map location selected."
-      );
-
-    } catch {
-      locationMessage(
-        "Location selected. Please enter the area name manually."
-      );
-    }
-  });
-
-  setTimeout(() => {
-    if (feedbackMap) {
-      feedbackMap.invalidateSize();
-    }
-  }, 250);
-}
-
-async function searchPlaces(query) {
-  const url = new URL(
-    "https://nominatim.openstreetmap.org/search"
-  );
-
-  url.searchParams.set("format", "jsonv2");
-  url.searchParams.set("q", query);
-  url.searchParams.set("limit", "6");
-  url.searchParams.set("addressdetails", "1");
-  url.searchParams.set("countrycodes", "in");
-
-  const response = await fetch(url.toString(), {
-    headers: {
-      "Accept": "application/json"
-    }
-  });
-
-  if (!response.ok) {
-    throw new Error(
-      "Place search is temporarily unavailable."
-    );
-  }
-
-  return response.json();
-}
-
-function showPlaceSuggestions(results) {
-  const suggestions = document.getElementById(
-    "areaSuggestions"
-  );
-
-  if (!suggestions) return;
-
-  suggestions.innerHTML = "";
-
-  if (!results.length) {
-    const empty = document.createElement("div");
-
-    empty.className = "place-no-results";
-    empty.textContent = "No matching places found.";
-
-    suggestions.appendChild(empty);
-    suggestions.hidden = false;
-
-    return;
-  }
-
-  results.forEach(result => {
-    const item = document.createElement("button");
-
-    item.type = "button";
-    item.className =
-      "place-suggestion location-suggestion";
-
-    const title = document.createElement("strong");
-
-    title.textContent =
-      extractAreaName(result) ||
-      result.name ||
-      "Selected place";
-
-    const description = document.createElement("small");
-
-    description.textContent = result.display_name || "";
-
-    item.appendChild(title);
-    item.appendChild(description);
-
-    item.addEventListener("click", () => {
-      selectSuggestedPlace(result);
-    });
-
-    suggestions.appendChild(item);
-  });
-
-  suggestions.hidden = false;
-}
-
-function selectSuggestedPlace(result) {
-  const latitude = Number(result.lat);
-  const longitude = Number(result.lon);
-
-  if (
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude)
-  ) {
-    toast("Unable to select this place.");
-    return;
-  }
-
-  const areaInput = document.getElementById("areaInput");
-  const suggestions = document.getElementById(
-    "areaSuggestions"
-  );
-
-  const area =
-    extractAreaName(result) ||
-    result.name ||
-    result.display_name;
-
-  if (areaInput) {
-    areaInput.value = area;
-  }
-
-  if (suggestions) {
-    suggestions.innerHTML = "";
-    suggestions.hidden = true;
-  }
-
-  setSelectedLocation(latitude, longitude, 16);
-
-  locationMessage(`Selected location: ${area}`);
-}
-
-function initializePlaceAutocomplete() {
-  const areaInput = document.getElementById("areaInput");
-  const suggestions = document.getElementById(
-    "areaSuggestions"
-  );
-
-  if (!areaInput || !suggestions) return;
-
-  areaInput.addEventListener("input", () => {
-    const query = areaInput.value.trim();
-    const requestId = ++autocompleteRequestId;
-
-    if (autocompleteTimer) {
-      clearTimeout(autocompleteTimer);
-    }
-
-    suggestions.innerHTML = "";
-    suggestions.hidden = true;
-
-    selectedLatitude = null;
-    selectedLongitude = null;
-
-    const latInput = document.getElementById("latitudeInput");
-    const lngInput = document.getElementById("longitudeInput");
-
-    if (latInput) latInput.value = "";
-    if (lngInput) lngInput.value = "";
-
-    if (query.length < 3) return;
-
-    autocompleteTimer = setTimeout(async () => {
-      try {
-        const now = Date.now();
-
-        const wait = Math.max(
-          0,
-          1100 - (now - lastSearchTime)
-        );
-
-        await new Promise(resolve => {
-          setTimeout(resolve, wait);
-        });
-
-        if (
-          requestId !== autocompleteRequestId ||
-          areaInput.value.trim() !== query
-        ) {
-          return;
-        }
-
-        lastSearchTime = Date.now();
-
-        const results = await searchPlaces(query);
-
-        if (
-          requestId !== autocompleteRequestId ||
-          areaInput.value.trim() !== query
-        ) {
-          return;
-        }
-
-        showPlaceSuggestions(results);
-
-      } catch {
-        if (
-          requestId === autocompleteRequestId &&
-          areaInput.value.trim() === query
-        ) {
-          suggestions.innerHTML = "";
-
-          const message = document.createElement("div");
-
-          message.className = "place-no-results";
-
-          message.textContent =
-            "Place search unavailable. You can enter the area manually.";
-
-          suggestions.appendChild(message);
-          suggestions.hidden = false;
-        }
-      }
-    }, 750);
-  });
-
-  areaInput.addEventListener("focus", () => {
-    if (
-      suggestions.children.length > 0 &&
-      areaInput.value.trim().length >= 3
-    ) {
-      suggestions.hidden = false;
-    }
-  });
-
-  document.addEventListener("click", event => {
-    if (!event.target.closest(".location-search-wrap")) {
-      suggestions.hidden = true;
-    }
-  });
-}
-
-function initializeLocationControls() {
-  initializeFeedbackMap();
-  initializePlaceAutocomplete();
-
-  const currentLocationButton = document.getElementById(
-    "currentLocationButton"
-  );
-
-  if (currentLocationButton) {
-    currentLocationButton.addEventListener(
-      "click",
-      useCurrentLocation
-    );
-  }
-}
-
-/* =========================================================
-   PHOTO UPLOAD AND FEEDBACK SUBMISSION
-   ========================================================= */
-
-function validatePhoto(file) {
-  if (!file) {
-    return "Please upload a photo.";
-  }
-
-  if (file.type && !file.type.startsWith("image/")) {
-    return "Please select an image file.";
-  }
-
-  return "";
-}
-
-function submitView() {
-  if (!currentUser || currentUser.role !== "citizen") {
-    if (pageContent) {
-      pageContent.innerHTML = `
-        <div class="panel">
-
-          <div class="empty-state">
-            <h3>Citizen Login Required</h3>
-
-            <p>
-              Please login to your citizen account before submitting feedback.
-            </p>
-
-            <div class="action-buttons">
-
-              <a
-                href="/login"
-                class="government-button"
-              >
-                Citizen Login
-              </a>
-
-              <a
-                href="/register"
-                class="outline-button"
-              >
-                Create Account
-              </a>
-
-            </div>
-
+  /* =========================================================
+     SUBMIT FEEDBACK PAGE
+     ========================================================= */
+
+  function renderSubmitPage() {
+    if (!pageContent) return;
+
+    pageContent.innerHTML = `
+      <div class="app-panel form-panel">
+        <div class="panel-heading">
+          <h2>Submit Your Feedback</h2>
+          <p>
+            Share a suggestion or report an issue in your community.
+          </p>
+        </div>
+
+        <form id="suggestionForm" class="app-form">
+
+          <div class="form-field">
+            <label for="citizenName">Your Name</label>
+            <input
+              id="citizenName"
+              name="name"
+              type="text"
+              placeholder="Enter your name (optional)"
+              autocomplete="name"
+            >
           </div>
 
-        </div>
-      `;
-    }
+          <div class="form-field">
+            <label for="categoryInput">Feedback Category</label>
+            <select id="categoryInput" name="category" required>
+              <option value="">Select a category</option>
+              <option value="Roads and Transport">Roads and Transport</option>
+              <option value="Water Supply">Water Supply</option>
+              <option value="Street Lights">Street Lights</option>
+              <option value="Sanitation and Cleanliness">Sanitation and Cleanliness</option>
+              <option value="Drainage">Drainage</option>
+              <option value="Public Facilities">Public Facilities</option>
+              <option value="Environment">Environment</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
 
-    return;
-  }
-
-  shell(
-    "Submit Your Feedback",
-    "",
-    `
-      <form id="suggestionForm" class="app-form">
-
-        ${formField(
-          "Your Name (Optional)",
-          "name",
-          "text",
-          false
-        )}
-
-        <label class="form-field">
-
-          <span>Feedback Category *</span>
-
-          <select name="category" required>
-
-            <option value="">Select a category</option>
-            <option value="Roads and Infrastructure">Roads and Infrastructure</option>
-            <option value="Water Supply">Water Supply</option>
-            <option value="Waste Management">Waste Management</option>
-            <option value="Street Lights">Street Lights</option>
-            <option value="Drainage">Drainage</option>
-            <option value="Public Facilities">Public Facilities</option>
-            <option value="Sanitation">Sanitation</option>
-            <option value="Other">Other</option>
-
-          </select>
-
-        </label>
-
-        <div class="form-field location-field">
-
-          <span>Area / Place *</span>
-
-          <div class="location-search-wrap">
-
+          <div class="form-field">
+            <label for="areaInput">Area / Location</label>
             <input
-              type="text"
-              name="area"
               id="areaInput"
-              placeholder="Type an area, road or place..."
+              name="area"
+              type="text"
+              placeholder="Enter your area or location"
               autocomplete="off"
               required
             >
-
-            <div
-              id="areaSuggestions"
-              class="area-suggestions location-suggestions"
-              hidden
-            ></div>
-
+            <div id="areaSuggestions" class="area-suggestions"></div>
           </div>
 
-          <small class="form-note">
-            Start typing at least 3 characters to find places.
-          </small>
+          <div class="form-field">
+            <label>Mark Location on Map</label>
 
-        </div>
+            <button
+              type="button"
+              id="currentLocationButton"
+              class="secondary-button"
+            >
+              <span aria-hidden="true">◎</span>
+              Use My Current Location
+            </button>
 
-        <div class="location-controls location-actions">
+            <p id="locationMessage" class="form-note">
+              You can use your current location or select a place on the map.
+            </p>
 
-          <button
-            type="button"
-            class="location-button"
-            id="currentLocationButton"
-          >
-            ◎ Use Current Location
+            <div id="feedbackMap" class="feedback-map"></div>
+
+            <input type="hidden" id="latitudeInput" name="latitude">
+            <input type="hidden" id="longitudeInput" name="longitude">
+          </div>
+
+          <div class="form-field">
+            <label for="descriptionInput">Describe Your Feedback</label>
+            <textarea
+              id="descriptionInput"
+              name="description"
+              rows="5"
+              placeholder="Explain your suggestion or the issue..."
+              required
+            ></textarea>
+          </div>
+
+          <div class="form-field">
+            <label for="photoInput">Upload Photo</label>
+            <input
+              id="photoInput"
+              name="photo"
+              type="file"
+              accept="image/*"
+              required
+            >
+            <p class="form-note">
+              Please attach a photo related to your feedback.
+            </p>
+            <div id="photoPreview" class="photo-preview"></div>
+          </div>
+
+          <button class="primary-button" type="submit">
+            Submit Feedback
           </button>
+        </form>
+      </div>
+    `;
 
-          <span
-            id="locationMessage"
-            class="location-message location-status"
-          >
-            Search for a place or use your current location.
-          </span>
+    initializeMap();
+    initializeLocation();
+    initializeAreaAutocomplete();
+    initializePhotoPreview();
 
-        </div>
+    $("#suggestionForm")?.addEventListener(
+      "submit",
+      handleSuggestionSubmit
+    );
+  }
 
-        <input
-          type="hidden"
-          name="latitude"
-          id="latitudeInput"
-          value=""
-        >
+  /* -------------------- MAP -------------------- */
 
-        <input
-          type="hidden"
-          name="longitude"
-          id="longitudeInput"
-          value=""
-        >
+  function initializeMap() {
+    const mapElement = $("#feedbackMap");
 
-        <div class="map-section location-map-section">
-
-          <div class="map-heading">
-
-            <strong>Select the issue location</strong>
-
-            <small>
-              Search for a place or tap the map to select a location.
-            </small>
-
-          </div>
-
-          <div
-            id="feedbackMap"
-            class="feedback-map location-map"
-            role="application"
-            aria-label="Map for selecting feedback location"
-          ></div>
-
-          <p class="map-help location-help">
-            You can drag the map marker to adjust the exact location.
-          </p>
-
-          <p class="map-attribution">
-            Map data © OpenStreetMap contributors
-          </p>
-
-        </div>
-
-        <label class="form-field">
-
-          <span>Describe Your Issue *</span>
-
-          <textarea
-            name="description"
-            rows="5"
-            placeholder="Explain the problem or suggestion..."
-            required
-          ></textarea>
-
-        </label>
-
-        <label class="form-field">
-
-          <span>Upload Photo *</span>
-
-          <input
-            type="file"
-            name="photo"
-            id="photoInput"
-            accept="image/*"
-            required
-          >
-
-          <small class="form-note">
-            Select an image from your device or camera.
-          </small>
-
-        </label>
-
-        <div id="photoPreview" class="photo-preview"></div>
-
-        <button type="submit" class="government-button">
-          Submit Feedback
-        </button>
-
-        <div id="formMessage" class="form-message"></div>
-
-      </form>
-    `
-  );
-
-  initializeLocationControls();
-
-  const form = document.getElementById("suggestionForm");
-  const photoInput = document.getElementById("photoInput");
-  const preview = document.getElementById("photoPreview");
-
-  if (!form || !photoInput || !preview) return;
-
-  photoInput.addEventListener("change", () => {
-    preview.innerHTML = "";
-    releasePhotoPreview();
-
-    const file = photoInput.files[0];
-
-    if (!file) return;
-
-    const validationError = validatePhoto(file);
-
-    if (validationError) {
-      photoInput.value = "";
-      toast(validationError);
+    if (!mapElement || typeof L === "undefined") {
+      if (mapElement) {
+        mapElement.innerHTML =
+          "Map could not be loaded. You can still enter your area above.";
+      }
       return;
     }
 
-    activePhotoURL = URL.createObjectURL(file);
+    map = L.map(mapElement).setView(
+      [13.0827, 77.5877],
+      11
+    );
 
-    const image = document.createElement("img");
+    L.tileLayer(
+      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      {
+        maxZoom: 19,
+        attribution: "&copy; OpenStreetMap contributors"
+      }
+    ).addTo(map);
 
-    image.src = activePhotoURL;
-    image.alt = "Selected feedback photo";
+    map.on("click", event => {
+      setMapLocation(
+        event.latlng.lat,
+        event.latlng.lng,
+        true
+      );
+    });
 
-    image.style.width = "100%";
-    image.style.maxWidth = "260px";
-    image.style.height = "auto";
-    image.style.objectFit = "contain";
-    image.style.borderRadius = "12px";
+    setTimeout(() => map.invalidateSize(), 300);
+  }
 
-    preview.appendChild(image);
-  });
+  function setMapLocation(latitude, longitude, updateMessage = false) {
+    selectedLatitude = latitude;
+    selectedLongitude = longitude;
 
-  form.addEventListener("submit", async event => {
+    const latInput = $("#latitudeInput");
+    const lngInput = $("#longitudeInput");
+
+    if (latInput) latInput.value = latitude;
+    if (lngInput) lngInput.value = longitude;
+
+    if (map) {
+      const position = [latitude, longitude];
+
+      if (mapMarker) {
+        mapMarker.setLatLng(position);
+      } else {
+        mapMarker = L.marker(position).addTo(map);
+      }
+
+      map.setView(position, 16);
+    }
+
+    if (updateMessage) {
+      const message = $("#locationMessage");
+
+      if (message) {
+        message.textContent = "Location selected on the map.";
+      }
+    }
+  }
+
+  /* -------------------- GPS LOCATION -------------------- */
+
+  function initializeLocation() {
+    $("#currentLocationButton")?.addEventListener(
+      "click",
+      getCurrentLocation
+    );
+  }
+
+  function getCurrentLocation() {
+    const message = $("#locationMessage");
+    const button = $("#currentLocationButton");
+
+    if (!navigator.geolocation) {
+      if (message) {
+        message.textContent =
+          "Location is not supported by this browser.";
+      }
+      return;
+    }
+
+    if (message) {
+      message.textContent = "Getting your current location...";
+    }
+
+    if (button) button.disabled = true;
+
+    navigator.geolocation.getCurrentPosition(
+      async position => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        setMapLocation(latitude, longitude);
+
+        if (message) {
+          message.textContent =
+            "Current location detected successfully.";
+        }
+
+        try {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+
+            const address = data.address || {};
+            const area =
+              address.suburb ||
+              address.neighbourhood ||
+              address.village ||
+              address.town ||
+              address.city ||
+              data.display_name;
+
+            if (area && $("#areaInput")) {
+              $("#areaInput").value = area;
+            }
+          }
+        } catch {
+          // GPS coordinates remain available even if reverse lookup fails.
+        }
+
+        if (button) button.disabled = false;
+      },
+      error => {
+        const messages = {
+          1: "Location permission was denied. Please allow location access.",
+          2: "Your current location could not be detected.",
+          3: "Location request timed out. Please try again."
+        };
+
+        if (message) {
+          message.textContent =
+            messages[error.code] || "Unable to get your location.";
+        }
+
+        if (button) button.disabled = false;
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 0
+      }
+    );
+  }
+
+  /* -------------------- AREA AUTOCOMPLETE -------------------- */
+
+  function initializeAreaAutocomplete() {
+    const input = $("#areaInput");
+    const suggestions = $("#areaSuggestions");
+
+    if (!input || !suggestions) return;
+
+    input.addEventListener("input", () => {
+      clearTimeout(autocompleteTimer);
+
+      const query = input.value.trim();
+
+      if (query.length < 3) {
+        suggestions.innerHTML = "";
+        return;
+      }
+
+      autocompleteTimer = setTimeout(() => {
+        searchAreaSuggestions(query);
+      }, 450);
+    });
+
+    document.addEventListener("click", event => {
+      if (
+        !event.target.closest("#areaInput") &&
+        !event.target.closest("#areaSuggestions")
+      ) {
+        suggestions.innerHTML = "";
+      }
+    });
+  }
+
+  async function searchAreaSuggestions(query) {
+    const suggestions = $("#areaSuggestions");
+
+    if (!suggestions) return;
+
+    try {
+      const url =
+        "https://nominatim.openstreetmap.org/search?" +
+        new URLSearchParams({
+          format: "jsonv2",
+          q: query,
+          limit: "5",
+          addressdetails: "1",
+          countrycodes: "in"
+        });
+
+      const response = await fetch(url);
+      if (!response.ok) return;
+
+      const results = await response.json();
+
+      suggestions.innerHTML = results.map((place, index) => `
+        <button
+          type="button"
+          class="area-suggestion"
+          data-index="${index}"
+        >
+          ${escapeHTML(place.display_name)}
+        </button>
+      `).join("");
+
+      $$(".area-suggestion", suggestions).forEach(button => {
+        button.addEventListener("click", () => {
+          const place = results[Number(button.dataset.index)];
+
+          $("#areaInput").value =
+            place.display_name || "";
+
+          suggestions.innerHTML = "";
+
+          if (place.lat && place.lon) {
+            setMapLocation(
+              Number(place.lat),
+              Number(place.lon)
+            );
+          }
+        });
+      });
+    } catch {
+      suggestions.innerHTML = "";
+    }
+  }
+
+  /* -------------------- PHOTO PREVIEW -------------------- */
+
+  function initializePhotoPreview() {
+    const input = $("#photoInput");
+    const preview = $("#photoPreview");
+
+    if (!input || !preview) return;
+
+    input.addEventListener("change", () => {
+      preview.innerHTML = "";
+
+      if (activePhotoURL) {
+        URL.revokeObjectURL(activePhotoURL);
+        activePhotoURL = null;
+      }
+
+      const file = input.files?.[0];
+
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        showToast("Please select an image file.", "error");
+        input.value = "";
+        return;
+      }
+
+      activePhotoURL = URL.createObjectURL(file);
+
+      preview.innerHTML = `
+        <img
+          src="${activePhotoURL}"
+          alt="Selected feedback photo preview"
+          class="preview-image"
+        >
+        <p>${escapeHTML(file.name)}</p>
+      `;
+    });
+  }
+
+  /* -------------------- SUBMIT FEEDBACK -------------------- */
+
+  async function handleSuggestionSubmit(event) {
     event.preventDefault();
 
-    const file = photoInput.files[0];
-    const validationError = validatePhoto(file);
+    const form = event.currentTarget;
+    const button = form.querySelector('[type="submit"]');
 
-    if (validationError) {
-      toast(validationError);
+    const photo = $("#photoInput")?.files?.[0];
+
+    if (!photo) {
+      showToast("Please upload a photo before submitting.", "error");
       return;
     }
 
-    const button = form.querySelector('[type="submit"]');
-    const formData = new FormData(form);
+    const formData = new FormData();
 
-    if (
-      !formData.get("latitude") ||
-      !formData.get("longitude")
-    ) {
-      formData.delete("latitude");
-      formData.delete("longitude");
-    }
+    formData.append(
+      "name",
+      $("#citizenName").value.trim()
+    );
 
-    setLoading(button, true, "Submit Feedback");
+    formData.append(
+      "category",
+      $("#categoryInput").value
+    );
+
+    formData.append(
+      "area",
+      $("#areaInput").value.trim()
+    );
+
+    formData.append(
+      "description",
+      $("#descriptionInput").value.trim()
+    );
+
+    formData.append("photo", photo);
+
+    formData.append(
+      "latitude",
+      $("#latitudeInput").value || ""
+    );
+
+    formData.append(
+      "longitude",
+      $("#longitudeInput").value || ""
+    );
+
+    setLoading(button, true, "Submitting feedback...");
 
     try {
       const result = await api("/api/suggestions", {
@@ -1629,570 +1011,506 @@ function submitView() {
         body: formData
       });
 
-      const trackingId = result.trackingId;
+      const trackingId =
+        result.tracking_id ||
+        result.trackingId ||
+        result.id;
 
       if (!trackingId) {
         throw new Error(
-          "Feedback was submitted, but the tracking ID was not received."
+          "Feedback was submitted, but no tracking ID was returned."
         );
       }
 
-      releasePhotoPreview();
-      destroyFeedbackMap();
+      pageContent.innerHTML = `
+        <div class="app-panel success-panel">
+          <div class="success-icon">✓</div>
 
-      shell(
-        "Feedback Submitted Successfully!",
-        "",
-        `
-          <div class="success-panel">
+          <h2>Feedback Submitted Successfully!</h2>
 
-            <h3>Your Tracking ID</h3>
+          <p>
+            Thank you for helping improve your community.
+            Your feedback has been recorded.
+          </p>
 
-            <div class="tracking-code" id="newTrackingId">
+          <div class="tracking-code">
+            <span>Your Tracking ID</span>
+            <strong id="successTrackingId">
               ${escapeHTML(trackingId)}
-            </div>
+            </strong>
 
             <button
               type="button"
-              class="outline-button"
-              id="copyTrackingButton"
+              class="secondary-button"
+              id="copyTrackingId"
             >
               Copy Tracking ID
             </button>
-
-            <p>
-              Use this tracking ID to check the progress
-              of your feedback.
-            </p>
-
-            <a
-              href="/track"
-              class="government-button"
-              id="trackNewButton"
-            >
-              Track Your Feedback
-            </a>
-
           </div>
-        `
-      );
 
-      const copyButton = document.getElementById(
-        "copyTrackingButton"
-      );
+          <a
+            class="primary-button"
+            href="/track?id=${encodeURIComponent(trackingId)}"
+          >
+            Track Your Feedback
+          </a>
 
-      if (copyButton) {
-        copyButton.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(trackingId);
-            toast("Tracking ID copied!");
+          <a class="back-home-link" href="/">
+            Back to Home
+          </a>
+        </div>
+      `;
 
-          } catch {
-            toast(
-              "Please copy the tracking ID manually."
-            );
-          }
-        });
-      }
-
-      const trackButton = document.getElementById(
-        "trackNewButton"
-      );
-
-      if (trackButton) {
-        trackButton.addEventListener("click", event => {
-          event.preventDefault();
-
-          window.location.href =
-            `/track?id=${encodeURIComponent(trackingId)}`;
-        });
-      }
+      $("#copyTrackingId")?.addEventListener("click", () => {
+        copyText(trackingId);
+      });
 
     } catch (error) {
-      toast(error.message);
-
-    } finally {
-      if (button.isConnected) {
-        setLoading(button, false, "Submit Feedback");
-      }
+      showToast(error.message, "error");
+      setLoading(button, false);
     }
-  });
-}
-
-/* =========================================================
-   PUBLIC FEEDBACK TRACKING
-   ========================================================= */
-
-function trackView() {
-  if (!pageContent) return;
-
-  shell(
-    "Track Your Feedback",
-    "",
-    `
-      <form id="trackForm" class="app-form">
-
-        <label class="form-field">
-
-          <span>Tracking ID</span>
-
-          <input
-            type="text"
-            id="trackingInput"
-            name="trackingId"
-            placeholder="Enter your tracking ID"
-            required
-          >
-
-        </label>
-
-        <button type="submit" class="government-button">
-          Track Application
-        </button>
-
-      </form>
-
-      <div id="trackingResult"></div>
-    `
-  );
-
-  const form = document.getElementById("trackForm");
-
-  if (!form) return;
-
-  const trackingInput = document.getElementById(
-    "trackingInput"
-  );
-
-  const queryId = new URLSearchParams(
-    window.location.search
-  ).get("id");
-
-  if (queryId && trackingInput) {
-    trackingInput.value = queryId;
   }
 
-  form.addEventListener("submit", async event => {
-    event.preventDefault();
+  /* =========================================================
+     TRACK FEEDBACK PAGE
+     ========================================================= */
 
-    const input = document.getElementById("trackingInput");
-    const resultBox = document.getElementById(
-      "trackingResult"
-    );
+  function renderTrackPage() {
+    if (!pageContent) return;
 
-    const button = form.querySelector('[type="submit"]');
+    pageContent.innerHTML = `
+      <div class="app-panel tracking-panel">
+        <div class="panel-heading">
+          <h2>Track Your Feedback</h2>
+          <p>
+            Enter your tracking ID to check the latest progress.
+          </p>
+        </div>
 
-    const trackingId = input.value.trim().toUpperCase();
+        <form id="trackForm" class="app-form">
+          <div class="form-field">
+            <label for="trackingInput">Tracking ID</label>
+            <input
+              id="trackingInput"
+              type="text"
+              placeholder="Enter your tracking ID"
+              required
+            >
+          </div>
 
-    if (!trackingId) {
-      toast("Please enter your tracking ID.");
-      return;
+          <button class="primary-button" type="submit">
+            Track Application
+          </button>
+        </form>
+
+        <div id="trackingResult" class="tracking-result"></div>
+      </div>
+    `;
+
+    $("#trackForm")?.addEventListener("submit", event => {
+      event.preventDefault();
+      trackFeedback($("#trackingInput").value.trim());
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const trackingId = params.get("id");
+
+    if (trackingId) {
+      $("#trackingInput").value = trackingId;
+      trackFeedback(trackingId);
     }
+  }
 
-    setLoading(button, true, "Track Application");
+  async function trackFeedback(trackingId) {
+    const resultElement = $("#trackingResult");
 
-    resultBox.innerHTML = "";
+    if (!trackingId || !resultElement) return;
+
+    resultElement.innerHTML = `
+      <p class="loading-message">Searching for your feedback...</p>
+    `;
 
     try {
       const data = await api(
         `/api/track/${encodeURIComponent(trackingId)}`
       );
 
-      showTrackingResult(data, resultBox);
+      const item = data.item || data.suggestion || data;
+
+      renderTrackingResult(item);
 
     } catch (error) {
-      resultBox.innerHTML = `
-        <div class="error-panel">
+      resultElement.innerHTML = `
+        <div class="form-message error">
           ${escapeHTML(error.message)}
         </div>
       `;
-
-    } finally {
-      if (button.isConnected) {
-        setLoading(button, false, "Track Application");
-      }
     }
-  });
-
-  if (queryId && trackingInput) {
-    form.requestSubmit();
   }
-}
 
-/* =========================================================
-   TRACKING RESULT
-   ========================================================= */
+  function renderTrackingResult(item) {
+    const resultElement = $("#trackingResult");
 
-function showTrackingResult(data, container) {
-  const currentIndex = statuses.indexOf(data.status);
+    if (!resultElement) return;
 
-  const timeline = statuses.map((status, index) => `
-    <div class="timeline-item ${index <= currentIndex ? "completed" : ""}">
+    const status = item.status || "Submitted";
+    const currentIndex = STATUSES.indexOf(status);
 
-      <span class="timeline-dot"></span>
+    const timeline = STATUSES.map((step, index) => {
+      const completed = index <= currentIndex;
 
-      <div>
-        <strong>${escapeHTML(status)}</strong>
-      </div>
-
-    </div>
-  `).join("");
-
-  const photoURL = safeImageURL(data.photoUrl);
-
-  const hasCoordinates =
-    data.latitude !== null &&
-    data.latitude !== undefined &&
-    data.longitude !== null &&
-    data.longitude !== undefined;
-
-  container.innerHTML = `
-    <div class="tracking-result">
-
-      <h3>Feedback Details</h3>
-
-      <p>
-        <strong>Tracking ID:</strong>
-        ${escapeHTML(data.tracking_id)}
-      </p>
-
-      <p>
-        <strong>Name:</strong>
-        ${escapeHTML(data.name)}
-      </p>
-
-      <p>
-        <strong>Category:</strong>
-        ${escapeHTML(data.category)}
-      </p>
-
-      <p>
-        <strong>Area:</strong>
-        ${escapeHTML(data.area)}
-      </p>
-
-      <p>
-        <strong>Description:</strong>
-        ${escapeHTML(data.description)}
-      </p>
-
-      <p>
-        <strong>Current Status:</strong>
-        ${statusBadge(data.status)}
-      </p>
-
-      <h3>Application Progress</h3>
-
-      <div class="status-timeline">
-        ${timeline}
-      </div>
-
-      <h3>Administrator Response</h3>
-
-      <p>
-        ${escapeHTML(
-          data.admin_response ||
-          "No response has been added yet."
-        )}
-      </p>
-
-      ${
-        photoURL
-          ? `
-            <h3>Uploaded Photo</h3>
-
-            <img
-              src="${photoURL}"
-              alt="Uploaded feedback"
-              class="tracking-photo"
-              loading="lazy"
-            >
-          `
-          : ""
-      }
-
-      ${
-        hasCoordinates
-          ? `
-            <p>
-              <strong>Location coordinates:</strong>
-              ${escapeHTML(data.latitude)},
-              ${escapeHTML(data.longitude)}
-            </p>
-          `
-          : ""
-      }
-
-      <p class="small-text">
-        Last updated:
-        ${escapeHTML(data.updated_at || "Not available")}
-      </p>
-
-    </div>
-  `;
-}
-
-/* =========================================================
-   ADMIN DASHBOARD
-   ========================================================= */
-
-function adminView() {
-  if (!currentUser || currentUser.role !== "admin") {
-    if (pageContent) {
-      pageContent.innerHTML = `
-        <div class="panel">
-
-          <div class="empty-state">
-
-            <h3>Administrator Login Required</h3>
-
-            <p>
-              Please login with administrator credentials to access the dashboard.
-            </p>
-
-            <a
-              href="/admin-login"
-              class="government-button"
-            >
-              Administrator Login
-            </a>
-
+      return `
+        <div class="timeline-item ${completed ? "completed" : ""}">
+          <div class="timeline-dot"></div>
+          <div class="timeline-content">
+            <strong>${escapeHTML(step)}</strong>
+            ${index === currentIndex
+              ? "<span>Current Status</span>"
+              : ""}
           </div>
-
         </div>
       `;
-    }
+    }).join("");
 
-    return;
-  }
-
-  shell(
-    "Administrator Dashboard",
-    "",
-    `
-      <div class="admin-toolbar">
-
-        <input
-          type="search"
-          id="adminSearch"
-          placeholder="Search by ID, name, area or category..."
-        >
-
-        <select id="adminStatusFilter">
-
-          <option value="">All Statuses</option>
-
-          ${statuses.map(status => `
-            <option value="${escapeHTML(status)}">
-              ${escapeHTML(status)}
-            </option>
-          `).join("")}
-
-        </select>
-
-        <button
-          type="button"
-          class="outline-button"
-          id="refreshAdmin"
-        >
-          Refresh
-        </button>
-
-      </div>
-
-      <div id="adminStats" class="stats-grid"></div>
-
-      <div id="adminTable" class="admin-table-wrap">
-        Loading feedback...
-      </div>
-
-      <button
-        type="button"
-        class="outline-button"
-        id="adminLogoutButton"
-      >
-        Logout
-      </button>
-    `,
-    true
-  );
-
-  document.getElementById("adminSearch")
-    ?.addEventListener("input", renderAdminTable);
-
-  document.getElementById("adminStatusFilter")
-    ?.addEventListener("change", renderAdminTable);
-
-  document.getElementById("refreshAdmin")
-    ?.addEventListener("click", loadAdminData);
-
-  document.getElementById("adminLogoutButton")
-    ?.addEventListener("click", logout);
-
-  loadAdminData();
-}
-
-/* =========================================================
-   LOAD ADMIN DATA
-   ========================================================= */
-
-async function loadAdminData() {
-  const table = document.getElementById("adminTable");
-
-  if (!table) return;
-
-  table.textContent = "Loading feedback...";
-
-  try {
-    const data = await api("/api/admin/suggestions");
-
-    adminItems = Array.isArray(data.items)
-      ? data.items
-      : [];
-
-    const stats = data.stats || {};
-
-    const statsBox = document.getElementById("adminStats");
-
-    if (statsBox) {
-      const statNames = [
-        "Total",
-        "Submitted",
-        "Under Review",
-        "In Progress",
-        "Resolved"
-      ];
-
-      statsBox.innerHTML = statNames.map(name => `
-        <div class="stat-card">
-
-          <span>${escapeHTML(name)}</span>
-
-          <strong>${Number(stats[name] || 0)}</strong>
-
-        </div>
-      `).join("");
-    }
-
-    renderAdminTable();
-
-  } catch (error) {
-    if (table.isConnected) {
-      table.innerHTML = `
-        <div class="error-panel">
-          ${escapeHTML(error.message)}
-        </div>
-      `;
-    }
-  }
-}
-
-/* =========================================================
-   RENDER ADMIN RECORDS
-   ========================================================= */
-
-function renderAdminTable() {
-  const table = document.getElementById("adminTable");
-
-  if (!table) return;
-
-  const search = (
-    document.getElementById("adminSearch")?.value || ""
-  ).toLowerCase();
-
-  const filter = (
-    document.getElementById("adminStatusFilter")?.value || ""
-  );
-
-  const filtered = adminItems.filter(item => {
-    const matchesSearch = [
-      item.tracking_id,
-      item.name,
-      item.area,
-      item.category,
-      item.description
-    ].some(value =>
-      String(value || "").toLowerCase().includes(search)
+    const photoURL = safeImageURL(
+      item.photoUrl || item.photo_url || item.photo
     );
 
-    const matchesStatus =
-      !filter || item.status === filter;
+    const latitude = item.latitude;
+    const longitude = item.longitude;
 
-    return matchesSearch && matchesStatus;
-  });
+    resultElement.innerHTML = `
+      <div class="tracking-card">
 
-  if (!filtered.length) {
-    table.innerHTML = `
-      <div class="empty-state">
-        No feedback records found.
+        <div class="tracking-card-header">
+          <div>
+            <span>Tracking ID</span>
+            <strong>
+              ${escapeHTML(item.tracking_id || item.trackingId || "")}
+            </strong>
+          </div>
+
+          <span class="status-badge">
+            ${escapeHTML(status)}
+          </span>
+        </div>
+
+        <div class="tracking-details">
+          <p>
+            <strong>Category:</strong>
+            ${escapeHTML(item.category || "Not specified")}
+          </p>
+
+          <p>
+            <strong>Area:</strong>
+            ${escapeHTML(item.area || "Not specified")}
+          </p>
+
+          <p>
+            <strong>Description:</strong>
+            ${escapeHTML(item.description || "Not available")}
+          </p>
+
+          <p>
+            <strong>Submitted:</strong>
+            ${escapeHTML(formatDate(item.created_at || item.createdAt))}
+          </p>
+        </div>
+
+        ${photoURL ? `
+          <div class="tracking-photo">
+            <h3>Uploaded Photo</h3>
+            <img
+              src="${escapeHTML(photoURL)}"
+              alt="Feedback attachment"
+              loading="lazy"
+            >
+          </div>
+        ` : ""}
+
+        ${latitude && longitude ? `
+          <p>
+            <strong>Location:</strong>
+            <a
+              href="https://www.openstreetmap.org/?mlat=${encodeURIComponent(latitude)}&mlon=${encodeURIComponent(longitude)}#map=17/${encodeURIComponent(latitude)}/${encodeURIComponent(longitude)}"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View on Map
+            </a>
+          </p>
+        ` : ""}
+
+        <div class="status-timeline">
+          <h3>Feedback Progress</h3>
+          ${timeline}
+        </div>
+
+        ${item.admin_response || item.adminResponse ? `
+          <div class="admin-response">
+            <h3>Admin Response</h3>
+            <p>
+              ${escapeHTML(item.admin_response || item.adminResponse)}
+            </p>
+          </div>
+        ` : ""}
+
+      </div>
+    `;
+  }
+
+  /* =========================================================
+     ADMIN DASHBOARD
+     ========================================================= */
+
+  function renderAdminPage() {
+    if (!pageContent) return;
+
+    pageContent.innerHTML = `
+      <div class="app-panel dashboard-panel">
+
+        <div class="dashboard-heading">
+          <div>
+            <h2>Admin Dashboard</h2>
+            <p>Manage citizen feedback and update progress.</p>
+          </div>
+
+          <button
+            type="button"
+            id="adminLogoutButton"
+            class="secondary-button"
+          >
+            Logout
+          </button>
+        </div>
+
+        <div id="adminStats" class="stats-grid">
+          <div class="stat-card">
+            <span>Total Feedback</span>
+            <strong>—</strong>
+          </div>
+          <div class="stat-card">
+            <span>Submitted</span>
+            <strong>—</strong>
+          </div>
+          <div class="stat-card">
+            <span>In Progress</span>
+            <strong>—</strong>
+          </div>
+          <div class="stat-card">
+            <span>Resolved</span>
+            <strong>—</strong>
+          </div>
+        </div>
+
+        <div class="admin-toolbar">
+          <input
+            id="adminSearch"
+            type="search"
+            placeholder="Search by ID, area, category..."
+          >
+
+          <select id="adminStatusFilter">
+            <option value="">All Statuses</option>
+            ${STATUSES.map(status => `
+              <option value="${escapeHTML(status)}">
+                ${escapeHTML(status)}
+              </option>
+            `).join("")}
+          </select>
+
+          <button
+            type="button"
+            id="refreshAdmin"
+            class="secondary-button"
+          >
+            Refresh
+          </button>
+        </div>
+
+        <div id="adminTable" class="admin-table">
+          <p class="loading-message">Loading feedback...</p>
+        </div>
       </div>
     `;
 
-    return;
+    $("#adminLogoutButton")?.addEventListener("click", logout);
+    $("#refreshAdmin")?.addEventListener("click", loadAdminItems);
+
+    $("#adminSearch")?.addEventListener("input", renderAdminItems);
+    $("#adminStatusFilter")?.addEventListener(
+      "change",
+      renderAdminItems
+    );
+
+    loadAdminItems();
   }
 
-  table.innerHTML = `
-    <div class="admin-record-list">
+  async function loadAdminItems() {
+    const table = $("#adminTable");
 
-      ${filtered.map(item => {
-        const photoURL = safeImageURL(item.photoUrl);
+    if (table) {
+      table.innerHTML =
+        '<p class="loading-message">Loading feedback...</p>';
+    }
 
-        return `
-          <article class="admin-record">
+    try {
+      const data = await api("/api/admin/suggestions");
 
-            <div class="admin-record-header">
+      adminItems = data.items || [];
 
-              <strong>
-                ${escapeHTML(item.tracking_id)}
-              </strong>
+      renderAdminStats(data.stats || {});
+      renderAdminItems();
 
-              ${statusBadge(item.status)}
+    } catch (error) {
+      if (table) {
+        table.innerHTML = `
+          <div class="form-message error">
+            ${escapeHTML(error.message)}
+          </div>
+        `;
+      }
+    }
+  }
 
+  function renderAdminStats(stats) {
+    const container = $("#adminStats");
+
+    if (!container) return;
+
+    const total =
+      stats.total ??
+      stats.total_feedback ??
+      adminItems.length;
+
+    const submitted =
+      stats.submitted ??
+      adminItems.filter(item => item.status === "Submitted").length;
+
+    const inProgress =
+      stats.in_progress ??
+      adminItems.filter(item => item.status === "In Progress").length;
+
+    const resolved =
+      stats.resolved ??
+      adminItems.filter(item => item.status === "Resolved").length;
+
+    container.innerHTML = `
+      <div class="stat-card">
+        <span>Total Feedback</span>
+        <strong>${escapeHTML(total)}</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Submitted</span>
+        <strong>${escapeHTML(submitted)}</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>In Progress</span>
+        <strong>${escapeHTML(inProgress)}</strong>
+      </div>
+
+      <div class="stat-card">
+        <span>Resolved</span>
+        <strong>${escapeHTML(resolved)}</strong>
+      </div>
+    `;
+  }
+
+  function renderAdminItems() {
+    const container = $("#adminTable");
+
+    if (!container) return;
+
+    const query = ($("#adminSearch")?.value || "")
+      .trim()
+      .toLowerCase();
+
+    const statusFilter =
+      $("#adminStatusFilter")?.value || "";
+
+    const filtered = adminItems.filter(item => {
+      const searchable = [
+        item.tracking_id,
+        item.name,
+        item.category,
+        item.area,
+        item.description
+      ].join(" ").toLowerCase();
+
+      return (
+        searchable.includes(query) &&
+        (!statusFilter || item.status === statusFilter)
+      );
+    });
+
+    if (!filtered.length) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <h3>No feedback found</h3>
+          <p>There are no records matching your search.</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = filtered.map(item => {
+      const id = item.tracking_id || "";
+      const photoURL = safeImageURL(
+        item.photoUrl || item.photo_url || item.photo
+      );
+
+      return `
+        <article class="admin-record" data-id="${escapeHTML(id)}">
+
+          <div class="admin-record-header">
+            <div>
+              <strong>${escapeHTML(id)}</strong>
+              <span>${escapeHTML(formatDate(item.created_at))}</span>
             </div>
 
+            <span class="status-badge">
+              ${escapeHTML(item.status || "Submitted")}
+            </span>
+          </div>
+
+          <div class="admin-record-details">
             <p>
-              <strong>Name:</strong>
-              ${escapeHTML(item.name)}
+              <strong>Citizen:</strong>
+              ${escapeHTML(item.name || "Anonymous")}
             </p>
 
             <p>
               <strong>Category:</strong>
-              ${escapeHTML(item.category)}
+              ${escapeHTML(item.category || "")}
             </p>
 
             <p>
               <strong>Area:</strong>
-              ${escapeHTML(item.area)}
+              ${escapeHTML(item.area || "")}
             </p>
 
             <p>
               <strong>Description:</strong>
-              ${escapeHTML(item.description)}
+              ${escapeHTML(item.description || "")}
             </p>
+          </div>
 
-            ${
-              photoURL
-                ? `
-                  <img
-                    src="${photoURL}"
-                    alt="Feedback photo"
-                    class="admin-photo"
-                    loading="lazy"
-                  >
-                `
-                : ""
-            }
+          ${photoURL ? `
+            <img
+              class="admin-photo"
+              src="${escapeHTML(photoURL)}"
+              alt="Feedback attachment"
+              loading="lazy"
+            >
+          ` : ""}
 
-            <label class="form-field">
-
-              <span>Update Status</span>
-
-              <select
-                class="admin-status"
-                data-id="${escapeHTML(item.tracking_id)}"
-              >
-
-                ${statuses.map(status => `
+          <div class="admin-edit-fields">
+            <label>
+              Update Status
+              <select class="admin-status">
+                ${STATUSES.map(status => `
                   <option
                     value="${escapeHTML(status)}"
                     ${item.status === status ? "selected" : ""}
@@ -2200,337 +1518,186 @@ function renderAdminTable() {
                     ${escapeHTML(status)}
                   </option>
                 `).join("")}
-
               </select>
-
             </label>
 
-            <label class="form-field">
-
-              <span>Administrator Response</span>
-
+            <label>
+              Admin Response
               <textarea
-                class="admin-response"
-                data-id="${escapeHTML(item.tracking_id)}"
+                class="admin-response-input"
                 rows="3"
-                placeholder="Write your response..."
+                placeholder="Write a response to the citizen..."
               >${escapeHTML(item.admin_response || "")}</textarea>
-
             </label>
+          </div>
 
-            <div class="admin-actions">
+          <div class="admin-actions">
+            <button
+              type="button"
+              class="primary-button save-admin"
+              data-id="${escapeHTML(id)}"
+            >
+              Save Update
+            </button>
 
-              <button
-                type="button"
-                class="government-button save-admin"
-                data-id="${escapeHTML(item.tracking_id)}"
-              >
-                Save Update
-              </button>
+            <button
+              type="button"
+              class="danger-button delete-admin"
+              data-id="${escapeHTML(id)}"
+            >
+              Delete
+            </button>
+          </div>
 
-              <button
-                type="button"
-                class="danger-button delete-admin"
-                data-id="${escapeHTML(item.tracking_id)}"
-              >
-                Delete
-              </button>
+        </article>
+      `;
+    }).join("");
 
-            </div>
-
-          </article>
-        `;
-      }).join("")}
-
-    </div>
-  `;
-
-  table.querySelectorAll(".save-admin").forEach(button => {
-    button.addEventListener("click", () => {
-      updateAdminRecord(button.dataset.id);
-    });
-  });
-
-  table.querySelectorAll(".delete-admin").forEach(button => {
-    button.addEventListener("click", () => {
-      deleteAdminRecord(button.dataset.id);
-    });
-  });
-}
-
-/* =========================================================
-   ADMIN UPDATE
-   ========================================================= */
-
-async function updateAdminRecord(trackingId) {
-  const statusInput = document.querySelector(
-    `.admin-status[data-id="${CSS.escape(trackingId)}"]`
-  );
-
-  const responseInput = document.querySelector(
-    `.admin-response[data-id="${CSS.escape(trackingId)}"]`
-  );
-
-  if (!statusInput || !responseInput) return;
-
-  try {
-    await api(
-      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
-      {
-        method: "PATCH",
-        body: JSON.stringify({
-          status: statusInput.value,
-          admin_response: responseInput.value
-        })
-      }
-    );
-
-    toast("Feedback updated successfully!");
-
-    await loadAdminData();
-
-  } catch (error) {
-    toast(error.message);
-  }
-}
-
-/* =========================================================
-   ADMIN DELETE
-   ========================================================= */
-
-async function deleteAdminRecord(trackingId) {
-  const confirmed = confirm(
-    `Are you sure you want to delete feedback ${trackingId}?`
-  );
-
-  if (!confirmed) return;
-
-  try {
-    await api(
-      `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    toast("Feedback deleted successfully!");
-
-    await loadAdminData();
-
-  } catch (error) {
-    toast(error.message);
-  }
-}
-
-/* =========================================================
-   SESSION MANAGEMENT
-   ========================================================= */
-
-async function loadSession() {
-  try {
-    const data = await api("/api/session");
-
-    currentUser = data.loggedIn
-      ? data
-      : null;
-
-    updateAuthUI();
-
-    return currentUser;
-
-  } catch {
-    currentUser = null;
-
-    updateAuthUI();
-
-    return null;
-  }
-}
-
-/* =========================================================
-   LOGOUT
-   ========================================================= */
-
-async function logout() {
-  try {
-    await api("/api/logout", {
-      method: "POST"
-    });
-
-    currentUser = null;
-    adminItems = [];
-
-    updateAuthUI();
-
-    toast("You have been logged out.");
-
-    window.location.href = "/";
-
-  } catch (error) {
-    toast(error.message);
-  }
-}
-
-/* =========================================================
-   HEADER LOGOUT BUTTON
-   ========================================================= */
-
-const headerLogoutButton = document.getElementById(
-  "logoutButton"
-);
-
-if (headerLogoutButton) {
-  headerLogoutButton.addEventListener("click", logout);
-}
-
-/* =========================================================
-   HAMBURGER MENU
-   Only present on the homepage
-   ========================================================= */
-
-function closeMenu() {
-  const menu = document.getElementById("navMenu");
-  const toggle = document.getElementById("menuToggle");
-
-  if (menu) {
-    menu.hidden = true;
-  }
-
-  if (toggle) {
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute(
-      "aria-label",
-      "Open navigation menu"
-    );
-  }
-}
-
-const menuToggle = document.getElementById("menuToggle");
-const navMenu = document.getElementById("navMenu");
-
-if (menuToggle && navMenu) {
-  menuToggle.addEventListener("click", () => {
-    const isOpen = !navMenu.hidden;
-
-    navMenu.hidden = isOpen;
-
-    menuToggle.setAttribute(
-      "aria-expanded",
-      String(!isOpen)
-    );
-
-    menuToggle.setAttribute(
-      "aria-label",
-      isOpen
-        ? "Open navigation menu"
-        : "Close navigation menu"
-    );
-  });
-
-  document.addEventListener("click", event => {
-    if (
-      !event.target.closest("#navMenu") &&
-      !event.target.closest("#menuToggle")
-    ) {
-      closeMenu();
-    }
-  });
-}
-
-/* =========================================================
-   SERVICE WORKER
-   ========================================================= */
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js")
-      .catch(error => {
-        console.warn(
-          "Service worker registration failed:",
-          error
-        );
+    $$(".save-admin", container).forEach(button => {
+      button.addEventListener("click", () => {
+        updateAdminItem(button.dataset.id, button);
       });
-  });
-}
+    });
 
-/* =========================================================
-   START APPLICATION
-   ========================================================= */
-
-(async function startApplication() {
-  await loadSession();
-
-  /*
-     The Flask backend protects /submit and /admin.
-     These checks also keep the frontend consistent.
-  */
-
-  switch (currentPage) {
-    case "home":
-      homeView();
-      break;
-
-    case "login":
-      if (currentUser?.role === "citizen") {
-        window.location.replace("/submit");
-        return;
-      }
-
-      if (currentUser?.role === "admin") {
-        window.location.replace("/admin");
-        return;
-      }
-
-      loginView();
-      break;
-
-    case "register":
-      if (currentUser?.role === "citizen") {
-        window.location.replace("/submit");
-        return;
-      }
-
-      if (currentUser?.role === "admin") {
-        window.location.replace("/admin");
-        return;
-      }
-
-      registerView();
-      break;
-
-    case "admin-login":
-      if (currentUser?.role === "admin") {
-        window.location.replace("/admin");
-        return;
-      }
-
-      adminLoginView();
-      break;
-
-    case "submit":
-      if (!currentUser || currentUser.role !== "citizen") {
-        window.location.replace("/login");
-        return;
-      }
-
-      submitView();
-      break;
-
-    case "track":
-      trackView();
-      break;
-
-    case "admin":
-      if (!currentUser || currentUser.role !== "admin") {
-        window.location.replace("/admin-login");
-        return;
-      }
-
-      adminView();
-      break;
-
-    default:
-      homeView();
-      break;
+    $$(".delete-admin", container).forEach(button => {
+      button.addEventListener("click", () => {
+        deleteAdminItem(button.dataset.id, button);
+      });
+    });
   }
+
+  async function updateAdminItem(trackingId, button) {
+    const record = button.closest(".admin-record");
+
+    if (!record) return;
+
+    const status = $(".admin-status", record).value;
+    const admin_response =
+      $(".admin-response-input", record).value.trim();
+
+    setLoading(button, true, "Saving...");
+
+    try {
+      await api(
+        `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            status,
+            admin_response
+          })
+        }
+      );
+
+      showToast("Feedback updated successfully.");
+      await loadAdminItems();
+
+    } catch (error) {
+      showToast(error.message, "error");
+      setLoading(button, false);
+    }
+  }
+
+  async function deleteAdminItem(trackingId, button) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this feedback? This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    setLoading(button, true, "Deleting...");
+
+    try {
+      await api(
+        `/api/admin/suggestions/${encodeURIComponent(trackingId)}`,
+        { method: "DELETE" }
+      );
+
+      showToast("Feedback deleted successfully.");
+      await loadAdminItems();
+
+    } catch (error) {
+      showToast(error.message, "error");
+      setLoading(button, false);
+    }
+  }
+
+  /* -------------------- COPY TRACKING ID -------------------- */
+
+  async function copyText(value) {
+    try {
+      await navigator.clipboard.writeText(String(value));
+      showToast("Copied to clipboard.");
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = String(value);
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        document.execCommand("copy");
+        showToast("Copied to clipboard.");
+      } catch {
+        showToast("Unable to copy. Please copy it manually.", "error");
+      }
+
+      textarea.remove();
+    }
+  }
+
+  /* -------------------- PAGE INITIALIZATION -------------------- */
+
+  async function initializePage() {
+    initializeTheme();
+    initializeNavigation();
+
+    await loadSession();
+
+    switch (page) {
+      case "register":
+        renderRegisterPage();
+        break;
+
+      case "login":
+        renderLoginPage();
+        break;
+
+      case "admin-login":
+        renderAdminLoginPage();
+        break;
+
+      case "submit":
+        if (!currentUser) {
+          navigate("/login?next=submit");
+          return;
+        }
+        renderSubmitPage();
+        break;
+
+      case "track":
+        renderTrackPage();
+        break;
+
+      case "admin":
+        renderAdminPage();
+        break;
+
+      case "home":
+      default:
+        break;
+    }
+  }
+
+  initializePage();
+
+  /* -------------------- SERVICE WORKER -------------------- */
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("/sw.js").catch(error => {
+        console.warn("Service worker registration failed:", error);
+      });
+    });
+  }
+
 })();
