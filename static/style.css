@@ -1907,3 +1907,124 @@ select {
     transition-duration: .01ms !important;
   }
 }
+/* =====================================================
+   JANASETU HEADER - RESPONSIVE BANNER
+   ===================================================== */
+
+.site-header {
+    width: 100%;
+    position: relative;
+    background: var(--surface, #ffffff);
+}
+
+.header-banner {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background: var(--surface, #ffffff);
+}
+
+.header-banner-image {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+}
+
+/* Navigation */
+
+.header-navigation {
+    width: 100%;
+    min-height: 55px;
+    padding: 8px 4%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    background: var(--surface, #ffffff);
+    border-bottom: 1px solid rgba(100, 120, 150, 0.18);
+}
+
+.nav-menu {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+.nav-menu a {
+    text-decoration: none;
+    color: var(--text, #18324d);
+    font-size: 14px;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.nav-menu a:hover {
+    color: var(--primary, #174b86);
+}
+
+.header-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.header-controls select {
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: var(--surface, #ffffff);
+    color: var(--text, #18324d);
+}
+
+.menu-toggle {
+    display: none;
+    padding: 8px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: var(--surface, #ffffff);
+    color: var(--text, #18324d);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* Mobile */
+
+@media (max-width: 768px) {
+
+    .header-navigation {
+        flex-wrap: wrap;
+    }
+
+    .menu-toggle {
+        display: block;
+    }
+
+    .nav-menu {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 14px;
+        padding: 12px 0;
+    }
+
+    .nav-menu[hidden] {
+        display: none;
+    }
+
+    .header-controls {
+        margin-left: auto;
+    }
+
+    .header-banner-image {
+        width: 100%;
+        height: auto;
+    }
+
+}
