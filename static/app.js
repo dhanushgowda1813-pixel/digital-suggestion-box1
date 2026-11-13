@@ -1,3 +1,4 @@
+
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
@@ -14,6 +15,7 @@
    - Admin dashboard
    - Status updates and deletion
    - Session and logout management
+   - Permanent JANASETU header
    - Full-page app-style navigation
    - Responsive web application + PWA
    - ONLY LIGHT AND DARK THEMES
@@ -214,6 +216,12 @@ function setPageLayout(showInnerPage) {
 
 /* =========================================================
    PAGE SHELL
+
+   IMPORTANT:
+   The JANASETU banner and navigation already exist in
+   index.html. Do not generate another logo or header here.
+
+   All application pages appear below the permanent header.
    ========================================================= */
 
 function shell(title, lead, body, wide = false) {
@@ -224,19 +232,13 @@ function shell(title, lead, body, wide = false) {
   setPageLayout(true);
 
   appPanel.innerHTML = `
-    <section class="app-route-screen" aria-label="${escapeHTML(title)} page">
-      <div class="app-route-topbar">
-        <div class="app-route-brand">
-          <span class="app-route-mark" aria-hidden="true">J</span>
-          <span>
-            <strong>JANASETU</strong>
-            <small>Citizen Services Portal</small>
-          </span>
-        </div>
-        <span class="app-route-secure">● Secure access</span>
-      </div>
+    <section
+      class="app-route-screen"
+      aria-label="${escapeHTML(title)} page"
+    >
 
       <div class="panel ${wide ? "wide" : ""}">
+
         <button
           type="button"
           class="back"
@@ -247,13 +249,21 @@ function shell(title, lead, body, wide = false) {
         </button>
 
         <div class="app-route-title-block">
-          <span class="app-route-eyebrow">JANASETU • CITIZEN PARTICIPATION</span>
+
+          <span class="app-route-eyebrow">
+            CITIZEN PARTICIPATION
+          </span>
+
           <h2>${escapeHTML(title)}</h2>
+
           <p class="lead">${escapeHTML(lead)}</p>
+
         </div>
 
         ${body}
+
       </div>
+
     </section>
   `;
 
@@ -435,8 +445,13 @@ function view(name, options = {}) {
 
   if (!options.fromHistory && window.history && window.history.pushState) {
     const route = name === "home" ? "#home" : `#${name}`;
+
     if (window.location.hash !== route) {
-      window.history.pushState({ janasetuView: name }, "", route);
+      window.history.pushState(
+        { janasetuView: name },
+        "",
+        route
+      );
     }
   }
 
@@ -465,17 +480,31 @@ document.addEventListener("click", event => {
   event.preventDefault();
 
   const destination = button.dataset.view;
+
   if (!destination) return;
 
-  // Route to the requested full application screen.
   view(destination);
 });
 
-/* Browser Back/Forward behaves like moving between app pages. */
+/* Browser Back/Forward */
+
 window.addEventListener("popstate", () => {
   const route = (window.location.hash || "#home").slice(1);
-  const knownRoutes = ["home", "submit", "track", "login", "register", "admin-login", "admin"];
-  view(knownRoutes.includes(route) ? route : "home", { fromHistory: true });
+
+  const knownRoutes = [
+    "home",
+    "submit",
+    "track",
+    "login",
+    "register",
+    "admin-login",
+    "admin"
+  ];
+
+  view(
+    knownRoutes.includes(route) ? route : "home",
+    { fromHistory: true }
+  );
 });
 
 /* Header logout */
@@ -504,9 +533,7 @@ if (menuToggle && navMenu) {
 
     menuToggle.setAttribute(
       "aria-label",
-      isOpen
-        ? "Open navigation menu"
-        : "Close navigation menu"
+      isOpen ? "Open navigation menu" : "Close navigation menu"
     );
   });
 
@@ -825,6 +852,7 @@ function adminLoginView() {
     }
   });
 }
+
 /* =========================================================
    LOCATION AND MAP FUNCTIONS
    ========================================================= */
@@ -846,7 +874,6 @@ function destroyFeedbackMap() {
   selectedLatitude = null;
   selectedLongitude = null;
 
-  // Invalidate any GPS callback that may still be running after navigation.
   locationRequestId++;
   locationRequestActive = false;
 }
@@ -992,7 +1019,6 @@ async function useCurrentLocation() {
     return;
   }
 
-  // Geolocation requires HTTPS, except on localhost during development.
   if (
     window.isSecureContext === false &&
     location.hostname !== "localhost" &&
@@ -1043,15 +1069,13 @@ async function useCurrentLocation() {
     let position;
 
     try {
-      // First try precise GPS / device location.
       position = await getPosition({
         enableHighAccuracy: true,
         timeout: 15000,
         maximumAge: 60000
       });
+
     } catch (firstError) {
-      // If precise GPS is unavailable or slow, try the device's
-      // network-assisted location. Do not retry a denied permission.
       if (firstError && firstError.code === 1) {
         throw firstError;
       }
@@ -1065,8 +1089,10 @@ async function useCurrentLocation() {
       });
     }
 
-    // Ignore results from a form that has already been closed.
-    if (requestId !== locationRequestId || feedbackMap !== mapForRequest) {
+    if (
+      requestId !== locationRequestId ||
+      feedbackMap !== mapForRequest
+    ) {
       return;
     }
 
@@ -1084,7 +1110,6 @@ async function useCurrentLocation() {
       throw new Error("The device returned invalid location coordinates. Please try again.");
     }
 
-    // Save coordinates immediately, even if reverse geocoding is unavailable.
     setSelectedLocation(latitude, longitude, 17);
 
     if (feedbackMap) {
@@ -1107,7 +1132,9 @@ async function useCurrentLocation() {
 
       if (areaInput && area) {
         areaInput.value = area;
-        areaInput.dispatchEvent(new Event("change", { bubbles: true }));
+        areaInput.dispatchEvent(
+          new Event("change", { bubbles: true })
+        );
       }
 
       locationMessage(
@@ -1121,16 +1148,17 @@ async function useCurrentLocation() {
           ? "Current location detected successfully."
           : "GPS coordinates detected successfully."
       );
+
     } catch {
       if (requestId !== locationRequestId) return;
 
-      // The coordinates and map marker are already saved. Only the
-      // human-readable area lookup failed, so do not discard the GPS fix.
       locationMessage(
         "GPS coordinates detected. Area name lookup is unavailable; please enter your area name."
       );
+
       toast("Location detected. Please enter the area name.");
     }
+
   } catch (error) {
     if (requestId !== locationRequestId) return;
 
@@ -1148,6 +1176,7 @@ async function useCurrentLocation() {
 
     locationMessage(message, true);
     toast(message);
+
   } finally {
     finishRequest();
   }
@@ -1446,6 +1475,7 @@ function initializeLocationControls() {
     );
   }
 }
+
 /* =========================================================
    PHOTO UPLOAD AND FEEDBACK SUBMISSION
    ========================================================= */
@@ -1989,6 +2019,7 @@ function showTrackingResult(data, container) {
     </div>
   `;
 }
+
 /* =========================================================
    ADMIN DASHBOARD
    ========================================================= */
