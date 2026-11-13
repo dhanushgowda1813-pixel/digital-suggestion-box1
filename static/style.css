@@ -822,7 +822,7 @@ body.inner-page {
   background-image:
     radial-gradient(ellipse at 12% 18%, rgba(102, 169, 116, .24), transparent 38%),
     radial-gradient(ellipse at 88% 78%, rgba(119, 181, 125, .20), transparent 42%),
-    url("/static/janasetu-menu-background.svg?v=3") !important;
+    url("/static/janasetu-menu-background.svg?v=4") !important;
   background-position: center, center, center top !important;
   background-repeat: no-repeat !important;
   background-size: cover, cover, cover !important;
