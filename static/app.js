@@ -1737,14 +1737,143 @@
 
   initializePage();
 
-  /* -------------------- SERVICE WORKER -------------------- */
+  /* -------------------- JANASETU APP UPDATES -------------------- */
 
-  if ("serviceWorker" in navigator) {
-    window.addEventListener("load", () => {
-      navigator.serviceWorker.register("/sw.js").catch(error => {
-        console.warn("Service worker registration failed:", error);
+  function initializeAppUpdates() {
+    if (!("serviceWorker" in navigator)) return;
+
+    let updateRegistration = null;
+    let waitingWorker = null;
+    let updateInProgress = false;
+    let updatePrompt = null;
+
+    const wasDismissed = () => {
+      try {
+        return sessionStorage.getItem("janasetu-update-dismissed") === "yes";
+      } catch {
+        return false;
+      }
+    };
+
+    function closeUpdatePrompt() {
+      if (updatePrompt) {
+        updatePrompt.remove();
+        updatePrompt = null;
+      }
+    }
+
+    function showUpdatePrompt() {
+      if (!waitingWorker || updatePrompt || wasDismissed()) return;
+
+      const overlay = document.createElement("div");
+      overlay.className = "janasetu-update-overlay";
+      overlay.setAttribute("role", "presentation");
+
+      const dialog = document.createElement("section");
+      dialog.className = "janasetu-update-dialog";
+      dialog.setAttribute("role", "dialog");
+      dialog.setAttribute("aria-modal", "true");
+      dialog.setAttribute("aria-labelledby", "janasetuUpdateTitle");
+      dialog.innerHTML = `
+        <div class="janasetu-update-icon" aria-hidden="true">↻</div>
+        <p class="janasetu-update-eyebrow">JANASETU UPDATE</p>
+        <h2 id="janasetuUpdateTitle">A new version is ready!</h2>
+        <p class="janasetu-update-message">
+          We've made improvements to JANASETU. Update now to use the latest version.
+        </p>
+        <div class="janasetu-update-actions">
+          <button type="button" class="janasetu-update-later">Later</button>
+          <button type="button" class="janasetu-update-now">Update Now</button>
+        </div>
+        <p class="janasetu-update-footnote">Your account and submitted feedback will remain safe.</p>
+      `;
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      updatePrompt = overlay;
+
+      const laterButton = dialog.querySelector(".janasetu-update-later");
+      const updateButton = dialog.querySelector(".janasetu-update-now");
+
+      laterButton.addEventListener("click", () => {
+        try {
+          sessionStorage.setItem("janasetu-update-dismissed", "yes");
+        } catch {}
+        closeUpdatePrompt();
       });
+
+      updateButton.addEventListener("click", () => {
+        if (!waitingWorker) return;
+        updateInProgress = true;
+        updateButton.disabled = true;
+        laterButton.disabled = true;
+        updateButton.textContent = "Updating...";
+        waitingWorker.postMessage({ type: "SKIP_WAITING" });
+      });
+
+      updateButton.focus();
+    }
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (updateInProgress) {
+        window.location.reload();
+      }
+    });
+
+    window.addEventListener("load", async () => {
+      try {
+        updateRegistration = await navigator.serviceWorker.register("/sw.js", {
+          updateViaCache: "none"
+        });
+
+        const checkForUpdate = () => {
+          if (updateRegistration && navigator.onLine) {
+            updateRegistration.update().catch(() => {});
+          }
+        };
+
+        const checkWaitingWorker = () => {
+          if (updateRegistration && updateRegistration.waiting &&
+              navigator.serviceWorker.controller) {
+            waitingWorker = updateRegistration.waiting;
+            showUpdatePrompt();
+          }
+        };
+
+        updateRegistration.addEventListener("updatefound", () => {
+          const installingWorker = updateRegistration.installing;
+          if (!installingWorker) return;
+
+          installingWorker.addEventListener("statechange", () => {
+            if (installingWorker.state === "installed" &&
+                navigator.serviceWorker.controller) {
+              waitingWorker = updateRegistration.waiting || installingWorker;
+              showUpdatePrompt();
+            }
+          });
+        });
+
+        checkWaitingWorker();
+        checkForUpdate();
+
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            checkForUpdate();
+            checkWaitingWorker();
+          }
+        });
+
+        window.addEventListener("online", checkForUpdate);
+        window.addEventListener("focus", checkForUpdate);
+
+        // Recheck periodically while the app remains open.
+        window.setInterval(checkForUpdate, 60 * 60 * 1000);
+      } catch (error) {
+        console.warn("JANASETU update check failed:", error);
+      }
     });
   }
+
+  initializeAppUpdates();
 
 })();
