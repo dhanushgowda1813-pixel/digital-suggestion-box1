@@ -1747,23 +1747,8 @@
     let updateInProgress = false;
     let updatePrompt = null;
 
-    const wasDismissed = () => {
-      try {
-        return sessionStorage.getItem("janasetu-update-dismissed") === "yes";
-      } catch {
-        return false;
-      }
-    };
-
-    function closeUpdatePrompt() {
-      if (updatePrompt) {
-        updatePrompt.remove();
-        updatePrompt = null;
-      }
-    }
-
     function showUpdatePrompt() {
-      if (!waitingWorker || updatePrompt || wasDismissed()) return;
+      if (!waitingWorker || updatePrompt) return;
 
       const overlay = document.createElement("div");
       overlay.className = "janasetu-update-overlay";
@@ -1782,7 +1767,6 @@
           We've made improvements to JANASETU. Update now to use the latest version.
         </p>
         <div class="janasetu-update-actions">
-          <button type="button" class="janasetu-update-later">Later</button>
           <button type="button" class="janasetu-update-now">Update Now</button>
         </div>
         <p class="janasetu-update-footnote">Your account and submitted feedback will remain safe.</p>
@@ -1792,21 +1776,12 @@
       document.body.appendChild(overlay);
       updatePrompt = overlay;
 
-      const laterButton = dialog.querySelector(".janasetu-update-later");
       const updateButton = dialog.querySelector(".janasetu-update-now");
-
-      laterButton.addEventListener("click", () => {
-        try {
-          sessionStorage.setItem("janasetu-update-dismissed", "yes");
-        } catch {}
-        closeUpdatePrompt();
-      });
 
       updateButton.addEventListener("click", () => {
         if (!waitingWorker) return;
         updateInProgress = true;
         updateButton.disabled = true;
-        laterButton.disabled = true;
         updateButton.textContent = "Updating...";
         waitingWorker.postMessage({ type: "SKIP_WAITING" });
       });
