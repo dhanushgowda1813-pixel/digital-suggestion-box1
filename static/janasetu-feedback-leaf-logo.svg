@@ -1,26 +1,37 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="300" viewBox="0 0 1600 300" role="img" aria-labelledby="title desc">
-<title id="title">JANASETU ಜನಸೇತು</title>
-<desc id="desc">A green speech bubble with a growing leaf, representing citizen feedback and positive change.</desc>
+<title id="title">JANASETU ಜನಸೇತು - Hands and Karnataka</title>
+<desc id="desc">A blue handshake symbol beside JANASETU and Kannada जनಸೇತು, with a Karnataka map on the right.</desc>
 <defs>
- <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fcf7"/><stop offset="1" stop-color="#e5f3e7"/></linearGradient>
- <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#145b38"/><stop offset="1" stop-color="#36965b"/></linearGradient>
- <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8a62e"/><stop offset="1" stop-color="#f0cf69"/></linearGradient>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fcff"/><stop offset=".55" stop-color="#e9f5ff"/><stop offset="1" stop-color="#c9e8ff"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#063b82"/><stop offset=".55" stop-color="#087ac8"/><stop offset="1" stop-color="#18a5e4"/></linearGradient>
+ <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#073b83"/><stop offset=".55" stop-color="#0876c7"/><stop offset="1" stop-color="#159fe0"/></linearGradient>
+ <linearGradient id="map" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#087fc9"/><stop offset="1" stop-color="#063c83"/></linearGradient>
 </defs>
-<rect width="1600" height="300" rx="26" fill="url(#bg)"/>
-<path d="M0 260 C280 220 450 290 720 250 S1250 215 1600 258 L1600 300 L0 300Z" fill="#c8e4cc" opacity=".55"/>
-<path d="M0 278 C310 240 470 300 770 270 S1290 240 1600 278" fill="none" stroke="#78b987" stroke-width="4" opacity=".55"/>
-<g transform="translate(78 36)">
- <circle cx="112" cy="112" r="104" fill="#fff" stroke="#c4dfc9" stroke-width="5"/>
- <path d="M52 64 Q52 42 76 42 H151 Q177 42 177 67 V133 Q177 157 153 157 H113 L79 184 V157 H76 Q52 157 52 133Z" fill="url(#green)"/>
- <path d="M111 126 C91 105 99 77 132 60 C153 91 142 118 111 126Z" fill="#a8d99b"/>
- <path d="M111 126 Q119 98 137 78" fill="none" stroke="#216b43" stroke-width="5" stroke-linecap="round"/>
- <path d="M82 112 Q94 124 105 133 L143 95" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
- <circle cx="166" cy="53" r="17" fill="url(#gold)"/>
+<rect width="1600" height="300" fill="url(#bg)"/>
+<path d="M0 0H1600V62C1370 30 1220 20 1030 64S650 95 430 55 150 30 0 82Z" fill="#fff" opacity=".5"/>
+<!-- soft skyline -->
+<g fill="#75bce9" opacity=".27">
+ <path d="M900 205V151h18v-23h12v23h18v54h-48zm58 0v-70h18v-22h12v22h18v70h-48zm60 0v-48h18v-20h12v20h18v48h-48zm58 0v-80h18v-25h12v25h18v80h-48zm60 0v-55h18v-20h12v20h18v55h-48z"/>
+ <path d="M1080 205v-65q0-35 35-50 35 15 35 50v65z"/>
+ <path d="M1104 138h22v67h-22zM1110 119h10v86h-10z"/>
 </g>
-<path d="M320 52 V248" stroke="#a8cdb0" stroke-width="3"/>
-<text x="370" y="126" font-family="Arial, sans-serif" font-size="76" font-weight="800" letter-spacing="3" fill="#175d3a">JANASETU</text>
-<text x="372" y="190" font-family="'Noto Sans Kannada','Noto Sans',sans-serif" font-size="54" font-weight="700" fill="#267447">ಜನಸೇತು</text>
-<text x="375" y="235" font-family="Arial, sans-serif" font-size="23" font-weight="600" letter-spacing="1.6" fill="#54745c">YOUR VOICE. OUR COMMUNITY. BETTER TOMORROW.</text>
-<path d="M1170 90 C1250 28 1360 28 1450 90" fill="none" stroke="#9acba3" stroke-width="5" opacity=".55" stroke-linecap="round"/>
-<path d="M1200 130 C1290 80 1385 85 1500 132" fill="none" stroke="#c6dfc8" stroke-width="8" opacity=".65" stroke-linecap="round"/>
+<!-- hands-only handshake mark -->
+<g transform="translate(62 37)">
+ <circle cx="112" cy="112" r="104" fill="#fff" stroke="#b7dcf6" stroke-width="5"/>
+ <path d="M28 99 66 61q13-12 29-4l29 15 22-9q13-5 23 5l28 28-28 30-26-17-23 21q-12 11-25 1l-19-15-17 13q-13 10-25-1L28 99Z" fill="url(#blue)"/>
+ <path d="m61 63 29 13 20 12 19 16 17-12q10-8 20 0l23 18-20 20-23-16-19 16q-10 9-21 1l-19-14-17 13q-10 8-20-1L43 99Z" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="m81 116 18 15q9 7 17-1l13-11 14 10q9 6 17-2" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="m105 94 22 17q8 6 16-1l11-9" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="m53 76-18 22 19 20 18-20M169 79l23 20-19 21-23-19" fill="#0873bd" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+</g>
+<path d="M320 48V245" stroke="#8bbde4" stroke-width="3"/>
+<text x="370" y="126" font-family="Arial, sans-serif" font-size="78" font-weight="800" letter-spacing="3" fill="#073b83">JANASETU</text>
+<text x="374" y="188" font-family="'Noto Sans Kannada','Noto Sans',sans-serif" font-size="55" font-weight="700" fill="#0868ad">ಜನಸೇತು</text>
+<text x="378" y="231" font-family="Arial, sans-serif" font-size="23" font-style="italic" font-weight="600" fill="#174779">Your Voice. Our Community. Better Tomorrow.</text>
+<!-- Karnataka silhouette at the far right -->
+<path d="M1470 48 1490 55 1496 72 1510 79 1502 96 1515 109 1506 126 1514 143 1500 157 1504 174 1488 188 1491 207 1476 220 1471 241 1451 252 1434 244 1418 250 1404 238 1390 239 1377 222 1382 205 1368 192 1375 175 1366 160 1381 146 1378 129 1394 119 1397 101 1414 93 1421 75 1440 72 1449 57Z" fill="url(#map)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+<!-- flowing blue footer waves -->
+<path d="M0 218C210 195 360 282 590 257S970 207 1190 242 1450 264 1600 202V300H0Z" fill="#69c4f1" opacity=".55"/>
+<path d="M0 239C230 211 370 294 620 268S1000 221 1215 252 1460 274 1600 225V300H0Z" fill="#0879c9" opacity=".9"/>
+<path d="M0 260C210 231 390 304 635 280S1010 244 1230 270 1460 288 1600 248V300H0Z" fill="url(#wave)"/>
 </svg>
