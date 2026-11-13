@@ -1,5 +1,13 @@
 
-from flask import Flask, render_template, request, jsonify, session, url_for
+from flask import (
+    Flask,
+    render_template,
+    request,
+    jsonify,
+    session,
+    url_for,
+    redirect
+)
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -17,8 +25,6 @@ import mimetypes
 
 BASE = Path(__file__).resolve().parent
 
-# Configurable storage paths.
-# These can point to a persistent Render disk.
 DB_PATH = Path(
     os.environ.get(
         "DATABASE_PATH",
@@ -47,7 +53,6 @@ app.secret_key = os.environ.get(
     "change-this-secret-before-deployment"
 )
 
-# Render and other reverse-proxy hosting environments.
 app.wsgi_app = ProxyFix(
     app.wsgi_app,
     x_for=1,
@@ -72,9 +77,6 @@ if IS_PRODUCTION and app.secret_key == "change-this-secret-before-deployment":
         "Set DSB_SECRET_KEY in your hosting environment."
     )
 
-# No application-level upload size limit is set.
-# Hosting providers may still enforce their own limits.
-
 
 # =========================================================
 # DATABASE CONNECTION
@@ -89,7 +91,6 @@ def db():
     )
 
     con.row_factory = sqlite3.Row
-
     con.execute("PRAGMA foreign_keys = ON")
 
     try:
@@ -142,7 +143,6 @@ def init_db():
             )
         """)
 
-        # Support existing databases created by earlier versions.
         columns = {
             row["name"]
             for row in con.execute(
@@ -168,8 +168,6 @@ def init_db():
             )
         """)
 
-        # Default Admin credentials.
-        # Configure these using environment variables.
         username = os.environ.get(
             "DSB_ADMIN_USER",
             "admin"
@@ -198,7 +196,6 @@ def init_db():
                 )
             )
 
-        # Useful database indexes.
         con.execute("""
             CREATE INDEX IF NOT EXISTS
             idx_suggestions_tracking
@@ -241,6 +238,7 @@ def row_to_dict(row):
 
 
 def clean_text(value, maximum=5000):
+
     if not isinstance(value, str):
         return ""
 
@@ -267,12 +265,97 @@ def image_extension(photo):
 
 
 # =========================================================
-# HOME PAGE
+# SEPARATE WEBSITE PAGES
 # =========================================================
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+
+    return render_template(
+        "index.html",
+        page="home"
+    )
+
+
+@app.route("/login")
+def citizen_login_page():
+
+    if is_citizen():
+        return redirect(url_for("submit_page"))
+
+    if is_admin():
+        return redirect(url_for("admin_page"))
+
+    return render_template(
+        "index.html",
+        page="login"
+    )
+
+
+@app.route("/register")
+def register_page():
+
+    if is_citizen():
+        return redirect(url_for("submit_page"))
+
+    if is_admin():
+        return redirect(url_for("admin_page"))
+
+    return render_template(
+        "index.html",
+        page="register"
+    )
+
+
+@app.route("/admin-login")
+def admin_login_page():
+
+    if is_admin():
+        return redirect(url_for("admin_page"))
+
+    return render_template(
+        "index.html",
+        page="admin-login"
+    )
+
+
+@app.route("/submit")
+def submit_page():
+
+    if not is_citizen():
+
+        return redirect(
+            url_for(
+                "citizen_login_page",
+                next="submit"
+            )
+        )
+
+    return render_template(
+        "index.html",
+        page="submit"
+    )
+
+
+@app.route("/track")
+def track_page():
+
+    return render_template(
+        "index.html",
+        page="track"
+    )
+
+
+@app.route("/admin")
+def admin_page():
+
+    if not is_admin():
+        return redirect(url_for("admin_login_page"))
+
+    return render_template(
+        "index.html",
+        page="admin"
+    )
 
 
 # =========================================================
@@ -516,7 +599,6 @@ def create_suggestion():
     latitude = request.form.get("latitude", "").strip()
     longitude = request.form.get("longitude", "").strip()
 
-    # Validate optional coordinates.
     try:
 
         latitude = float(latitude) if latitude else None
@@ -534,7 +616,6 @@ def create_suggestion():
             error="Invalid location coordinates."
         ), 400
 
-    # Mandatory fields.
     if not all([
         photo,
         photo.filename,
@@ -547,9 +628,6 @@ def create_suggestion():
             error="Category, area, description, and a photo are mandatory."
         ), 400
 
-    # Accept image formats based on their MIME type.
-    # No fixed JPG/PNG/WEBP-only extension list.
-    # No application-level 5 MB upload limit.
     mime_type = (photo.mimetype or "").lower()
 
     if not mime_type.startswith("image/"):
@@ -564,7 +642,6 @@ def create_suggestion():
 
     filepath = UPLOAD_DIR / filename
 
-    # Save uploaded image.
     try:
 
         photo.save(filepath)
@@ -587,12 +664,10 @@ def create_suggestion():
             error="Unable to save the uploaded image. Please try again."
         ), 500
 
-    # Generate unique tracking ID.
     tracking_id = (
         "DSB-" + uuid.uuid4().hex[:10].upper()
     )
 
-    # Save suggestion details.
     try:
 
         with db() as con:
@@ -697,7 +772,7 @@ def track(tracking_id):
 
 
 # =========================================================
-# ADMIN DASHBOARD
+# ADMIN DASHBOARD API
 # =========================================================
 
 @app.get("/api/admin/suggestions")
@@ -773,7 +848,6 @@ def admin_suggestions():
             ).fetchall()
         ]
 
-        # Dashboard statistics.
         stats = {
             current_status: con.execute(
                 """
@@ -791,7 +865,6 @@ def admin_suggestions():
             "SELECT COUNT(*) FROM suggestions"
         ).fetchone()[0]
 
-    # Add uploaded image URLs.
     for row in rows:
 
         photo_name = row.pop("photo")
@@ -922,7 +995,6 @@ def delete_suggestion(tracking_id):
             (tracking_id,)
         )
 
-    # Delete associated uploaded image.
     try:
 
         photo_path = (
