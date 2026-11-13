@@ -1,4 +1,3 @@
-
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
@@ -51,6 +50,7 @@ let autocompleteTimer = null;
 let autocompleteRequestId = 0;
 let lastSearchTime = 0;
 let locationRequestActive = false;
+let locationRequestId = 0;
 
 /* =========================================================
    COMMON FUNCTIONS
@@ -817,6 +817,9 @@ function destroyFeedbackMap() {
 
   selectedLatitude = null;
   selectedLongitude = null;
+
+  // Invalidate any GPS callback that may still be running after navigation.
+  locationRequestId++;
   locationRequestActive = false;
 }
 
@@ -955,16 +958,34 @@ async function useCurrentLocation() {
   if (locationRequestActive) return;
 
   if (!navigator.geolocation) {
-    toast("Location access is not supported by this device.");
+    const message = "Location access is not supported by this browser or device.";
+    locationMessage(message, true);
+    toast(message);
+    return;
+  }
+
+  // Geolocation requires HTTPS, except on localhost during development.
+  if (
+    window.isSecureContext === false &&
+    location.hostname !== "localhost" &&
+    location.hostname !== "127.0.0.1"
+  ) {
+    const message = "Current location requires a secure HTTPS connection. Please open JANASETU using its HTTPS link.";
+    locationMessage(message, true);
+    toast(message);
     return;
   }
 
   if (!feedbackMap) {
-    toast("Map is not ready yet.");
+    const message = "The map is still loading. Please wait a moment and try again.";
+    locationMessage(message, true);
+    toast(message);
     return;
   }
 
   const button = document.getElementById("currentLocationButton");
+  const requestId = ++locationRequestId;
+  const mapForRequest = feedbackMap;
 
   locationRequestActive = true;
 
@@ -973,78 +994,135 @@ async function useCurrentLocation() {
     button.textContent = "Getting location...";
   }
 
-  locationMessage("Requesting permission to access your location...");
+  locationMessage("Requesting permission to access your current location...");
 
-  navigator.geolocation.getCurrentPosition(
-    async position => {
-      const latitude = position.coords.latitude;
-      const longitude = position.coords.longitude;
+  const getPosition = options => new Promise((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+  });
 
-      setSelectedLocation(latitude, longitude, 17);
+  const finishRequest = () => {
+    if (requestId !== locationRequestId) return;
 
-      locationMessage("Your current location was detected.");
+    locationRequestActive = false;
 
-      try {
-        const result = await reverseGeocode(
-          latitude,
-          longitude
-        );
-
-        const area = extractAreaName(result);
-        const areaInput = document.getElementById("areaInput");
-
-        if (areaInput && area) {
-          areaInput.value = area;
-        }
-
-        locationMessage(
-          area
-            ? `Current location: ${area}`
-            : "Current location selected successfully."
-        );
-
-      } catch {
-        locationMessage(
-          "GPS location selected. Please enter your area name."
-        );
-      }
-
-      locationRequestActive = false;
-
-      if (button && button.isConnected) {
-        button.disabled = false;
-        button.textContent = "◎ Use Current Location";
-      }
-    },
-
-    error => {
-      let message = "Unable to access your location.";
-
-      if (error.code === error.PERMISSION_DENIED) {
-        message = "Location permission denied. Allow location access in your browser.";
-      } else if (error.code === error.POSITION_UNAVAILABLE) {
-        message = "Your current location is unavailable.";
-      } else if (error.code === error.TIMEOUT) {
-        message = "Location request timed out. Please try again.";
-      }
-
-      locationMessage(message, true);
-      toast(message);
-
-      locationRequestActive = false;
-
-      if (button && button.isConnected) {
-        button.disabled = false;
-        button.textContent = "◎ Use Current Location";
-      }
-    },
-
-    {
-      enableHighAccuracy: true,
-      timeout: 20000,
-      maximumAge: 60000
+    if (button && button.isConnected) {
+      button.disabled = false;
+      button.textContent = "◎ Use Current Location";
     }
-  );
+  };
+
+  try {
+    let position;
+
+    try {
+      // First try precise GPS / device location.
+      position = await getPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 60000
+      });
+    } catch (firstError) {
+      // If precise GPS is unavailable or slow, try the device's
+      // network-assisted location. Do not retry a denied permission.
+      if (firstError && firstError.code === 1) {
+        throw firstError;
+      }
+
+      locationMessage("Precise GPS is taking time. Trying an alternate location method...");
+
+      position = await getPosition({
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 300000
+      });
+    }
+
+    // Ignore results from a form that has already been closed.
+    if (requestId !== locationRequestId || feedbackMap !== mapForRequest) {
+      return;
+    }
+
+    const latitude = Number(position.coords.latitude);
+    const longitude = Number(position.coords.longitude);
+
+    if (
+      !Number.isFinite(latitude) ||
+      !Number.isFinite(longitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      throw new Error("The device returned invalid location coordinates. Please try again.");
+    }
+
+    // Save coordinates immediately, even if reverse geocoding is unavailable.
+    setSelectedLocation(latitude, longitude, 17);
+
+    if (feedbackMap) {
+      setTimeout(() => {
+        if (feedbackMap === mapForRequest) {
+          feedbackMap.invalidateSize();
+        }
+      }, 150);
+    }
+
+    locationMessage("Location detected. Finding your area name...");
+
+    try {
+      const result = await reverseGeocode(latitude, longitude);
+
+      if (requestId !== locationRequestId) return;
+
+      const area = extractAreaName(result);
+      const areaInput = document.getElementById("areaInput");
+
+      if (areaInput && area) {
+        areaInput.value = area;
+        areaInput.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      locationMessage(
+        area
+          ? `Current location detected: ${area}`
+          : "Your GPS location is selected. You can enter the area name manually."
+      );
+
+      toast(
+        area
+          ? "Current location detected successfully."
+          : "GPS coordinates detected successfully."
+      );
+    } catch {
+      if (requestId !== locationRequestId) return;
+
+      // The coordinates and map marker are already saved. Only the
+      // human-readable area lookup failed, so do not discard the GPS fix.
+      locationMessage(
+        "GPS coordinates detected. Area name lookup is unavailable; please enter your area name."
+      );
+      toast("Location detected. Please enter the area name.");
+    }
+  } catch (error) {
+    if (requestId !== locationRequestId) return;
+
+    let message = "Unable to access your location. Please try again.";
+
+    if (error && error.code === 1) {
+      message = "Location permission denied. Allow location access for this site in your browser settings, then try again.";
+    } else if (error && error.code === 2) {
+      message = "Your device could not determine its location. Turn on device location services and try again.";
+    } else if (error && error.code === 3) {
+      message = "Location request timed out. Check your GPS or internet connection and try again.";
+    } else if (error && error.message) {
+      message = error.message;
+    }
+
+    locationMessage(message, true);
+    toast(message);
+  } finally {
+    finishRequest();
+  }
 }
 
 function initializeFeedbackMap() {
