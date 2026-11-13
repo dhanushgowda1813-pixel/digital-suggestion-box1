@@ -14,7 +14,25 @@
   <meta name="apple-mobile-web-app-title" content="JANASETU">
   <meta name="application-name" content="JANASETU">
 
-  <title>JANASETU | Digital Citizen Feedback System</title>
+  <title>
+    {% if page == "home" %}
+      JANASETU | Digital Citizen Feedback System
+    {% elif page == "login" %}
+      Citizen Login | JANASETU
+    {% elif page == "register" %}
+      Citizen Registration | JANASETU
+    {% elif page == "admin-login" %}
+      Admin Login | JANASETU
+    {% elif page == "submit" %}
+      Submit Feedback | JANASETU
+    {% elif page == "track" %}
+      Track Application | JANASETU
+    {% elif page == "admin" %}
+      Admin Dashboard | JANASETU
+    {% else %}
+      JANASETU
+    {% endif %}
+  </title>
 
   <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='app-icon.svg') }}">
@@ -29,9 +47,13 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 
-<body>
+<body class="{% if page == 'home' %}home-page{% else %}inner-page{% endif %}">
 
-  <!-- TOP INFORMATION STRIP -->
+  <!-- =====================================================
+       JANASETU HEADER - SHARED BY ALL PAGES
+       ===================================================== -->
+
+  {% if page == "home" %}
   <div class="top-strip">
     <div class="top-strip-inner">
       <span>ಕರ್ನಾಟಕ | KARNATAKA</span>
@@ -39,20 +61,18 @@
     </div>
   </div>
 
-  <!-- NATIONAL COLOUR STRIP -->
   <div class="tricolour" aria-hidden="true">
     <span class="saffron"></span>
     <span class="white"></span>
     <span class="green"></span>
   </div>
+  {% endif %}
 
-  <!-- PERMANENT JANASETU HEADER -->
   <header class="government-header janasetu-banner-header">
     <a
-      href="#home"
+      href="{{ url_for('home') }}"
       class="janasetu-banner-link"
       aria-label="JANASETU home"
-      data-view="home"
     >
       <img
         class="janasetu-banner-image"
@@ -64,7 +84,12 @@
     </a>
   </header>
 
-  <!-- MAIN NAVIGATION -->
+  <!-- =====================================================
+       HOME PAGE NAVIGATION
+       ===================================================== -->
+
+  {% if page == "home" %}
+
   <nav class="main-nav" id="nav" aria-label="Main navigation">
 
     <button
@@ -82,25 +107,27 @@
 
     <div class="nav-menu" id="navMenu" hidden>
 
-      <button class="navlink" type="button" data-view="home">
-        Home
-      </button>
+      <a class="navlink" href="{{ url_for('home') }}">Home</a>
 
-      <button class="navlink" type="button" data-view="submit">
+      <a class="navlink" href="{{ url_for('submit_page') }}">
         Submit Feedback
-      </button>
+      </a>
 
-      <button class="navlink" type="button" data-view="track">
+      <a class="navlink" href="{{ url_for('track_page') }}">
         Track Application
-      </button>
+      </a>
 
-      <button class="navlink" type="button" data-view="login">
+      <a class="navlink" href="{{ url_for('citizen_login_page') }}">
         Citizen Login
-      </button>
+      </a>
 
-      <button class="navlink" type="button" data-view="admin-login">
+      <a class="navlink" href="{{ url_for('register_page') }}">
+        Register
+      </a>
+
+      <a class="navlink" href="{{ url_for('admin_login_page') }}">
         Administrator
-      </button>
+      </a>
 
       <button
         class="navlink"
@@ -111,7 +138,6 @@
         Logout
       </button>
 
-      <!-- THEME SELECTOR -->
       <label class="theme-picker">
         <span>Theme</span>
 
@@ -124,10 +150,20 @@
     </div>
   </nav>
 
-  <!-- MAIN APPLICATION -->
+  {% endif %}
+
+  <!-- =====================================================
+       MAIN APPLICATION CONTENT
+       ===================================================== -->
+
   <main id="app">
 
-    <!-- HOME PAGE -->
+    <!-- ===================================================
+         HOME PAGE
+         =================================================== -->
+
+    {% if page == "home" %}
+
     <section class="welcome-banner" id="home">
 
       <div class="welcome-illustration">
@@ -164,21 +200,19 @@
 
         <div class="welcome-actions">
 
-          <button
+          <a
             class="government-button"
-            type="button"
-            data-view="submit"
+            href="{{ url_for('submit_page') }}"
           >
             Submit Your Feedback <span>→</span>
-          </button>
+          </a>
 
-          <button
+          <a
             class="outline-button"
-            type="button"
-            data-view="track"
+            href="{{ url_for('track_page') }}"
           >
             Track Application
-          </button>
+          </a>
 
         </div>
 
@@ -191,7 +225,6 @@
       </div>
     </section>
 
-    <!-- CITIZEN SERVICES -->
     <section class="services-heading">
 
       <div>
@@ -207,84 +240,58 @@
 
     </section>
 
-    <!-- SERVICE CARDS -->
     <section class="service-grid">
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="submit"
-      >
+      <a class="service-card" href="{{ url_for('submit_page') }}">
         <span class="service-icon submit-icon">✎</span>
 
         <span class="service-card-content">
           <strong>Submit Feedback</strong>
-
           <small>
             Report a local issue or share a suggestion with the local administration.
           </small>
-
           <span class="service-link">Submit now →</span>
         </span>
-      </button>
+      </a>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="track"
-      >
+      <a class="service-card" href="{{ url_for('track_page') }}">
         <span class="service-icon track-icon">⌕</span>
 
         <span class="service-card-content">
           <strong>Track Application</strong>
-
           <small>
             Check the status of your submitted feedback using your tracking ID.
           </small>
-
           <span class="service-link">Track now →</span>
         </span>
-      </button>
+      </a>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="login"
-      >
+      <a class="service-card" href="{{ url_for('citizen_login_page') }}">
         <span class="service-icon citizen-icon">♙</span>
 
         <span class="service-card-content">
           <strong>Citizen Login</strong>
-
           <small>
             Access your citizen account and submit feedback through the portal.
           </small>
-
           <span class="service-link">Login →</span>
         </span>
-      </button>
+      </a>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="admin-login"
-      >
+      <a class="service-card" href="{{ url_for('admin_login_page') }}">
         <span class="service-icon admin-icon">▤</span>
 
         <span class="service-card-content">
           <strong>Administrator</strong>
-
           <small>
             Review submissions, manage requests and update application progress.
           </small>
-
           <span class="service-link">Admin access →</span>
         </span>
-      </button>
+      </a>
 
     </section>
 
-    <!-- COMMUNITY PARTICIPATION -->
     <section class="civic-features-section">
 
       <div class="civic-features-content">
@@ -323,7 +330,6 @@
 
     </section>
 
-    <!-- HOW THE SYSTEM WORKS -->
     <section class="process-section">
 
       <div class="process-heading">
@@ -335,7 +341,6 @@
 
         <div class="process-item">
           <span class="process-number">01</span>
-
           <div>
             <strong>Submit</strong>
             <p>Share your issue with the required details and photo.</p>
@@ -344,7 +349,6 @@
 
         <div class="process-item">
           <span class="process-number">02</span>
-
           <div>
             <strong>Review</strong>
             <p>Your submission can be reviewed by the administrator.</p>
@@ -353,7 +357,6 @@
 
         <div class="process-item">
           <span class="process-number">03</span>
-
           <div>
             <strong>Track progress</strong>
             <p>Follow the latest status and administrator response online.</p>
@@ -362,7 +365,6 @@
 
       </div>
 
-      <!-- CITIZEN HELP -->
       <div class="citizen-help-section">
 
         <div class="citizen-help-image-wrap">
@@ -390,44 +392,98 @@
             concerns, ideas and suggestions through this digital platform.
           </p>
 
-          <button
+          <a
             class="government-button"
-            type="button"
-            data-view="submit"
+            href="{{ url_for('submit_page') }}"
           >
             Share Your Feedback →
-          </button>
+          </a>
 
         </div>
 
       </div>
+
     </section>
 
-    <!-- DYNAMIC APPLICATION PANEL -->
-    <section
-      class="panel-wrap"
-      id="panel"
-      aria-live="polite"
-    ></section>
+    {% endif %}
+
+
+    <!-- ===================================================
+         INNER PAGE CONTENT
+         =================================================== -->
+
+    {% if page != "home" %}
+
+    <section class="panel-wrap inner-page-panel" id="panel" aria-live="polite">
+
+      <div class="inner-page-heading">
+
+        <a class="back-home-link" href="{{ url_for('home') }}">
+          ← Back to Home
+        </a>
+
+        {% if page == "login" %}
+          <span class="section-eyebrow">CITIZEN SERVICES</span>
+          <h1>Citizen Login</h1>
+          <p>Sign in to access your JANASETU citizen account.</p>
+
+        {% elif page == "register" %}
+          <span class="section-eyebrow">JOIN JANASETU</span>
+          <h1>Create Citizen Account</h1>
+          <p>Register to participate in improving your community.</p>
+
+        {% elif page == "admin-login" %}
+          <span class="section-eyebrow">ADMINISTRATION</span>
+          <h1>Admin Login</h1>
+          <p>Sign in to manage citizen feedback submissions.</p>
+
+        {% elif page == "submit" %}
+          <span class="section-eyebrow">CITIZEN PARTICIPATION</span>
+          <h1>Submit Feedback</h1>
+          <p>Share a local concern, suggestion or complaint.</p>
+
+        {% elif page == "track" %}
+          <span class="section-eyebrow">APPLICATION STATUS</span>
+          <h1>Track Application</h1>
+          <p>Enter your tracking ID to view the latest progress.</p>
+
+        {% elif page == "admin" %}
+          <span class="section-eyebrow">JANASETU MANAGEMENT</span>
+          <h1>Admin Dashboard</h1>
+          <p>Review submissions and manage their progress.</p>
+
+        {% endif %}
+
+      </div>
+
+      <!-- JavaScript will load the appropriate page form here. -->
+      <div id="pageContent" data-page="{{ page }}"></div>
+
+    </section>
+
+    {% endif %}
 
   </main>
 
-  <!-- FOOTER -->
+
+  <!-- =====================================================
+       FOOTER - HOME PAGE ONLY
+       ===================================================== -->
+
+  {% if page == "home" %}
+
   <footer class="government-footer">
 
     <div class="footer-main">
 
       <div class="footer-brand">
         <strong>JANASETU - Digital Citizen Feedback System</strong>
-
         <span>Local Governance & Citizen Participation</span>
-
         <small>ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ</small>
       </div>
 
       <div class="footer-purpose">
         <strong>Citizen participation matters.</strong>
-
         <span>
           Every suggestion is an opportunity to improve our community.
         </span>
@@ -454,7 +510,13 @@
 
   </footer>
 
-  <!-- NOTIFICATION -->
+  {% endif %}
+
+
+  <!-- =====================================================
+       SHARED NOTIFICATION
+       ===================================================== -->
+
   <div
     id="toast"
     role="status"
@@ -462,7 +524,11 @@
     aria-atomic="true"
   ></div>
 
-  <!-- LEAFLET MAP -->
+
+  <!-- =====================================================
+       JAVASCRIPT LIBRARIES
+       ===================================================== -->
+
   <script
     src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
@@ -470,7 +536,6 @@
     defer
   ></script>
 
-  <!-- JANASETU JAVASCRIPT -->
   <script
     src="{{ url_for('static', filename='app.js') }}"
     defer
