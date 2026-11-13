@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="300" viewBox="0 0 1600 300" role="img" aria-labelledby="title desc">
+<title id="title">JANASETU ಜನಸೇತು</title>
+<desc id="desc">A green speech bubble with a growing leaf, representing citizen feedback and positive change.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fcf7"/><stop offset="1" stop-color="#e5f3e7"/></linearGradient>
+ <linearGradient id="green" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#145b38"/><stop offset="1" stop-color="#36965b"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8a62e"/><stop offset="1" stop-color="#f0cf69"/></linearGradient>
+</defs>
+<rect width="1600" height="300" rx="26" fill="url(#bg)"/>
+<path d="M0 260 C280 220 450 290 720 250 S1250 215 1600 258 L1600 300 L0 300Z" fill="#c8e4cc" opacity=".55"/>
+<path d="M0 278 C310 240 470 300 770 270 S1290 240 1600 278" fill="none" stroke="#78b987" stroke-width="4" opacity=".55"/>
+<g transform="translate(78 36)">
+ <circle cx="112" cy="112" r="104" fill="#fff" stroke="#c4dfc9" stroke-width="5"/>
+ <path d="M52 64 Q52 42 76 42 H151 Q177 42 177 67 V133 Q177 157 153 157 H113 L79 184 V157 H76 Q52 157 52 133Z" fill="url(#green)"/>
+ <path d="M111 126 C91 105 99 77 132 60 C153 91 142 118 111 126Z" fill="#a8d99b"/>
+ <path d="M111 126 Q119 98 137 78" fill="none" stroke="#216b43" stroke-width="5" stroke-linecap="round"/>
+ <path d="M82 112 Q94 124 105 133 L143 95" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+ <circle cx="166" cy="53" r="17" fill="url(#gold)"/>
+</g>
+<path d="M320 52 V248" stroke="#a8cdb0" stroke-width="3"/>
+<text x="370" y="126" font-family="Arial, sans-serif" font-size="76" font-weight="800" letter-spacing="3" fill="#175d3a">JANASETU</text>
+<text x="372" y="190" font-family="'Noto Sans Kannada','Noto Sans',sans-serif" font-size="54" font-weight="700" fill="#267447">ಜನಸೇತು</text>
+<text x="375" y="235" font-family="Arial, sans-serif" font-size="23" font-weight="600" letter-spacing="1.6" fill="#54745c">YOUR VOICE. OUR COMMUNITY. BETTER TOMORROW.</text>
+<path d="M1170 90 C1250 28 1360 28 1450 90" fill="none" stroke="#9acba3" stroke-width="5" opacity=".55" stroke-linecap="round"/>
+<path d="M1200 130 C1290 80 1385 85 1500 132" fill="none" stroke="#c6dfc8" stroke-width="8" opacity=".65" stroke-linecap="round"/>
+</svg>
