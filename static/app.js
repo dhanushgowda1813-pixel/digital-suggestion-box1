@@ -1,4 +1,3 @@
-
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Complete Frontend JavaScript
@@ -225,26 +224,37 @@ function shell(title, lead, body, wide = false) {
   setPageLayout(true);
 
   appPanel.innerHTML = `
-    <div class="panel ${wide ? "wide" : ""}">
+    <section class="app-route-screen" aria-label="${escapeHTML(title)} page">
+      <div class="app-route-topbar">
+        <div class="app-route-brand">
+          <span class="app-route-mark" aria-hidden="true">J</span>
+          <span>
+            <strong>JANASETU</strong>
+            <small>Citizen Services Portal</small>
+          </span>
+        </div>
+        <span class="app-route-secure">● Secure access</span>
+      </div>
 
-      <button
-        type="button"
-        class="back"
-        data-view="home"
-      >
-        <span aria-hidden="true">←</span>
-        Back to home
-      </button>
+      <div class="panel ${wide ? "wide" : ""}">
+        <button
+          type="button"
+          class="back"
+          data-view="home"
+        >
+          <span aria-hidden="true">←</span>
+          Back to home
+        </button>
 
-      <h2>${escapeHTML(title)}</h2>
+        <div class="app-route-title-block">
+          <span class="app-route-eyebrow">JANASETU • CITIZEN PARTICIPATION</span>
+          <h2>${escapeHTML(title)}</h2>
+          <p class="lead">${escapeHTML(lead)}</p>
+        </div>
 
-      <p class="lead">
-        ${escapeHTML(lead)}
-      </p>
-
-      ${body}
-
-    </div>
+        ${body}
+      </div>
+    </section>
   `;
 
   scrollPageToTop();
@@ -419,9 +429,16 @@ function closeMenu() {
   }
 }
 
-function view(name) {
+function view(name, options = {}) {
   releasePhotoPreview();
   currentView = name;
+
+  if (!options.fromHistory && window.history && window.history.pushState) {
+    const route = name === "home" ? "#home" : `#${name}`;
+    if (window.location.hash !== route) {
+      window.history.pushState({ janasetuView: name }, "", route);
+    }
+  }
 
   closeMenu();
 
@@ -452,6 +469,13 @@ document.addEventListener("click", event => {
 
   // Route to the requested full application screen.
   view(destination);
+});
+
+/* Browser Back/Forward behaves like moving between app pages. */
+window.addEventListener("popstate", () => {
+  const route = (window.location.hash || "#home").slice(1);
+  const knownRoutes = ["home", "submit", "track", "login", "register", "admin-login", "admin"];
+  view(knownRoutes.includes(route) ? route : "home", { fromHistory: true });
 });
 
 /* Header logout */
@@ -801,7 +825,6 @@ function adminLoginView() {
     }
   });
 }
-
 /* =========================================================
    LOCATION AND MAP FUNCTIONS
    ========================================================= */
@@ -1423,7 +1446,6 @@ function initializeLocationControls() {
     );
   }
 }
-
 /* =========================================================
    PHOTO UPLOAD AND FEEDBACK SUBMISSION
    ========================================================= */
@@ -1967,7 +1989,6 @@ function showTrackingResult(data, container) {
     </div>
   `;
 }
-
 /* =========================================================
    ADMIN DASHBOARD
    ========================================================= */
@@ -2405,5 +2426,20 @@ if ("serviceWorker" in navigator) {
 (async function startApplication() {
   await loadSession();
 
-  homeView();
+  const initialRoute = (window.location.hash || "#home").slice(1);
+
+  const knownRoutes = [
+    "home",
+    "submit",
+    "track",
+    "login",
+    "register",
+    "admin-login",
+    "admin"
+  ];
+
+  view(
+    knownRoutes.includes(initialRoute) ? initialRoute : "home",
+    { fromHistory: true }
+  );
 })();
