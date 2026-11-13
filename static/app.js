@@ -209,19 +209,20 @@
     const toggle = $("#menuToggle");
     const menu = $("#navMenu");
 
-    toggle?.addEventListener("click", () => {
-      const isOpen = menu?.classList.toggle("open");
+    if (!toggle || !menu) return;
 
-      toggle.setAttribute(
-        "aria-expanded",
-        String(Boolean(isOpen))
-      );
+    toggle.addEventListener("click", () => {
+      const isOpen = menu.hidden;
+      menu.hidden = !isOpen;
+      menu.classList.toggle("open", isOpen);
+      toggle.setAttribute("aria-expanded", String(isOpen));
     });
 
-    menu?.addEventListener("click", event => {
+    menu.addEventListener("click", event => {
       if (event.target.closest("a")) {
+        menu.hidden = true;
         menu.classList.remove("open");
-        toggle?.setAttribute("aria-expanded", "false");
+        toggle.setAttribute("aria-expanded", "false");
       }
     });
   }
@@ -232,7 +233,9 @@
     try {
       const data = await api("/api/session");
 
-      currentUser = data.user || null;
+      currentUser = data.loggedIn
+        ? { role: data.role, name: data.name }
+        : null;
 
       updateAuthenticationUI();
       return data;
@@ -242,6 +245,8 @@
       return null;
     }
   }
+
+
 
   function updateAuthenticationUI() {
     const logoutButton = $("#logoutButton");
@@ -1647,46 +1652,39 @@
 
   /* -------------------- PAGE INITIALIZATION -------------------- */
 
-  async function initializePage() {
+  function initializePage() {
     initializeTheme();
     initializeNavigation();
 
-    await loadSession();
+    // Load session in the background without delaying page rendering.
+    loadSession();
 
     switch (page) {
       case "register":
         renderRegisterPage();
         break;
-
       case "login":
         renderLoginPage();
         break;
-
       case "admin-login":
         renderAdminLoginPage();
         break;
-
       case "submit":
-        if (!currentUser) {
-          navigate("/login?next=submit");
-          return;
-        }
         renderSubmitPage();
         break;
-
       case "track":
         renderTrackPage();
         break;
-
       case "admin":
         renderAdminPage();
         break;
-
       case "home":
       default:
         break;
     }
   }
+
+
 
   initializePage();
 
