@@ -1,31 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f4fbf5"/>
-      <stop offset=".52" stop-color="#edf8ef"/>
-      <stop offset="1" stop-color="#f8fbf4"/>
-    </linearGradient>
-    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#7fbf91"/>
-      <stop offset="1" stop-color="#b4d9ad"/>
-    </linearGradient>
-  </defs>
-  <rect width="1600" height="1000" fill="url(#bg)"/>
-  <path d="M0 790 C260 700 420 850 690 790 S1120 690 1600 790 L1600 1000 L0 1000Z" fill="#cfe8d1" opacity=".38"/>
-  <path d="M0 860 C300 780 480 930 780 850 S1240 780 1600 870 L1600 1000 L0 1000Z" fill="url(#wave)" opacity=".24"/>
-  <path d="M0 120 C280 35 430 170 700 110 S1190 40 1600 125" fill="none" stroke="#9acba3" stroke-width="3" opacity=".13"/>
-  <g opacity=".30" transform="translate(1320 780) scale(.72)">
-    <path d="M-150 -88 Q0 -205 150 -88" fill="none" stroke="#27734b" stroke-width="19" stroke-linecap="round"/>
-    <path d="M-184 -65 Q0 -175 184 -65" fill="none" stroke="#d4aa4e" stroke-width="11" stroke-linecap="round"/>
-    <circle cx="0" cy="-32" r="35" fill="#276b48"/>
-    <circle cx="-88" cy="-4" r="29" fill="#276b48"/>
-    <circle cx="88" cy="-4" r="29" fill="#276b48"/>
-    <path d="M-57 55 Q0 5 57 55 L78 138 L-78 138Z" fill="#276b48"/>
-    <path d="M-133 66 Q-88 22 -44 66 L-28 132 L-150 132Z" fill="#397e56"/>
-    <path d="M44 66 Q88 22 133 66 L150 132 L28 132Z" fill="#397e56"/>
-  </g>
-  <g text-anchor="middle" fill="#276b48" opacity=".26">
-    <text x="800" y="610" font-family="Arial, sans-serif" font-size="76" font-weight="800" letter-spacing="8">JANASETU</text>
-    <text x="800" y="675" font-family="'Noto Sans Kannada','Noto Sans',sans-serif" font-size="48" font-weight="700">ಜನಸೇತು</text>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-label="JANASETU blue background">
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7fbff"/><stop offset=".52" stop-color="#eef7ff"/><stop offset="1" stop-color="#e5f2fc"/></linearGradient>
+ <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#8fc7ec"/><stop offset=".55" stop-color="#b4dcf5"/><stop offset="1" stop-color="#8bbfe8"/></linearGradient>
+</defs>
+<rect width="1600" height="1000" fill="url(#bg)"/>
+<path d="M0 785C260 710 430 835 690 790S1120 705 1600 790V1000H0Z" fill="#c7e3f7" opacity=".30"/>
+<path d="M0 865C300 795 480 925 780 855S1240 790 1600 875V1000H0Z" fill="url(#wave)" opacity=".23"/>
+<path d="M0 125C280 45 430 170 700 115S1190 45 1600 130" fill="none" stroke="#6daedc" stroke-width="3" opacity=".10"/>
+<g text-anchor="middle" fill="#1765a4" opacity=".075">
+ <text x="800" y="625" font-family="Arial,sans-serif" font-size="78" font-weight="800" letter-spacing="8">JANASETU</text>
+ <text x="800" y="690" font-family="'Noto Sans Kannada','Noto Sans',sans-serif" font-size="50" font-weight="700">ಜನಸೇತು</text>
+</g>
+<!-- faint handshake watermark -->
+<g transform="translate(1325 780) scale(.68)" opacity=".075" fill="none" stroke="#07549a" stroke-width="18" stroke-linecap="round" stroke-linejoin="round">
+ <path d="M-190 -35  -95 -125 Q-65 -150 -35 -126 L5 -98 38 -118 Q70 -138 98 -110 L190 -35"/>
+ <path d="M-150 -12 -65 62 Q-38 85 -12 58 L18 30 55 58 Q82 78 108 51 L155 8"/>
+ <path d="M-82 -65 -28 -20 Q0 5 27 -18 L68 -54"/>
+ <path d="M-190 -35 -145 14M190 -35 145 14"/>
+</g>
 </svg>
