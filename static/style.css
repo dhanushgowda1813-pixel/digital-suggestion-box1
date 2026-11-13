@@ -205,11 +205,24 @@ a:hover {
 
 .janasetu-banner-link {
   display: block;
+  position: relative;
   width: 100%;
   height: auto;
   margin: 0;
   padding: 0;
   line-height: 0;
+}
+
+.janasetu-karnataka-map {
+  position: absolute;
+  z-index: 2;
+  right: 2.1%;
+  top: 7%;
+  width: 15.5%;
+  height: 79%;
+  object-fit: contain;
+  display: block;
+  filter: brightness(0) saturate(100%) invert(20%) sepia(68%) saturate(1850%) hue-rotate(187deg) brightness(91%) contrast(102%);
 }
 
 .janasetu-banner-image {
