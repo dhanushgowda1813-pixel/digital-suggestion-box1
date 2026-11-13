@@ -818,12 +818,15 @@ a:hover {
 
 body.inner-page {
   min-height: 100vh;
-  background-color: var(--background);
-  background-image: url("/static/janasetu-menu-background.svg");
-  background-position: center top;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-attachment: fixed;
+  background-color: #edf7ee !important;
+  background-image:
+    radial-gradient(ellipse at 12% 18%, rgba(102, 169, 116, .24), transparent 38%),
+    radial-gradient(ellipse at 88% 78%, rgba(119, 181, 125, .20), transparent 42%),
+    url("/static/janasetu-menu-background.svg?v=3") !important;
+  background-position: center, center, center top !important;
+  background-repeat: no-repeat !important;
+  background-size: cover, cover, cover !important;
+  background-attachment: fixed !important;
 }
 
 /* Keep the same soft green JANASETU backdrop on every menu-linked page.
