@@ -1842,7 +1842,7 @@
         window.addEventListener("focus", checkForUpdate);
 
         // Recheck periodically while the app remains open.
-        window.setInterval(checkForUpdate, 60 * 60 * 1000);
+        window.setInterval(checkForUpdate, 5 * 60 * 1000);
       } catch (error) {
         console.warn("JANASETU update check failed:", error);
       }
