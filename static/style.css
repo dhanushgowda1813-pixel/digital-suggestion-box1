@@ -818,7 +818,20 @@ a:hover {
 
 body.inner-page {
   min-height: 100vh;
-  background: var(--background);
+  background-color: var(--background);
+  background-image: url("/static/janasetu-menu-background.svg");
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+/* Keep the same soft green JANASETU backdrop on every menu-linked page.
+   Form and dashboard panels remain solid so all content stays readable. */
+body.inner-page[data-theme="dark"] {
+  background-image:
+    linear-gradient(rgba(16, 26, 40, .90), rgba(16, 26, 40, .90)),
+    url("/static/janasetu-menu-background.svg");
 }
 
 /* The home page and inner pages use the same banner.
