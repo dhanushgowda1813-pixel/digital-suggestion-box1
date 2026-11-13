@@ -11,10 +11,10 @@
     </linearGradient>
   </defs>
   <rect width="1600" height="1000" fill="url(#bg)"/>
-  <path d="M0 790 C260 700 420 850 690 790 S1120 690 1600 790 L1600 1000 L0 1000Z" fill="#cfe8d1" opacity=".24"/>
-  <path d="M0 860 C300 780 480 930 780 850 S1240 780 1600 870 L1600 1000 L0 1000Z" fill="url(#wave)" opacity=".13"/>
+  <path d="M0 790 C260 700 420 850 690 790 S1120 690 1600 790 L1600 1000 L0 1000Z" fill="#cfe8d1" opacity=".38"/>
+  <path d="M0 860 C300 780 480 930 780 850 S1240 780 1600 870 L1600 1000 L0 1000Z" fill="url(#wave)" opacity=".24"/>
   <path d="M0 120 C280 35 430 170 700 110 S1190 40 1600 125" fill="none" stroke="#9acba3" stroke-width="3" opacity=".13"/>
-  <g opacity=".12" transform="translate(800 395)">
+  <g opacity=".30" transform="translate(1320 780) scale(.72)">
     <path d="M-150 -88 Q0 -205 150 -88" fill="none" stroke="#27734b" stroke-width="19" stroke-linecap="round"/>
     <path d="M-184 -65 Q0 -175 184 -65" fill="none" stroke="#d4aa4e" stroke-width="11" stroke-linecap="round"/>
     <circle cx="0" cy="-32" r="35" fill="#276b48"/>
