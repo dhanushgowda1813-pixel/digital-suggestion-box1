@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,26 +46,21 @@
     <span class="green"></span>
   </div>
 
-  <!-- JANASETU BANNER -->
+  <!-- PERMANENT JANASETU HEADER -->
   <header class="government-header janasetu-banner-header">
     <a
       href="#home"
       class="janasetu-banner-link"
       aria-label="JANASETU home"
+      data-view="home"
     >
       <img
         class="janasetu-banner-image"
-        src="{{ url_for('static', filename='janasetu-banner.png.png') }}"
+        src="{{ url_for('static', filename='janasetu-header-banner.webp') }}"
         alt="JANASETU - Building a Better Tomorrow. ಹಂಚಿಕೊಳ್ಳಿ • ಸೂಚಿಸಿ • ಉತ್ತಮಗೊಳಿಸಿ."
         fetchpriority="high"
         decoding="async"
-        onerror="this.hidden=true; this.nextElementSibling.hidden=false;"
       >
-
-      <span class="janasetu-text-logo" hidden>
-        <strong>JANASETU</strong>
-        <small>ಹಂಚಿಕೊಳ್ಳಿ • ಸೂಚಿಸಿ • ಉತ್ತಮಗೊಳಿಸಿ | Building a Better Tomorrow</small>
-      </span>
     </a>
   </header>
 
@@ -115,7 +111,7 @@
         Logout
       </button>
 
-      <!-- ONLY LIGHT AND DARK THEMES -->
+      <!-- THEME SELECTOR -->
       <label class="theme-picker">
         <span>Theme</span>
 
