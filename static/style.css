@@ -2337,3 +2337,139 @@ textarea:focus-visible {
     align-items: flex-start;
   }
 }
+
+
+/* =========================================================
+   JANASETU - APP UPDATE NOTIFICATION
+   ========================================================= */
+
+.janasetu-update-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(10, 25, 43, .62);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+.janasetu-update-dialog {
+  width: min(100%, 430px);
+  padding: 30px 26px 22px;
+  border: 1px solid rgba(255, 255, 255, .7);
+  border-radius: 22px;
+  background: #ffffff;
+  color: #18324b;
+  text-align: center;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
+  animation: janasetuUpdateEnter .22s ease-out;
+}
+
+.janasetu-update-icon {
+  width: 62px;
+  height: 62px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 15px;
+  border-radius: 19px;
+  background: #e8f3f1;
+  color: #145b58;
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.janasetu-update-eyebrow {
+  margin: 0 0 8px;
+  color: #28736e;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 2px;
+}
+
+.janasetu-update-dialog h2 {
+  margin: 0;
+  color: #173b5d;
+  font-size: clamp(21px, 5vw, 25px);
+  line-height: 1.25;
+}
+
+.janasetu-update-message {
+  margin: 12px 0 22px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.janasetu-update-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.janasetu-update-actions button {
+  min-height: 46px;
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid #d8e1e9;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .18s ease, opacity .18s ease, background .18s ease;
+}
+
+.janasetu-update-later {
+  background: #f5f7fa;
+  color: #42566b;
+}
+
+.janasetu-update-now {
+  border-color: #145b58 !important;
+  background: #145b58;
+  color: #ffffff;
+  box-shadow: 0 5px 14px rgba(20, 91, 88, .2);
+}
+
+.janasetu-update-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.janasetu-update-actions button:disabled {
+  cursor: wait;
+  opacity: .65;
+}
+
+.janasetu-update-footnote {
+  margin: 15px 0 0;
+  color: #8290a0;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+@keyframes janasetuUpdateEnter {
+  from { opacity: 0; transform: translateY(10px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 380px) {
+  .janasetu-update-dialog {
+    padding: 25px 18px 19px;
+    border-radius: 18px;
+  }
+
+  .janasetu-update-actions {
+    flex-direction: column-reverse;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .janasetu-update-dialog {
+    animation: none;
+  }
+
+  .janasetu-update-actions button {
+    transition: none;
+  }
+}
