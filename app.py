@@ -280,12 +280,8 @@ def home():
 @app.route("/login")
 def citizen_login_page():
 
-    if is_citizen():
-        return redirect(url_for("submit_page"))
-
-    if is_admin():
-        return redirect(url_for("admin_page"))
-
+    # Always show the login form when the visitor explicitly chooses Login.
+    # The protected /submit route still checks authentication before access.
     return render_template(
         "index.html",
         page="login"
@@ -295,12 +291,7 @@ def citizen_login_page():
 @app.route("/register")
 def register_page():
 
-    if is_citizen():
-        return redirect(url_for("submit_page"))
-
-    if is_admin():
-        return redirect(url_for("admin_page"))
-
+    # Always allow visitors to open the registration form.
     return render_template(
         "index.html",
         page="register"
