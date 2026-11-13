@@ -2502,3 +2502,11 @@ textarea:focus-visible {
     transition: none;
   }
 }
+
+
+/* JANASETU: use the uploaded original banner as the only header artwork */
+.janasetu-karnataka-map { display: none !important; }
+.government-header.janasetu-banner-header { background: transparent; }
+.janasetu-banner-link { display: block; width: 100%; }
+.janasetu-banner-image { display: block; width: 100%; height: auto; max-height: none; object-fit: contain; }
+@media (max-width: 650px) { .janasetu-banner-image { width: 100%; height: auto; max-height: none; } }
