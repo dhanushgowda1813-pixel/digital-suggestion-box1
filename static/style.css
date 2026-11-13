@@ -1,3 +1,4 @@
+
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
    Professional Responsive Application
@@ -231,17 +232,59 @@ a {
 
 /* ==================== JANASETU IMAGE HEADER ==================== */
 
+/* Matches the current index.html header structure */
+
+.site-header {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  position: relative;
+  border: 0;
+}
+
+.header-banner {
+  width: 100%;
+  height: 88px;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.header-banner-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: 88px;
+  margin: 0;
+  object-fit: contain;
+  object-position: center;
+}
+
+/* Compatibility with the older banner class names */
+
 .janasetu-banner-header {
   width: 100%;
+  height: 88px;
   background: var(--surface);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   overflow: hidden;
   padding: 0;
   margin: 0;
 }
 
 .janasetu-banner-link {
-  display: block;
+  display: flex;
   width: 100%;
+  height: 100%;
+  justify-content: center;
+  align-items: center;
   line-height: 0;
   text-decoration: none;
 }
@@ -250,15 +293,21 @@ a {
   display: block;
   width: 100%;
   max-width: 100%;
-  height: 165px;
+  height: 88px;
   margin: 0;
-  object-fit: fill;
+  object-fit: contain;
   object-position: center;
 }
 
 @media (max-width: 600px) {
+  .header-banner,
+  .janasetu-banner-header {
+    height: 64px;
+  }
+
+  .header-banner-image,
   .janasetu-banner-image {
-    height: 100px;
+    height: 64px;
   }
 }
 
@@ -277,7 +326,7 @@ a {
   box-shadow: 0 2px 7px rgba(0,0,0,.08);
 }
 
-/* Refined hamburger menu */
+/* Original hamburger menu */
 
 .menu-toggle {
   width: 40px;
@@ -372,6 +421,8 @@ a {
   color: var(--primary);
 }
 
+/* Theme selector stays INSIDE the dropdown */
+
 .theme-picker {
   display: flex;
   justify-content: space-between;
@@ -386,6 +437,12 @@ a {
 
 .theme-picker select {
   width: 125px;
+  min-height: 36px;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface-soft);
+  color: var(--text);
 }
 
 /* ==================== MAIN CONTENT ==================== */
@@ -961,7 +1018,6 @@ body[data-theme="dark"].app-screen-active .panel-wrap::after {
 .form-group input,
 .form-group select,
 .form-group textarea,
-.theme-picker select,
 .admin-toolbar input,
 .admin-toolbar select {
   width: 100%;
@@ -972,7 +1028,6 @@ body[data-theme="dark"].app-screen-active .panel-wrap::after {
   background: var(--surface-soft);
   border: 1px solid var(--border);
   border-radius: 8px;
-  outline: none;
 }
 
 .form-field input:focus,
@@ -998,15 +1053,6 @@ body[data-theme="dark"].app-screen-active .panel-wrap::after {
 .form-group input[type="file"] {
   padding: 10px;
   max-width: 100%;
-}
-
-.form-field input::placeholder,
-.form-field textarea::placeholder,
-.form-group input::placeholder,
-.form-group textarea::placeholder,
-.admin-toolbar input::placeholder {
-  color: var(--muted);
-  opacity: .8;
 }
 
 .form-note {
@@ -1513,6 +1559,10 @@ body[data-theme="dark"].app-screen-active .panel-wrap::after {
   body.app-screen-active #app {
     width: calc(100% - 32px);
   }
+
+  .nav-menu {
+    right: 20px;
+  }
 }
 
 /* ==================== MOBILE ==================== */
@@ -1906,125 +1956,4 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: .01ms !important;
   }
-}
-/* =====================================================
-   JANASETU HEADER - RESPONSIVE BANNER
-   ===================================================== */
-
-.site-header {
-    width: 100%;
-    position: relative;
-    background: var(--surface, #ffffff);
-}
-
-.header-banner {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    background: var(--surface, #ffffff);
-}
-
-.header-banner-image {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
-    object-position: center;
-}
-
-/* Navigation */
-
-.header-navigation {
-    width: 100%;
-    min-height: 55px;
-    padding: 8px 4%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    background: var(--surface, #ffffff);
-    border-bottom: 1px solid rgba(100, 120, 150, 0.18);
-}
-
-.nav-menu {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 24px;
-}
-
-.nav-menu a {
-    text-decoration: none;
-    color: var(--text, #18324d);
-    font-size: 14px;
-    font-weight: 600;
-    transition: color 0.2s ease;
-}
-
-.nav-menu a:hover {
-    color: var(--primary, #174b86);
-}
-
-.header-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.header-controls select {
-    padding: 8px 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background: var(--surface, #ffffff);
-    color: var(--text, #18324d);
-}
-
-.menu-toggle {
-    display: none;
-    padding: 8px 12px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    background: var(--surface, #ffffff);
-    color: var(--text, #18324d);
-    font-size: 20px;
-    cursor: pointer;
-}
-
-/* Mobile */
-
-@media (max-width: 768px) {
-
-    .header-navigation {
-        flex-wrap: wrap;
-    }
-
-    .menu-toggle {
-        display: block;
-    }
-
-    .nav-menu {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 14px;
-        padding: 12px 0;
-    }
-
-    .nav-menu[hidden] {
-        display: none;
-    }
-
-    .header-controls {
-        margin-left: auto;
-    }
-
-    .header-banner-image {
-        width: 100%;
-        height: auto;
-    }
-
 }
