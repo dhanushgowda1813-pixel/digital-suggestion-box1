@@ -1,12 +1,20 @@
 
 /* =========================================================
    JANASETU - DIGITAL CITIZEN FEEDBACK SYSTEM
-   Complete Frontend JavaScript
+   Separate Flask Pages - Complete Frontend JavaScript
+
+   Pages:
+   /              Home
+   /login         Citizen Login
+   /register      Citizen Registration
+   /admin-login   Admin Login
+   /submit        Submit Feedback
+   /track         Track Feedback
+   /admin         Admin Dashboard
 
    Features:
    - Citizen and Admin authentication
    - Password visibility
-   - Optional feedback name
    - GPS current location
    - OpenStreetMap and Leaflet
    - Area and place autocomplete
@@ -15,10 +23,8 @@
    - Admin dashboard
    - Status updates and deletion
    - Session and logout management
-   - Permanent JANASETU header
-   - Full-page app-style navigation
-   - Responsive web application + PWA
-   - ONLY LIGHT AND DARK THEMES
+   - Light and Dark themes
+   - PWA service worker
    ========================================================= */
 
 "use strict";
@@ -27,8 +33,10 @@
    GLOBAL VARIABLES
    ========================================================= */
 
-const appPanel = document.getElementById("panel");
+const pageContent = document.getElementById("pageContent");
 const toastEl = document.getElementById("toast");
+
+const currentPage = pageContent?.dataset.page || "home";
 
 const statuses = [
   "Submitted",
@@ -37,7 +45,6 @@ const statuses = [
   "Resolved"
 ];
 
-let currentView = "home";
 let currentUser = null;
 let adminItems = [];
 let activePhotoURL = null;
@@ -51,6 +58,7 @@ let selectedLongitude = null;
 let autocompleteTimer = null;
 let autocompleteRequestId = 0;
 let lastSearchTime = 0;
+
 let locationRequestActive = false;
 let locationRequestId = 0;
 
@@ -173,99 +181,35 @@ function updateAuthUI() {
 }
 
 /* =========================================================
-   FULL-PAGE APP LAYOUT
+   INNER PAGE CONTENT
    ========================================================= */
 
-function setPageLayout(showInnerPage) {
-  const homeSections = [
-    document.getElementById("home"),
-    document.querySelector(".services-heading"),
-    document.querySelector(".service-grid"),
-    document.querySelector(".civic-features-section"),
-    document.querySelector(".process-section"),
-    document.querySelector(".citizen-help-section")
-  ].filter(Boolean);
-
-  homeSections.forEach(section => {
-    section.hidden = showInnerPage;
-    section.style.display = showInnerPage ? "none" : "";
-  });
-
-  const footer = document.querySelector(".government-footer");
-
-  if (footer) {
-    footer.hidden = showInnerPage;
-    footer.style.display = showInnerPage ? "none" : "";
-  }
-
-  if (appPanel) {
-    appPanel.hidden = !showInnerPage;
-    appPanel.style.display = showInnerPage ? "" : "none";
-  }
-
-  document.body.classList.toggle(
-    "inner-page-active",
-    showInnerPage
-  );
-
-  document.body.classList.toggle(
-    "app-screen-active",
-    showInnerPage
-  );
-}
-
-/* =========================================================
-   PAGE SHELL
-
+/*
    IMPORTANT:
-   The JANASETU banner and navigation already exist in
-   index.html. Do not generate another logo or header here.
 
-   All application pages appear below the permanent header.
-   ========================================================= */
+   The Flask template already displays:
+   - JANASETU banner
+   - Inner page heading
+   - Back to Home link
+
+   This function only inserts the page-specific content
+   inside #pageContent.
+
+   It does NOT replace the entire page or header.
+*/
 
 function shell(title, lead, body, wide = false) {
-  if (!appPanel) return;
+  if (!pageContent) return;
 
   destroyFeedbackMap();
 
-  setPageLayout(true);
-
-  appPanel.innerHTML = `
-    <section
-      class="app-route-screen"
-      aria-label="${escapeHTML(title)} page"
-    >
-
-      <div class="panel ${wide ? "wide" : ""}">
-
-        <button
-          type="button"
-          class="back"
-          data-view="home"
-        >
-          <span aria-hidden="true">←</span>
-          Back to home
-        </button>
-
-        <div class="app-route-title-block">
-
-          <span class="app-route-eyebrow">
-            CITIZEN PARTICIPATION
-          </span>
-
-          <h2>${escapeHTML(title)}</h2>
-
-          <p class="lead">${escapeHTML(lead)}</p>
-
-        </div>
-
-        ${body}
-
-      </div>
-
-    </section>
+  pageContent.innerHTML = `
+    <div class="panel ${wide ? "wide" : ""}">
+      ${body}
+    </div>
   `;
+
+  pageContent.dataset.page = currentPage;
 
   scrollPageToTop();
 }
@@ -422,132 +366,6 @@ document.addEventListener("click", event => {
 });
 
 /* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-function closeMenu() {
-  const menu = document.getElementById("navMenu");
-  const toggle = document.getElementById("menuToggle");
-
-  if (menu) {
-    menu.hidden = true;
-  }
-
-  if (toggle) {
-    toggle.setAttribute("aria-expanded", "false");
-    toggle.setAttribute("aria-label", "Open navigation menu");
-  }
-}
-
-function view(name, options = {}) {
-  releasePhotoPreview();
-  currentView = name;
-
-  if (!options.fromHistory && window.history && window.history.pushState) {
-    const route = name === "home" ? "#home" : `#${name}`;
-
-    if (window.location.hash !== route) {
-      window.history.pushState(
-        { janasetuView: name },
-        "",
-        route
-      );
-    }
-  }
-
-  closeMenu();
-
-  const views = {
-    home: homeView,
-    submit: submitView,
-    login: loginView,
-    register: registerView,
-    "admin-login": adminLoginView,
-    track: trackView,
-    admin: adminView
-  };
-
-  (views[name] || homeView)();
-}
-
-/* Navigation buttons */
-
-document.addEventListener("click", event => {
-  const button = event.target.closest("[data-view]");
-
-  if (!button) return;
-
-  event.preventDefault();
-
-  const destination = button.dataset.view;
-
-  if (!destination) return;
-
-  view(destination);
-});
-
-/* Browser Back/Forward */
-
-window.addEventListener("popstate", () => {
-  const route = (window.location.hash || "#home").slice(1);
-
-  const knownRoutes = [
-    "home",
-    "submit",
-    "track",
-    "login",
-    "register",
-    "admin-login",
-    "admin"
-  ];
-
-  view(
-    knownRoutes.includes(route) ? route : "home",
-    { fromHistory: true }
-  );
-});
-
-/* Header logout */
-
-const headerLogoutButton = document.getElementById("logoutButton");
-
-if (headerLogoutButton) {
-  headerLogoutButton.addEventListener("click", logout);
-}
-
-/* Hamburger menu */
-
-const menuToggle = document.getElementById("menuToggle");
-const navMenu = document.getElementById("navMenu");
-
-if (menuToggle && navMenu) {
-  menuToggle.addEventListener("click", () => {
-    const isOpen = !navMenu.hidden;
-
-    navMenu.hidden = isOpen;
-
-    menuToggle.setAttribute(
-      "aria-expanded",
-      String(!isOpen)
-    );
-
-    menuToggle.setAttribute(
-      "aria-label",
-      isOpen ? "Open navigation menu" : "Close navigation menu"
-    );
-  });
-
-  document.addEventListener("click", event => {
-    if (
-      !event.target.closest("#navMenu") &&
-      !event.target.closest("#menuToggle")
-    ) {
-      closeMenu();
-    }
-  });
-}
-
-/* =========================================================
    THEME SELECTOR
    ONLY LIGHT AND DARK THEMES
    ========================================================= */
@@ -574,7 +392,7 @@ function applyTheme(theme) {
   }
 }
 
-/* Restore saved theme */
+/* Restore saved theme on every page */
 
 try {
   const savedTheme = localStorage.getItem("citizenTheme");
@@ -585,7 +403,7 @@ try {
   applyTheme("light");
 }
 
-/* Listen for theme changes */
+/* Theme selector is present on the homepage */
 
 if (themeSelect) {
   themeSelect.addEventListener("change", event => {
@@ -599,18 +417,9 @@ if (themeSelect) {
 
 function homeView() {
   destroyFeedbackMap();
-
-  if (appPanel) {
-    appPanel.innerHTML = "";
-  }
-
-  setPageLayout(false);
-
-  currentView = "home";
+  releasePhotoPreview();
 
   updateAuthUI();
-
-  scrollPageToTop();
 }
 
 /* =========================================================
@@ -618,9 +427,11 @@ function homeView() {
    ========================================================= */
 
 function registerView() {
+  if (!pageContent) return;
+
   shell(
     "Create Citizen Account",
-    "Register to submit feedback and participate in improving your community.",
+    "",
     `
       <form id="registerForm" class="app-form">
 
@@ -647,13 +458,9 @@ function registerView() {
         <p class="form-note">
           Already registered?
 
-          <button
-            type="button"
-            class="text-button"
-            data-view="login"
-          >
+          <a href="/login" class="text-button">
             Login here
-          </button>
+          </a>
         </p>
 
         <div id="formMessage" class="form-message"></div>
@@ -664,16 +471,20 @@ function registerView() {
 
   const form = document.getElementById("registerForm");
 
+  if (!form) return;
+
   form.addEventListener("submit", async event => {
     event.preventDefault();
 
     const button = form.querySelector('[type="submit"]');
     const formData = new FormData(form);
 
-    const name = formData.get("name").trim();
-    const email = formData.get("email").trim();
-    const password = formData.get("password");
-    const confirmPassword = formData.get("confirmPassword");
+    const name = String(formData.get("name") || "").trim();
+    const email = String(formData.get("email") || "").trim();
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(
+      formData.get("confirmPassword") || ""
+    );
 
     if (!name || !email) {
       toast("Please complete all required fields.");
@@ -706,7 +517,7 @@ function registerView() {
 
       await loadSession();
 
-      view("submit");
+      window.location.href = "/submit";
 
     } catch (error) {
       toast(error.message);
@@ -724,9 +535,11 @@ function registerView() {
    ========================================================= */
 
 function loginView() {
+  if (!pageContent) return;
+
   shell(
     "Citizen Login",
-    "Login to submit your feedback to the local administration.",
+    "",
     `
       <form id="loginForm" class="app-form">
 
@@ -741,13 +554,9 @@ function loginView() {
         <p class="form-note">
           Don't have an account?
 
-          <button
-            type="button"
-            class="text-button"
-            data-view="register"
-          >
+          <a href="/register" class="text-button">
             Create Account
-          </button>
+          </a>
         </p>
 
         <div id="formMessage" class="form-message"></div>
@@ -757,6 +566,8 @@ function loginView() {
   );
 
   const form = document.getElementById("loginForm");
+
+  if (!form) return;
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -770,7 +581,7 @@ function loginView() {
       await api("/api/login", {
         method: "POST",
         body: JSON.stringify({
-          email: formData.get("email").trim(),
+          email: String(formData.get("email") || "").trim(),
           password: formData.get("password")
         })
       });
@@ -779,7 +590,7 @@ function loginView() {
 
       await loadSession();
 
-      view("submit");
+      window.location.href = "/submit";
 
     } catch (error) {
       toast(error.message);
@@ -797,9 +608,11 @@ function loginView() {
    ========================================================= */
 
 function adminLoginView() {
+  if (!pageContent) return;
+
   shell(
     "Administrator Login",
-    "Authorized administrators can manage citizen feedback.",
+    "",
     `
       <form id="adminLoginForm" class="app-form">
 
@@ -819,6 +632,8 @@ function adminLoginView() {
 
   const form = document.getElementById("adminLoginForm");
 
+  if (!form) return;
+
   form.addEventListener("submit", async event => {
     event.preventDefault();
 
@@ -831,7 +646,9 @@ function adminLoginView() {
       await api("/api/admin-login", {
         method: "POST",
         body: JSON.stringify({
-          username: formData.get("username").trim(),
+          username: String(
+            formData.get("username") || ""
+          ).trim(),
           password: formData.get("password")
         })
       });
@@ -840,7 +657,7 @@ function adminLoginView() {
 
       await loadSession();
 
-      view("admin");
+      window.location.href = "/admin";
 
     } catch (error) {
       toast(error.message);
@@ -1013,7 +830,9 @@ async function useCurrentLocation() {
   if (locationRequestActive) return;
 
   if (!navigator.geolocation) {
-    const message = "Location access is not supported by this browser or device.";
+    const message =
+      "Location access is not supported by this browser or device.";
+
     locationMessage(message, true);
     toast(message);
     return;
@@ -1024,20 +843,27 @@ async function useCurrentLocation() {
     location.hostname !== "localhost" &&
     location.hostname !== "127.0.0.1"
   ) {
-    const message = "Current location requires a secure HTTPS connection. Please open JANASETU using its HTTPS link.";
+    const message =
+      "Current location requires a secure HTTPS connection. Please open JANASETU using its HTTPS link.";
+
     locationMessage(message, true);
     toast(message);
     return;
   }
 
   if (!feedbackMap) {
-    const message = "The map is still loading. Please wait a moment and try again.";
+    const message =
+      "The map is still loading. Please wait a moment and try again.";
+
     locationMessage(message, true);
     toast(message);
     return;
   }
 
-  const button = document.getElementById("currentLocationButton");
+  const button = document.getElementById(
+    "currentLocationButton"
+  );
+
   const requestId = ++locationRequestId;
   const mapForRequest = feedbackMap;
 
@@ -1048,10 +874,16 @@ async function useCurrentLocation() {
     button.textContent = "Getting location...";
   }
 
-  locationMessage("Requesting permission to access your current location...");
+  locationMessage(
+    "Requesting permission to access your current location..."
+  );
 
   const getPosition = options => new Promise((resolve, reject) => {
-    navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    navigator.geolocation.getCurrentPosition(
+      resolve,
+      reject,
+      options
+    );
   });
 
   const finishRequest = () => {
@@ -1080,7 +912,9 @@ async function useCurrentLocation() {
         throw firstError;
       }
 
-      locationMessage("Precise GPS is taking time. Trying an alternate location method...");
+      locationMessage(
+        "Precise GPS is taking time. Trying an alternate location method..."
+      );
 
       position = await getPosition({
         enableHighAccuracy: false,
@@ -1107,7 +941,9 @@ async function useCurrentLocation() {
       longitude < -180 ||
       longitude > 180
     ) {
-      throw new Error("The device returned invalid location coordinates. Please try again.");
+      throw new Error(
+        "The device returned invalid location coordinates. Please try again."
+      );
     }
 
     setSelectedLocation(latitude, longitude, 17);
@@ -1120,10 +956,15 @@ async function useCurrentLocation() {
       }, 150);
     }
 
-    locationMessage("Location detected. Finding your area name...");
+    locationMessage(
+      "Location detected. Finding your area name..."
+    );
 
     try {
-      const result = await reverseGeocode(latitude, longitude);
+      const result = await reverseGeocode(
+        latitude,
+        longitude
+      );
 
       if (requestId !== locationRequestId) return;
 
@@ -1132,6 +973,7 @@ async function useCurrentLocation() {
 
       if (areaInput && area) {
         areaInput.value = area;
+
         areaInput.dispatchEvent(
           new Event("change", { bubbles: true })
         );
@@ -1162,14 +1004,21 @@ async function useCurrentLocation() {
   } catch (error) {
     if (requestId !== locationRequestId) return;
 
-    let message = "Unable to access your location. Please try again.";
+    let message =
+      "Unable to access your location. Please try again.";
 
     if (error && error.code === 1) {
-      message = "Location permission denied. Allow location access for this site in your browser settings, then try again.";
+      message =
+        "Location permission denied. Allow location access for this site in your browser settings, then try again.";
+
     } else if (error && error.code === 2) {
-      message = "Your device could not determine its location. Turn on device location services and try again.";
+      message =
+        "Your device could not determine its location. Turn on device location services and try again.";
+
     } else if (error && error.code === 3) {
-      message = "Location request timed out. Check your GPS or internet connection and try again.";
+      message =
+        "Location request timed out. Check your GPS or internet connection and try again.";
+
     } else if (error && error.message) {
       message = error.message;
     }
@@ -1275,14 +1124,18 @@ async function searchPlaces(query) {
   });
 
   if (!response.ok) {
-    throw new Error("Place search is temporarily unavailable.");
+    throw new Error(
+      "Place search is temporarily unavailable."
+    );
   }
 
   return response.json();
 }
 
 function showPlaceSuggestions(results) {
-  const suggestions = document.getElementById("areaSuggestions");
+  const suggestions = document.getElementById(
+    "areaSuggestions"
+  );
 
   if (!suggestions) return;
 
@@ -1304,7 +1157,8 @@ function showPlaceSuggestions(results) {
     const item = document.createElement("button");
 
     item.type = "button";
-    item.className = "place-suggestion location-suggestion";
+    item.className =
+      "place-suggestion location-suggestion";
 
     const title = document.createElement("strong");
 
@@ -1343,7 +1197,9 @@ function selectSuggestedPlace(result) {
   }
 
   const areaInput = document.getElementById("areaInput");
-  const suggestions = document.getElementById("areaSuggestions");
+  const suggestions = document.getElementById(
+    "areaSuggestions"
+  );
 
   const area =
     extractAreaName(result) ||
@@ -1366,7 +1222,9 @@ function selectSuggestedPlace(result) {
 
 function initializePlaceAutocomplete() {
   const areaInput = document.getElementById("areaInput");
-  const suggestions = document.getElementById("areaSuggestions");
+  const suggestions = document.getElementById(
+    "areaSuggestions"
+  );
 
   if (!areaInput || !suggestions) return;
 
@@ -1401,7 +1259,9 @@ function initializePlaceAutocomplete() {
           1100 - (now - lastSearchTime)
         );
 
-        await new Promise(resolve => setTimeout(resolve, wait));
+        await new Promise(resolve => {
+          setTimeout(resolve, wait);
+        });
 
         if (
           requestId !== autocompleteRequestId ||
@@ -1494,40 +1354,56 @@ function validatePhoto(file) {
 
 function submitView() {
   if (!currentUser || currentUser.role !== "citizen") {
-    shell(
-      "Citizen Login Required",
-      "Please login to your citizen account before submitting feedback.",
-      `
-        <div class="action-buttons">
+    if (pageContent) {
+      pageContent.innerHTML = `
+        <div class="panel">
 
-          <button
-            class="government-button"
-            data-view="login"
-          >
-            Citizen Login
-          </button>
+          <div class="empty-state">
+            <h3>Citizen Login Required</h3>
 
-          <button
-            class="outline-button"
-            data-view="register"
-          >
-            Create Account
-          </button>
+            <p>
+              Please login to your citizen account before submitting feedback.
+            </p>
+
+            <div class="action-buttons">
+
+              <a
+                href="/login"
+                class="government-button"
+              >
+                Citizen Login
+              </a>
+
+              <a
+                href="/register"
+                class="outline-button"
+              >
+                Create Account
+              </a>
+
+            </div>
+
+          </div>
 
         </div>
-      `
-    );
+      `;
+    }
 
     return;
   }
 
   shell(
     "Submit Your Feedback",
-    "Describe the local issue, select its location and upload a photograph.",
+    "",
     `
       <form id="suggestionForm" class="app-form">
 
-        ${formField("Your Name (Optional)", "name", "text", false)}
+        ${formField(
+          "Your Name (Optional)",
+          "name",
+          "text",
+          false
+        )}
 
         <label class="form-field">
 
@@ -1689,6 +1565,8 @@ function submitView() {
   const photoInput = document.getElementById("photoInput");
   const preview = document.getElementById("photoPreview");
 
+  if (!form || !photoInput || !preview) return;
+
   photoInput.addEventListener("change", () => {
     preview.innerHTML = "";
     releasePhotoPreview();
@@ -1764,7 +1642,7 @@ function submitView() {
 
       shell(
         "Feedback Submitted Successfully!",
-        "Your feedback has been recorded. Save your tracking ID.",
+        "",
         `
           <div class="success-panel">
 
@@ -1787,39 +1665,48 @@ function submitView() {
               of your feedback.
             </p>
 
-            <button
-              type="button"
+            <a
+              href="/track"
               class="government-button"
               id="trackNewButton"
             >
               Track Your Feedback
-            </button>
+            </a>
 
           </div>
         `
       );
 
-      document.getElementById("copyTrackingButton")
-        .addEventListener("click", async () => {
+      const copyButton = document.getElementById(
+        "copyTrackingButton"
+      );
+
+      if (copyButton) {
+        copyButton.addEventListener("click", async () => {
           try {
             await navigator.clipboard.writeText(trackingId);
             toast("Tracking ID copied!");
 
           } catch {
-            toast("Please copy the tracking ID manually.");
+            toast(
+              "Please copy the tracking ID manually."
+            );
           }
         });
+      }
 
-      document.getElementById("trackNewButton")
-        .addEventListener("click", () => {
-          view("track");
+      const trackButton = document.getElementById(
+        "trackNewButton"
+      );
 
-          const input = document.getElementById("trackingInput");
+      if (trackButton) {
+        trackButton.addEventListener("click", event => {
+          event.preventDefault();
 
-          if (input) {
-            input.value = trackingId;
-          }
+          window.location.href =
+            `/track?id=${encodeURIComponent(trackingId)}`;
         });
+      }
 
     } catch (error) {
       toast(error.message);
@@ -1837,9 +1724,11 @@ function submitView() {
    ========================================================= */
 
 function trackView() {
+  if (!pageContent) return;
+
   shell(
     "Track Your Feedback",
-    "Enter your tracking ID to check the current status of your application.",
+    "",
     `
       <form id="trackForm" class="app-form">
 
@@ -1851,7 +1740,7 @@ function trackView() {
             type="text"
             id="trackingInput"
             name="trackingId"
-            placeholder="Example: DSB-XXXXXXXXXX"
+            placeholder="Enter your tracking ID"
             required
           >
 
@@ -1869,11 +1758,28 @@ function trackView() {
 
   const form = document.getElementById("trackForm");
 
+  if (!form) return;
+
+  const trackingInput = document.getElementById(
+    "trackingInput"
+  );
+
+  const queryId = new URLSearchParams(
+    window.location.search
+  ).get("id");
+
+  if (queryId && trackingInput) {
+    trackingInput.value = queryId;
+  }
+
   form.addEventListener("submit", async event => {
     event.preventDefault();
 
     const input = document.getElementById("trackingInput");
-    const resultBox = document.getElementById("trackingResult");
+    const resultBox = document.getElementById(
+      "trackingResult"
+    );
+
     const button = form.querySelector('[type="submit"]');
 
     const trackingId = input.value.trim().toUpperCase();
@@ -1907,9 +1813,15 @@ function trackView() {
       }
     }
   });
+
+  if (queryId && trackingInput) {
+    form.requestSubmit();
+  }
 }
 
-/* Tracking result */
+/* =========================================================
+   TRACKING RESULT
+   ========================================================= */
 
 function showTrackingResult(data, container) {
   const currentIndex = statuses.indexOf(data.status);
@@ -2026,25 +1938,37 @@ function showTrackingResult(data, container) {
 
 function adminView() {
   if (!currentUser || currentUser.role !== "admin") {
-    shell(
-      "Administrator Login Required",
-      "Please login with administrator credentials.",
-      `
-        <button
-          class="government-button"
-          data-view="admin-login"
-        >
-          Administrator Login
-        </button>
-      `
-    );
+    if (pageContent) {
+      pageContent.innerHTML = `
+        <div class="panel">
+
+          <div class="empty-state">
+
+            <h3>Administrator Login Required</h3>
+
+            <p>
+              Please login with administrator credentials to access the dashboard.
+            </p>
+
+            <a
+              href="/admin-login"
+              class="government-button"
+            >
+              Administrator Login
+            </a>
+
+          </div>
+
+        </div>
+      `;
+    }
 
     return;
   }
 
   shell(
     "Administrator Dashboard",
-    "Manage citizen feedback and update application progress.",
+    "",
     `
       <div class="admin-toolbar">
 
@@ -2094,21 +2018,23 @@ function adminView() {
   );
 
   document.getElementById("adminSearch")
-    .addEventListener("input", renderAdminTable);
+    ?.addEventListener("input", renderAdminTable);
 
   document.getElementById("adminStatusFilter")
-    .addEventListener("change", renderAdminTable);
+    ?.addEventListener("change", renderAdminTable);
 
   document.getElementById("refreshAdmin")
-    .addEventListener("click", loadAdminData);
+    ?.addEventListener("click", loadAdminData);
 
   document.getElementById("adminLogoutButton")
-    .addEventListener("click", logout);
+    ?.addEventListener("click", logout);
 
   loadAdminData();
 }
 
-/* Load admin data */
+/* =========================================================
+   LOAD ADMIN DATA
+   ========================================================= */
 
 async function loadAdminData() {
   const table = document.getElementById("adminTable");
@@ -2125,6 +2051,7 @@ async function loadAdminData() {
       : [];
 
     const stats = data.stats || {};
+
     const statsBox = document.getElementById("adminStats");
 
     if (statsBox) {
@@ -2160,7 +2087,9 @@ async function loadAdminData() {
   }
 }
 
-/* Render admin records */
+/* =========================================================
+   RENDER ADMIN RECORDS
+   ========================================================= */
 
 function renderAdminTable() {
   const table = document.getElementById("adminTable");
@@ -2329,7 +2258,9 @@ function renderAdminTable() {
   });
 }
 
-/* Admin update */
+/* =========================================================
+   ADMIN UPDATE
+   ========================================================= */
 
 async function updateAdminRecord(trackingId) {
   const statusInput = document.querySelector(
@@ -2363,7 +2294,9 @@ async function updateAdminRecord(trackingId) {
   }
 }
 
-/* Admin delete */
+/* =========================================================
+   ADMIN DELETE
+   ========================================================= */
 
 async function deleteAdminRecord(trackingId) {
   const confirmed = confirm(
@@ -2390,7 +2323,7 @@ async function deleteAdminRecord(trackingId) {
 }
 
 /* =========================================================
-   SESSION AND LOGOUT
+   SESSION MANAGEMENT
    ========================================================= */
 
 async function loadSession() {
@@ -2414,6 +2347,10 @@ async function loadSession() {
   }
 }
 
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
 async function logout() {
   try {
     await api("/api/logout", {
@@ -2427,11 +2364,77 @@ async function logout() {
 
     toast("You have been logged out.");
 
-    view("home");
+    window.location.href = "/";
 
   } catch (error) {
     toast(error.message);
   }
+}
+
+/* =========================================================
+   HEADER LOGOUT BUTTON
+   ========================================================= */
+
+const headerLogoutButton = document.getElementById(
+  "logoutButton"
+);
+
+if (headerLogoutButton) {
+  headerLogoutButton.addEventListener("click", logout);
+}
+
+/* =========================================================
+   HAMBURGER MENU
+   Only present on the homepage
+   ========================================================= */
+
+function closeMenu() {
+  const menu = document.getElementById("navMenu");
+  const toggle = document.getElementById("menuToggle");
+
+  if (menu) {
+    menu.hidden = true;
+  }
+
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute(
+      "aria-label",
+      "Open navigation menu"
+    );
+  }
+}
+
+const menuToggle = document.getElementById("menuToggle");
+const navMenu = document.getElementById("navMenu");
+
+if (menuToggle && navMenu) {
+  menuToggle.addEventListener("click", () => {
+    const isOpen = !navMenu.hidden;
+
+    navMenu.hidden = isOpen;
+
+    menuToggle.setAttribute(
+      "aria-expanded",
+      String(!isOpen)
+    );
+
+    menuToggle.setAttribute(
+      "aria-label",
+      isOpen
+        ? "Open navigation menu"
+        : "Close navigation menu"
+    );
+  });
+
+  document.addEventListener("click", event => {
+    if (
+      !event.target.closest("#navMenu") &&
+      !event.target.closest("#menuToggle")
+    ) {
+      closeMenu();
+    }
+  });
 }
 
 /* =========================================================
@@ -2457,20 +2460,77 @@ if ("serviceWorker" in navigator) {
 (async function startApplication() {
   await loadSession();
 
-  const initialRoute = (window.location.hash || "#home").slice(1);
+  /*
+     The Flask backend protects /submit and /admin.
+     These checks also keep the frontend consistent.
+  */
 
-  const knownRoutes = [
-    "home",
-    "submit",
-    "track",
-    "login",
-    "register",
-    "admin-login",
-    "admin"
-  ];
+  switch (currentPage) {
+    case "home":
+      homeView();
+      break;
 
-  view(
-    knownRoutes.includes(initialRoute) ? initialRoute : "home",
-    { fromHistory: true }
-  );
+    case "login":
+      if (currentUser?.role === "citizen") {
+        window.location.replace("/submit");
+        return;
+      }
+
+      if (currentUser?.role === "admin") {
+        window.location.replace("/admin");
+        return;
+      }
+
+      loginView();
+      break;
+
+    case "register":
+      if (currentUser?.role === "citizen") {
+        window.location.replace("/submit");
+        return;
+      }
+
+      if (currentUser?.role === "admin") {
+        window.location.replace("/admin");
+        return;
+      }
+
+      registerView();
+      break;
+
+    case "admin-login":
+      if (currentUser?.role === "admin") {
+        window.location.replace("/admin");
+        return;
+      }
+
+      adminLoginView();
+      break;
+
+    case "submit":
+      if (!currentUser || currentUser.role !== "citizen") {
+        window.location.replace("/login");
+        return;
+      }
+
+      submitView();
+      break;
+
+    case "track":
+      trackView();
+      break;
+
+    case "admin":
+      if (!currentUser || currentUser.role !== "admin") {
+        window.location.replace("/admin-login");
+        return;
+      }
+
+      adminView();
+      break;
+
+    default:
+      homeView();
+      break;
+  }
 })();
