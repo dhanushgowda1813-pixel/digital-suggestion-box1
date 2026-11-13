@@ -822,7 +822,7 @@ body.inner-page {
   background-image:
     radial-gradient(ellipse at 12% 18%, rgba(102, 169, 116, .24), transparent 38%),
     radial-gradient(ellipse at 88% 78%, rgba(119, 181, 125, .20), transparent 42%),
-    url("/static/janasetu-menu-background.svg?v=4") !important;
+    url("/static/janasetu-menu-background.svg?v=5") !important;
   background-position: center, center, center top !important;
   background-repeat: no-repeat !important;
   background-size: cover, cover, cover !important;
@@ -834,7 +834,7 @@ body.inner-page {
 body.inner-page[data-theme="dark"] {
   background-image:
     linear-gradient(rgba(16, 26, 40, .90), rgba(16, 26, 40, .90)),
-    url("/static/janasetu-menu-background.svg");
+    url("/static/janasetu-menu-background.svg?v=5");
 }
 
 /* The home page and inner pages use the same banner.
