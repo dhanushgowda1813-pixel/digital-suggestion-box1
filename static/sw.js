@@ -54,7 +54,9 @@ self.addEventListener("fetch", event => {
     event.respondWith(
       fetch(request, { cache: "no-store" })
         .then(response => {
-          if (response && response.ok) {
+          // Only cache the public home page. Never cache authenticated or
+          // page-specific navigation responses as the offline home page.
+          if (response && response.ok && url.pathname === "/") {
             const copy = response.clone();
             event.waitUntil(
               caches.open(CACHE_NAME).then(cache => cache.put("/", copy))
@@ -62,7 +64,10 @@ self.addEventListener("fetch", event => {
           }
           return response;
         })
-        .catch(() => caches.match("/") )
+        .catch(() => {
+          if (url.pathname === "/") return caches.match("/");
+          return Response.error();
+        })
     );
     return;
   }
