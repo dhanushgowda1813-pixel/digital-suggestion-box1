@@ -46,21 +46,62 @@
   </div>
 
   <!-- JANASETU BANNER -->
-  <header class="government-header janasetu-banner-header">
-    <a
-      href="#home"
-      class="janasetu-banner-link"
-      aria-label="JANASETU home"
-    >
-      <img
-        class="janasetu-banner-image"
-        src="{{ url_for('static', filename='janasetu-banner.png') }}"
-        alt="JANASETU - Building a Better Tomorrow. ಹಂಚಿಕೊಳ್ಳಿ • ಸೂಚಿಸಿ • ಉತ್ತಮಗೊಳಿಸಿ."
-        fetchpriority="high"
-        decoding="async"
-      >
-    </a>
-  </header>
+ <header class="site-header">
+
+    <div class="header-banner">
+        <img
+            src="/static/janasetu-header-banner.webp"
+            alt="JANASETU - Building a Better Tomorrow"
+            class="header-banner-image"
+        >
+    </div>
+
+    <div class="header-navigation">
+
+        <button
+            type="button"
+            id="menuToggle"
+            class="menu-toggle"
+            aria-label="Open navigation menu"
+            aria-expanded="false"
+        >
+            ☰
+        </button>
+
+        <nav id="navMenu" class="nav-menu">
+
+            <a href="#" data-view="home">Home</a>
+
+            <a href="#" data-view="submit">Submit Feedback</a>
+
+            <a href="#" data-view="track">Track Feedback</a>
+
+            <a href="#" data-view="login">Citizen Login</a>
+
+            <a href="#" data-view="admin-login">Admin</a>
+
+        </nav>
+
+        <div class="header-controls">
+
+            <select id="themeSelect" aria-label="Select theme">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+
+            <button
+                type="button"
+                id="logoutButton"
+                hidden
+            >
+                Logout
+            </button>
+
+        </div>
+
+    </div>
+
+</header>
 
   <!-- MAIN NAVIGATION -->
   <nav class="main-nav" id="nav" aria-label="Main navigation">
