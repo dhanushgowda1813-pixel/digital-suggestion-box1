@@ -196,11 +196,14 @@
     const isPassword = input.type === "password";
     input.type = isPassword ? "text" : "password";
 
-    button.textContent = isPassword ? "Hide" : "Show";
+    button.innerHTML = isPassword
+      ? '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.6a2 2 0 002.8 2.8M9.9 5.2A10.8 10.8 0 0112 5c5.2 0 9 4.5 10 7-.3 1-1.1 2.2-2.3 3.4M6.2 6.2C3.9 7.6 2.5 9.7 2 12c1 2.5 4.8 7 10 7 1.4 0 2.7-.3 3.8-.8"/></svg>'
+      : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
     button.setAttribute(
       "aria-label",
       isPassword ? "Hide password" : "Show password"
     );
+    button.setAttribute("title", isPassword ? "Hide password" : "Show password");
   });
 
   /* -------------------- MOBILE NAVIGATION -------------------- */
@@ -324,7 +327,7 @@
                 minlength="6"
                 required
               >
-              <button type="button" class="password-toggle">Show</button>
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
           </div>
 
@@ -339,7 +342,7 @@
                 autocomplete="new-password"
                 required
               >
-              <button type="button" class="password-toggle">Show</button>
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
           </div>
 
@@ -429,7 +432,7 @@
                 autocomplete="current-password"
                 required
               >
-              <button type="button" class="password-toggle">Show</button>
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
           </div>
 
@@ -512,7 +515,7 @@
                 autocomplete="current-password"
                 required
               >
-              <button type="button" class="password-toggle">Show</button>
+              <button type="button" class="password-toggle" aria-label="Show password" title="Show password"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
             </div>
           </div>
 
@@ -760,75 +763,105 @@
     const button = $("#currentLocationButton");
 
     if (!navigator.geolocation) {
-      if (message) {
-        message.textContent =
-          "Location is not supported by this browser.";
-      }
+      if (message) message.textContent =
+        "Your browser does not support location. Please enter your area manually.";
       return;
     }
 
-    if (message) {
-      message.textContent = "Getting your current location...";
+    if (message) message.textContent =
+      "Finding your precise location. Please keep location services turned on...";
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Locating...";
     }
-
-    if (button) button.disabled = true;
 
     navigator.geolocation.getCurrentPosition(
       async position => {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
+        const { latitude, longitude, accuracy } = position.coords;
 
+        // Store the actual GPS coordinates; the map pin uses these exact coordinates.
         setMapLocation(latitude, longitude);
 
+        const accuracyText = Number.isFinite(accuracy)
+          ? Math.round(accuracy)
+          : null;
+
         if (message) {
-          message.textContent =
-            "Current location detected successfully.";
+          message.textContent = accuracyText !== null
+            ? `GPS location detected (approximately ${accuracyText} m accuracy). Finding your street and area...`
+            : "GPS location detected. Finding your street and area...";
         }
 
         try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
-          );
+          const url = "https://nominatim.openstreetmap.org/reverse?" +
+            new URLSearchParams({
+              format: "jsonv2",
+              lat: String(latitude),
+              lon: String(longitude),
+              zoom: "18",
+              addressdetails: "1"
+            });
+
+          const response = await fetch(url, {
+            headers: { "Accept": "application/json" }
+          });
 
           if (response.ok) {
             const data = await response.json();
-
             const address = data.address || {};
-            const area =
-              address.suburb ||
-              address.neighbourhood ||
-              address.village ||
-              address.town ||
-              address.city ||
-              data.display_name;
+            const parts = [
+              address.road,
+              address.residential,
+              address.neighbourhood,
+              address.suburb,
+              address.village,
+              address.town,
+              address.city,
+              address.county
+            ].filter(Boolean);
 
-            if (area && $("#areaInput")) {
-              $("#areaInput").value = area;
+            const uniqueParts = [...new Set(parts)];
+            const accurateArea = uniqueParts.slice(0, 4).join(", ") ||
+              data.display_name || "";
+
+            if (accurateArea && $("#areaInput")) {
+              $("#areaInput").value = accurateArea;
+              $("#areaSuggestions").innerHTML = "";
             }
           }
         } catch {
-          // GPS coordinates remain available even if reverse lookup fails.
+          // The exact GPS coordinates and map pin remain saved if address lookup fails.
         }
 
-        if (button) button.disabled = false;
+        if (message) {
+          message.textContent = accuracyText !== null
+            ? `Location pinned successfully. GPS accuracy: approximately ${accuracyText} metres. Check the map pin and adjust it if needed.`
+            : "Location pinned successfully. Check the map pin and adjust it if needed.";
+        }
+
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = '<span aria-hidden="true">◎</span> Use My Current Location';
+        }
       },
       error => {
         const messages = {
-          1: "Location permission was denied. Please allow location access.",
-          2: "Your current location could not be detected.",
-          3: "Location request timed out. Please try again."
+          1: "Location permission was denied. Allow location access for this site and enable Precise location.",
+          2: "Your device could not determine its location. Turn on GPS/location services and try again.",
+          3: "Location request timed out. Move near a window or outdoors and try again."
         };
 
-        if (message) {
-          message.textContent =
-            messages[error.code] || "Unable to get your location.";
-        }
+        if (message) message.textContent =
+          messages[error.code] || "Unable to get your location. Please try again.";
 
-        if (button) button.disabled = false;
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = '<span aria-hidden="true">◎</span> Use My Current Location';
+        }
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
+        timeout: 30000,
         maximumAge: 0
       }
     );
@@ -1652,12 +1685,28 @@
 
   /* -------------------- PAGE INITIALIZATION -------------------- */
 
-  function initializePage() {
+  async function initializePage() {
     initializeTheme();
     initializeNavigation();
 
-    // Load session in the background without delaying page rendering.
-    loadSession();
+    // Check the server session before rendering any protected form or dashboard.
+    if (page === "submit" || page === "admin") {
+      const session = await loadSession();
+
+      if (page === "submit" &&
+          !(session?.loggedIn && session.role === "citizen")) {
+        navigate("/login?next=submit");
+        return;
+      }
+
+      if (page === "admin" &&
+          !(session?.loggedIn && session.role === "admin")) {
+        navigate("/admin-login");
+        return;
+      }
+    } else {
+      loadSession();
+    }
 
     switch (page) {
       case "register":
