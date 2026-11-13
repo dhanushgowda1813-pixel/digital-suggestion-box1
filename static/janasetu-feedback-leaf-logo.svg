@@ -1,51 +1,57 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="300" viewBox="0 0 1600 300" role="img" aria-labelledby="title desc">
-<title id="title">JANASETU ಜನಸೇತು — handshake and Karnataka</title>
-<desc id="desc">A clear blue handshake emblem, JANASETU in English and Kannada, and a recognizable Karnataka state silhouette.</desc>
+<title id="title">JANASETU ಜನಸೇತು</title>
+<desc id="desc">Blue handshake symbol, JANASETU English and Kannada name, and Karnataka state silhouette.</desc>
 <defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbfdff"/><stop offset=".58" stop-color="#eaf5ff"/><stop offset="1" stop-color="#d8edff"/></linearGradient>
-  <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#073b83"/><stop offset=".55" stop-color="#087bc5"/><stop offset="1" stop-color="#159fdf"/></linearGradient>
-  <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#073b83"/><stop offset=".55" stop-color="#0876c7"/><stop offset="1" stop-color="#159fe0"/></linearGradient>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fbfdff"/><stop offset=".58" stop-color="#eaf5ff"/><stop offset="1" stop-color="#d8edff"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#073b83"/><stop offset=".55" stop-color="#087bc5"/><stop offset="1" stop-color="#159fdf"/></linearGradient>
+ <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#073b83"/><stop offset=".55" stop-color="#0876c7"/><stop offset="1" stop-color="#159fe0"/></linearGradient>
 </defs>
 <rect width="1600" height="300" fill="url(#bg)"/>
 <path d="M0 0H1600V48C1320 18 1190 30 1010 61S650 82 430 48 150 28 0 68Z" fill="#fff" opacity=".68"/>
-<!-- subtle background skyline -->
-<g fill="#6eb5e4" opacity=".16">
- <path d="M930 208v-63h22v-24h14v24h22v63zm72 0v-82h22v-25h14v25h22v82zm72 0v-58h22v-22h14v22h22v58zm72 0v-72h22v-25h14v25h22v72z"/>
- <path d="M1200 208v-55q0-32 32-47 32 15 32 47v55z"/>
-</g>
-<!-- handshake-only mark: two forearms meeting in a clear handshake -->
-<g transform="translate(52 28)">
- <circle cx="116" cy="116" r="108" fill="#fff" stroke="#b8d9f2" stroke-width="4"/>
+<g fill="#6eb5e4" opacity=".13"><path d="M930 208v-63h22v-24h14v24h22v63zm72 0v-82h22v-25h14v25h22v82zm72 0v-58h22v-22h14v22h22v58zm72 0v-72h22v-25h14v25h22v72z"/></g>
+<!-- Clear handshake: two cuffed hands clasping in the centre -->
+<g transform="translate(44 24)">
+ <circle cx="122" cy="122" r="110" fill="#fff" stroke="#b8d9f2" stroke-width="4"/>
  <g fill="url(#blue)" stroke="#073b83" stroke-width="2.5" stroke-linejoin="round">
-   <!-- left sleeve and hand -->
-   <path d="M25 93 57 61 83 76 103 91 121 106 108 121 91 109 78 124 61 112 48 126 17 107Z"/>
-   <!-- right sleeve and hand -->
-   <path d="m207 93-32-32-26 15-20 15-18 15 13 15 17-12 13 15 17-12 13 14 31-19Z"/>
-   <!-- joined hands / clasp -->
-   <path d="m83 91 18-13q9-6 17 1l10 8 10-7q8-5 15 2l17 15-15 17-14-11-12 11q-8 7-16 1l-12-9-11 9q-8 6-16 0l-16-13Z"/>
+  <!-- left forearm, cuff and hand -->
+  <path d="M18 91 54 55 83 73 105 91 122 108 105 126 88 113 72 130 54 116 39 132 10 106Z"/>
+  <path d="M18 91 38 111 20 130 0 109Z" fill="#159fdf"/>
+  <!-- right forearm, cuff and hand -->
+  <path d="m226 91-36-36-29 18-22 18-17 17 17 18 17-13 16 17 18-14 15 16 29-26Z"/>
+  <path d="m226 91-20 20 18 19 20-21Z" fill="#159fdf"/>
+  <!-- central clasp -->
+  <path d="m77 91 19-14q10-7 20 1l10 8 11-8q10-7 19 2l20 18-17 19-17-13-14 13q-9 8-19 1l-13-10-13 10q-9 7-18 0l-19-15Z"/>
  </g>
  <g fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">
-   <path d="m67 105 17 13q7 5 14-1l13-11q7-6 14 0l13 10q7 5 14-1l12-11"/>
-   <path d="m99 87 17 13q7 5 14 0l9-7"/>
-   <path d="m49 82-17 20 18 15 16-19M182 82l18 20-18 15-16-19"/>
+  <path d="m48 104 24 18q9 7 18-1l14-11q9-7 18 0l13 10q9 7 18-1l13-11"/>
+  <path d="m94 86 19 14q8 6 16 0l10-8"/>
+  <path d="m34 91 15 15M210 91l-15 15"/>
  </g>
 </g>
 <path d="M320 48V244" stroke="#91bde0" stroke-width="3"/>
-<text x="370" y="126" font-family="Arial, sans-serif" font-size="78" font-weight="800" letter-spacing="3" fill="#073b83">JANASETU</text>
+<text x="370" y="126" font-family="Arial,sans-serif" font-size="78" font-weight="800" letter-spacing="3" fill="#073b83">JANASETU</text>
 <text x="374" y="188" font-family="'Noto Sans Kannada','Noto Sans',sans-serif" font-size="55" font-weight="700" fill="#0868ad">ಜನಸೇತು</text>
-<text x="378" y="231" font-family="Arial, sans-serif" font-size="23" font-style="italic" font-weight="600" fill="#174779">Your Voice. Our Community. Better Tomorrow.</text>
-<!-- Karnataka state silhouette, with its characteristic broad north and tapering southern peninsula -->
-<path d="M1434 35
- C1421 43 1412 55 1400 62
- L1382 66 1372 83 1356 89 1350 106
- L1334 116 1338 133 1324 147 1331 164
- L1318 180 1329 194 1323 211 1338 222
- L1342 241 1360 250 1372 267 1392 261
- L1406 273 1422 262 1440 266 1452 251
- L1470 245 1472 225 1488 211 1481 192
- L1495 176 1487 158 1497 143 1485 126
- L1492 109 1478 96 1480 79 1462 70
- L1458 51 1443 47Z"
+<text x="378" y="231" font-family="Arial,sans-serif" font-size="23" font-style="italic" font-weight="600" fill="#174779">Your Voice. Our Community. Better Tomorrow.</text>
+<!-- Smooth Karnataka silhouette: broad northern plateau, western coastal edge and tapering southern region -->
+<path d="M1431 35
+ C1417 39 1407 48 1397 58
+ C1388 67 1375 68 1367 79
+ C1358 91 1362 103 1351 112
+ C1340 121 1332 130 1338 143
+ C1343 154 1332 163 1328 174
+ C1324 187 1336 195 1334 207
+ C1332 219 1343 227 1348 238
+ C1354 250 1364 254 1373 263
+ C1383 274 1396 269 1405 262
+ C1415 253 1424 260 1435 257
+ C1448 254 1451 243 1463 238
+ C1477 232 1480 219 1477 207
+ C1474 194 1488 187 1487 174
+ C1486 161 1496 151 1491 138
+ C1487 126 1498 116 1491 104
+ C1484 92 1489 80 1477 71
+ C1466 63 1468 50 1454 46
+ C1446 43 1441 38 1431 35Z"
  fill="url(#blue)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
 <path d="M0 218C210 195 360 282 590 257S970 207 1190 242 1450 264 1600 202V300H0Z" fill="#69c4f1" opacity=".48"/>
 <path d="M0 239C230 211 370 294 620 268S1000 221 1215 252 1460 274 1600 225V300H0Z" fill="#0879c9" opacity=".88"/>
