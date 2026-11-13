@@ -44,10 +44,10 @@
     crossorigin=""
   >
 
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=2">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
 </head>
 
-<body class="{% if page == 'home' %}home-page{% else %}inner-page{% endif %}">
+<body class="{% if page == 'home' %}home-page{% else %}inner-page{% endif %}" {% if page != 'home' %}style="background-image: url('{{ url_for('static', filename='janasetu-menu-background.svg') }}?v=3') !important;"{% endif %}>
 
   <!-- =====================================================
        JANASETU HEADER - SHARED BY ALL PAGES
