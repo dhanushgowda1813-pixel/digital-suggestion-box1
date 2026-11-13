@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,65 +46,21 @@
     <span class="green"></span>
   </div>
 
-  <!-- JANASETU BANNER -->
- <header class="site-header">
+  <!-- COMPACT JANASETU HEADER -->
+  <header class="site-header">
 
     <div class="header-banner">
-        <img
-            src="/static/janasetu-header-banner.webp"
-            alt="JANASETU - Building a Better Tomorrow"
-            class="header-banner-image"
-        >
+      <img
+        src="{{ url_for('static', filename='janasetu-header-banner.webp') }}"
+        alt="JANASETU - Building a Better Tomorrow"
+        class="header-banner-image"
+        fetchpriority="high"
+      >
     </div>
 
-    <div class="header-navigation">
+  </header>
 
-        <button
-            type="button"
-            id="menuToggle"
-            class="menu-toggle"
-            aria-label="Open navigation menu"
-            aria-expanded="false"
-        >
-            ☰
-        </button>
-
-        <nav id="navMenu" class="nav-menu">
-
-            <a href="#" data-view="home">Home</a>
-
-            <a href="#" data-view="submit">Submit Feedback</a>
-
-            <a href="#" data-view="track">Track Feedback</a>
-
-            <a href="#" data-view="login">Citizen Login</a>
-
-            <a href="#" data-view="admin-login">Admin</a>
-
-        </nav>
-
-        <div class="header-controls">
-
-            <select id="themeSelect" aria-label="Select theme">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-            </select>
-
-            <button
-                type="button"
-                id="logoutButton"
-                hidden
-            >
-                Logout
-            </button>
-
-        </div>
-
-    </div>
-
-</header>
-
-  <!-- MAIN NAVIGATION -->
+  <!-- ORIGINAL HAMBURGER NAVIGATION -->
   <nav class="main-nav" id="nav" aria-label="Main navigation">
 
     <button
@@ -150,7 +107,7 @@
         Logout
       </button>
 
-      <!-- ONLY LIGHT AND DARK THEMES -->
+      <!-- LIGHT AND DARK THEME INSIDE MENU -->
       <label class="theme-picker">
         <span>Theme</span>
 
@@ -203,19 +160,11 @@
 
         <div class="welcome-actions">
 
-          <button
-            class="government-button"
-            type="button"
-            data-view="submit"
-          >
+          <button class="government-button" type="button" data-view="submit">
             Submit Your Feedback <span>→</span>
           </button>
 
-          <button
-            class="outline-button"
-            type="button"
-            data-view="track"
-          >
+          <button class="outline-button" type="button" data-view="track">
             Track Application
           </button>
 
@@ -249,74 +198,38 @@
     <!-- SERVICE CARDS -->
     <section class="service-grid">
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="submit"
-      >
+      <button class="service-card" type="button" data-view="submit">
         <span class="service-icon submit-icon">✎</span>
-
         <span class="service-card-content">
           <strong>Submit Feedback</strong>
-
-          <small>
-            Report a local issue or share a suggestion with the local administration.
-          </small>
-
+          <small>Report a local issue or share a suggestion with the local administration.</small>
           <span class="service-link">Submit now →</span>
         </span>
       </button>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="track"
-      >
+      <button class="service-card" type="button" data-view="track">
         <span class="service-icon track-icon">⌕</span>
-
         <span class="service-card-content">
           <strong>Track Application</strong>
-
-          <small>
-            Check the status of your submitted feedback using your tracking ID.
-          </small>
-
+          <small>Check the status of your submitted feedback using your tracking ID.</small>
           <span class="service-link">Track now →</span>
         </span>
       </button>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="login"
-      >
+      <button class="service-card" type="button" data-view="login">
         <span class="service-icon citizen-icon">♙</span>
-
         <span class="service-card-content">
           <strong>Citizen Login</strong>
-
-          <small>
-            Access your citizen account and submit feedback through the portal.
-          </small>
-
+          <small>Access your citizen account and submit feedback through the portal.</small>
           <span class="service-link">Login →</span>
         </span>
       </button>
 
-      <button
-        class="service-card"
-        type="button"
-        data-view="admin-login"
-      >
+      <button class="service-card" type="button" data-view="admin-login">
         <span class="service-icon admin-icon">▤</span>
-
         <span class="service-card-content">
           <strong>Administrator</strong>
-
-          <small>
-            Review submissions, manage requests and update application progress.
-          </small>
-
+          <small>Review submissions, manage requests and update application progress.</small>
           <span class="service-link">Admin access →</span>
         </span>
       </button>
@@ -374,7 +287,6 @@
 
         <div class="process-item">
           <span class="process-number">01</span>
-
           <div>
             <strong>Submit</strong>
             <p>Share your issue with the required details and photo.</p>
@@ -383,7 +295,6 @@
 
         <div class="process-item">
           <span class="process-number">02</span>
-
           <div>
             <strong>Review</strong>
             <p>Your submission can be reviewed by the administrator.</p>
@@ -392,7 +303,6 @@
 
         <div class="process-item">
           <span class="process-number">03</span>
-
           <div>
             <strong>Track progress</strong>
             <p>Follow the latest status and administrator response online.</p>
@@ -429,11 +339,7 @@
             concerns, ideas and suggestions through this digital platform.
           </p>
 
-          <button
-            class="government-button"
-            type="button"
-            data-view="submit"
-          >
+          <button class="government-button" type="button" data-view="submit">
             Share Your Feedback →
           </button>
 
@@ -443,11 +349,7 @@
     </section>
 
     <!-- DYNAMIC APPLICATION PANEL -->
-    <section
-      class="panel-wrap"
-      id="panel"
-      aria-live="polite"
-    ></section>
+    <section class="panel-wrap" id="panel" aria-live="polite"></section>
 
   </main>
 
@@ -458,32 +360,20 @@
 
       <div class="footer-brand">
         <strong>JANASETU - Digital Citizen Feedback System</strong>
-
         <span>Local Governance & Citizen Participation</span>
-
         <small>ಡಿಜಿಟಲ್ ನಾಗರಿಕ ಪ್ರತಿಕ್ರಿಯೆ ವ್ಯವಸ್ಥೆ</small>
       </div>
 
       <div class="footer-purpose">
         <strong>Citizen participation matters.</strong>
-
-        <span>
-          Every suggestion is an opportunity to improve our community.
-        </span>
+        <span>Every suggestion is an opportunity to improve our community.</span>
       </div>
 
     </div>
 
     <div class="footer-bottom">
-
-      <span>
-        JANASETU | Citizen Feedback & Community Participation
-      </span>
-
-      <span>
-        © JANASETU - Digital Citizen Feedback System
-      </span>
-
+      <span>JANASETU | Citizen Feedback & Community Participation</span>
+      <span>© JANASETU - Digital Citizen Feedback System</span>
     </div>
 
     <p class="disclaimer">
@@ -494,12 +384,7 @@
   </footer>
 
   <!-- NOTIFICATION -->
-  <div
-    id="toast"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true"
-  ></div>
+  <div id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
   <!-- LEAFLET MAP -->
   <script
@@ -510,10 +395,7 @@
   ></script>
 
   <!-- JANASETU JAVASCRIPT -->
-  <script
-    src="{{ url_for('static', filename='app.js') }}"
-    defer
-  ></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 
 </body>
 </html>
