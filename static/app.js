@@ -1118,7 +1118,7 @@
       $("#longitudeInput").value || ""
     );
 
-    setLoading(button, true, "Submitting feedback...");
+    if (button) button.textContent = "Submitting feedback...";
 
     try {
       const result = await api("/api/suggestions", {
