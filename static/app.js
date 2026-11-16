@@ -1106,7 +1106,9 @@
       $("#descriptionInput").value.trim()
     );
 
-    setLoading(button, true, "Preparing photo...");\n    const optimizedPhoto = await optimizePhotoForUpload(photo);\n    formData.append("photo", optimizedPhoto, optimizedPhoto.name);
+    setLoading(button, true, "Preparing photo...");
+    const optimizedPhoto = await optimizePhotoForUpload(photo);
+    formData.append("photo", optimizedPhoto, optimizedPhoto.name);
 
     formData.append(
       "latitude",
