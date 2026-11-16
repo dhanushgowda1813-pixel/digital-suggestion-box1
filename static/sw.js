@@ -3,7 +3,7 @@
    Versioned cache + user-approved app updates
    ========================================================= */
 
-const CACHE_NAME = "janasetu-shell-v5";
+const CACHE_NAME = "janasetu-shell-v6";
 const SHELL = ["/"];
 
 // Cache the main page on installation. Static assets are refreshed
@@ -72,18 +72,23 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  // Network-first for same-origin files so deployed changes appear promptly.
-  event.respondWith(
-    fetch(request, { cache: "no-store" })
-      .then(response => {
-        if (response && response.ok) {
-          const copy = response.clone();
-          event.waitUntil(
-            caches.open(CACHE_NAME).then(cache => cache.put(request, copy))
-          );
-        }
-        return response;
-      })
-      .catch(() => caches.match(request))
-  );
+  // Serve cached static assets immediately on repeat visits, while refreshing
+  // them in the background so navigation and images feel faster.
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    const refresh = fetch(request, { cache: "no-store" }).then(response => {
+      if (response && response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      }
+      return response;
+    }).catch(() => null);
+
+    if (cached) {
+      event.waitUntil(refresh);
+      return cached;
+    }
+
+    return (await refresh) || Response.error();
+  })());
 });
