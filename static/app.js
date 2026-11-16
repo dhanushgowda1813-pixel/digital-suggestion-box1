@@ -1766,7 +1766,7 @@
 
   async function initializePage() {
     initializeTheme();
-    initializeNavigation();
+    // Navigation toggle is handled directly by the menu button for reliability.
 
     // Check the server session before rendering any protected form or dashboard.
     if (page === "submit" || page === "admin") {
