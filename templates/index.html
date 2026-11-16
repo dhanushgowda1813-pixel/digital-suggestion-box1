@@ -85,7 +85,6 @@
       >
     </a>
   </header>
-  <div id="google_translate_element" class="google-translate-hidden" aria-hidden="true"></div>
 
   <!-- =====================================================
        HOME PAGE NAVIGATION
@@ -258,11 +257,9 @@
         <span class="service-icon submit-icon">✎</span>
 
         <span class="service-card-content">
-          <strong>Submit Feedback</strong>
-          <small>
-            Report a local issue or share a suggestion with the local administration.
-          </small>
-          <span class="service-link">Submit now →</span>
+          <strong data-en="Submit Feedback" data-kn="ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ">Submit Feedback</strong>
+          <small data-en="Report a local issue or share a suggestion with the local administration." data-kn="ಸ್ಥಳೀಯ ಸಮಸ್ಯೆಯನ್ನು ವರದಿ ಮಾಡಿ ಅಥವಾ ಸ್ಥಳೀಯ ಆಡಳಿತಕ್ಕೆ ನಿಮ್ಮ ಸಲಹೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ.">Report a local issue or share a suggestion with the local administration.</small>
+          <span class="service-link" data-en="Submit now →" data-kn="ಈಗ ಸಲ್ಲಿಸಿ →">Submit now →</span>
         </span>
       </a>
 
@@ -270,11 +267,9 @@
         <span class="service-icon track-icon">⌕</span>
 
         <span class="service-card-content">
-          <strong>Track Application</strong>
-          <small>
-            Check the status of your submitted feedback using your tracking ID.
-          </small>
-          <span class="service-link">Track now →</span>
+          <strong data-en="Track Application" data-kn="ಅರ್ಜಿಯ ಸ್ಥಿತಿ ಪರಿಶೀಲಿಸಿ">Track Application</strong>
+          <small data-en="Check the status of your submitted feedback using your tracking ID." data-kn="ನಿಮ್ಮ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ ಬಳಸಿ ಸಲ್ಲಿಸಿದ ಅಭಿಪ್ರಾಯದ ಸ್ಥಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.">Check the status of your submitted feedback using your tracking ID.</small>
+          <span class="service-link" data-en="Track now →" data-kn="ಈಗ ಪರಿಶೀಲಿಸಿ →">Track now →</span>
         </span>
       </a>
 
@@ -282,11 +277,9 @@
         <span class="service-icon citizen-icon">♙</span>
 
         <span class="service-card-content">
-          <strong>Citizen Login</strong>
-          <small>
-            Access your citizen account and submit feedback through the portal.
-          </small>
-          <span class="service-link">Login →</span>
+          <strong data-en="Citizen Login" data-kn="ನಾಗರಿಕರ ಲಾಗಿನ್">Citizen Login</strong>
+          <small data-en="Access your citizen account and submit feedback through the portal." data-kn="ನಿಮ್ಮ ನಾಗರಿಕ ಖಾತೆಗೆ ಪ್ರವೇಶಿಸಿ, ಈ ಪೋರ್ಟಲ್ ಮೂಲಕ ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ.">Access your citizen account and submit feedback through the portal.</small>
+          <span class="service-link" data-en="Login →" data-kn="ಲಾಗಿನ್ →">Login →</span>
         </span>
       </a>
 
@@ -294,11 +287,9 @@
         <span class="service-icon admin-icon">▤</span>
 
         <span class="service-card-content">
-          <strong>Administrator</strong>
-          <small>
-            Review submissions, manage requests and update application progress.
-          </small>
-          <span class="service-link">Admin access →</span>
+          <strong data-en="Administrator" data-kn="ನಿರ್ವಾಹಕರು">Administrator</strong>
+          <small data-en="Review submissions, manage requests and update application progress." data-kn="ಸಲ್ಲಿಸಿದ ಅಭಿಪ್ರಾಯಗಳನ್ನು ಪರಿಶೀಲಿಸಿ, ವಿನಂತಿಗಳನ್ನು ನಿರ್ವಹಿಸಿ ಮತ್ತು ಅರ್ಜಿಯ ಪ್ರಗತಿಯನ್ನು ನವೀಕರಿಸಿ.">Review submissions, manage requests and update application progress.</small>
+          <span class="service-link" data-en="Admin access →" data-kn="ನಿರ್ವಾಹಕರ ಪ್ರವೇಶ →">Admin access →</span>
         </span>
       </a>
 
@@ -554,18 +545,7 @@
     src="{{ url_for('static', filename='app.js') }}?v=6"
     defer
   ></script>
-  <script>
-    window.googleTranslateElementInit = function () {
-      if (!window.google || !google.translate) return;
-      new google.translate.TranslateElement({
-        pageLanguage: "en",
-        includedLanguages: "en,kn",
-        autoDisplay: false
-      }, "google_translate_element");
-      window.dispatchEvent(new Event("janasetu-translate-ready"));
-    };
-  </script>
-  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script>
+
 
 </body>
 </html>
