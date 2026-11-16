@@ -2510,3 +2510,36 @@ textarea:focus-visible {
 .janasetu-banner-link { display: block; width: 100%; }
 .janasetu-banner-image { display: block; width: 100%; height: auto; max-height: none; object-fit: contain; }
 @media (max-width: 650px) { .janasetu-banner-image { width: 100%; height: auto; max-height: none; } }
+
+
+/* Language selector in the navigation menu */
+.language-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 9px 12px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+}
+.language-picker select {
+  width: 100%;
+  min-height: 38px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+.google-translate-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+}
+.goog-te-banner-frame.skiptranslate,
+.goog-te-gadget-icon,
+.goog-te-balloon-frame { display: none !important; }
+body { top: 0 !important; }
