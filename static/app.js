@@ -181,20 +181,301 @@
     });
   }
 
-  /* -------------------- PAGE TRANSLATION -------------------- */
+  /* -------------------- FULL SITE ENGLISH / KANNADA -------------------- */
+
+  const KANNADA_TEXT = {
+    "Home":"ಮುಖಪುಟ",
+    "Submit Feedback":"ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ",
+    "Submit Application":"ಅರ್ಜಿ ಸಲ್ಲಿಸಿ",
+    "Track Application":"ಅರ್ಜಿಯ ಸ್ಥಿತಿ ಪರಿಶೀಲಿಸಿ",
+    "Citizen Login":"ನಾಗರಿಕರ ಲಾಗಿನ್",
+    "Register":"ನೋಂದಣಿ",
+    "Administrator":"ನಿರ್ವಾಹಕರು",
+    "Logout":"ಲಾಗ್ ಔಟ್",
+    "Language / ಭಾಷೆ":"ಭಾಷೆ",
+    "Choose website language":"ವೆಬ್‌ಸೈಟ್ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "Theme":"ಥೀಮ್",
+    "Light":"ಬೆಳಕು",
+    "Dark":"ಡಾರ್ಕ್",
+    "ಕರ್ನಾಟಕ | KARNATAKA":"ಕರ್ನಾಟಕ",
+    "Citizen Participation • Local Governance":"ನಾಗರಿಕರ ಭಾಗವಹಿಸುವಿಕೆ • ಸ್ಥಳೀಯ ಆಡಳಿತ",
+    "A better community":"ಉತ್ತಮ ಸಮುದಾಯ",
+    "begins with":"ಆರಂಭವಾಗುವುದು",
+    "your voice.":"ನಿಮ್ಮ ಧ್ವನಿಯಿಂದ.",
+    "Have a concern about roads, water supply, waste management or public facilities? Share your feedback and follow its progress through one simple digital platform.":"ರಸ್ತೆಗಳು, ನೀರು ಸರಬರಾಜು, ತ್ಯಾಜ್ಯ ನಿರ್ವಹಣೆ ಅಥವಾ ಸಾರ್ವಜನಿಕ ಸೌಲಭ್ಯಗಳ ಬಗ್ಗೆ ಸಮಸ್ಯೆಯಿದೆಯೇ? ನಿಮ್ಮ ಅಭಿಪ್ರಾಯವನ್ನು ಹಂಚಿಕೊಳ್ಳಿ ಮತ್ತು ಅದರ ಪ್ರಗತಿಯನ್ನು ಒಂದೇ ಡಿಜಿಟಲ್ ವೇದಿಕೆಯಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.",
+    "Submit Your Feedback":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ",
+    "How can we help you?":"ನಾವು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+    "Choose a service to get started.":"ಪ್ರಾರಂಭಿಸಲು ಒಂದು ಸೇವೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    "Service is our commitment":"ಸೇವೆಯೇ ನಮ್ಮ ಬದ್ಧತೆ",
+    "Submit Feedback":"ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ",
+    "Report a local issue or share a suggestion with the local administration.":"ಸ್ಥಳೀಯ ಸಮಸ್ಯೆಯನ್ನು ವರದಿ ಮಾಡಿ ಅಥವಾ ಸ್ಥಳೀಯ ಆಡಳಿತಕ್ಕೆ ನಿಮ್ಮ ಸಲಹೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ.",
+    "Submit now →":"ಈಗ ಸಲ್ಲಿಸಿ →",
+    "Track Application":"ಅರ್ಜಿಯ ಸ್ಥಿತಿ ಪರಿಶೀಲಿಸಿ",
+    "Check the status of your submitted feedback using your tracking ID.":"ನಿಮ್ಮ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ ಬಳಸಿ ಸಲ್ಲಿಸಿದ ಅಭಿಪ್ರಾಯದ ಸ್ಥಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.",
+    "Track now →":"ಈಗ ಪರಿಶೀಲಿಸಿ →",
+    "Access your citizen account and submit feedback through the portal.":"ನಿಮ್ಮ ನಾಗರಿಕ ಖಾತೆಗೆ ಪ್ರವೇಶಿಸಿ, ಈ ಪೋರ್ಟಲ್ ಮೂಲಕ ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ.",
+    "Login →":"ಲಾಗಿನ್ →",
+    "Review submissions, manage requests and update application progress.":"ಸಲ್ಲಿಸಿದ ಅಭಿಪ್ರಾಯಗಳನ್ನು ಪರಿಶೀಲಿಸಿ, ವಿನಂತಿಗಳನ್ನು ನಿರ್ವಹಿಸಿ ಮತ್ತು ಅರ್ಜಿಯ ಪ್ರಗತಿಯನ್ನು ನವೀಕರಿಸಿ.",
+    "Admin access →":"ನಿರ್ವಾಹಕರ ಪ್ರವೇಶ →",
+    "Building better communities together":"ಒಟ್ಟಾಗಿ ಉತ್ತಮ ಸಮುದಾಯಗಳನ್ನು ನಿರ್ಮಿಸೋಣ",
+    "Report neighbourhood issues":"ನೆರೆಹೊರೆಯ ಸಮಸ್ಯೆಗಳನ್ನು ವರದಿ ಮಾಡಿ",
+    "Share ideas and suggestions":"ಆಲೋಚನೆಗಳು ಮತ್ತು ಸಲಹೆಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ",
+    "Follow application progress":"ಅರ್ಜಿಯ ಪ್ರಗತಿಯನ್ನು ಗಮನಿಸಿ",
+    "How the system works":"ವ್ಯವಸ್ಥೆ ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ",
+    "Submit":"ಸಲ್ಲಿಸಿ",
+    "Share your issue with the required details and photo.":"ಅಗತ್ಯ ವಿವರಗಳು ಮತ್ತು ಫೋಟೋದೊಂದಿಗೆ ನಿಮ್ಮ ಸಮಸ್ಯೆಯನ್ನು ಹಂಚಿಕೊಳ್ಳಿ.",
+    "Review":"ಪರಿಶೀಲನೆ",
+    "Your submission can be reviewed by the administrator.":"ನಿಮ್ಮ ಅರ್ಜಿಯನ್ನು ನಿರ್ವಾಹಕರು ಪರಿಶೀಲಿಸಬಹುದು.",
+    "Track progress":"ಪ್ರಗತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ",
+    "Follow the latest status and administrator response online.":"ಇತ್ತೀಚಿನ ಸ್ಥಿತಿ ಮತ್ತು ನಿರ್ವಾಹಕರ ಪ್ರತಿಕ್ರಿಯೆಯನ್ನು ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ ಪರಿಶೀಲಿಸಿ.",
+    "Small suggestions can create meaningful change.":"ಸಣ್ಣ ಸಲಹೆಗಳೂ ಅರ್ಥಪೂರ್ಣ ಬದಲಾವಣೆಯನ್ನು ತರಬಹುದು.",
+    "Participate in improving your neighbourhood by sharing concerns, ideas and suggestions through this digital platform.":"ಈ ಡಿಜಿಟಲ್ ವೇದಿಕೆಯ ಮೂಲಕ ಸಮಸ್ಯೆಗಳು, ಆಲೋಚನೆಗಳು ಮತ್ತು ಸಲಹೆಗಳನ್ನು ಹಂಚಿಕೊಂಡು ನಿಮ್ಮ ಪ್ರದೇಶದ ಅಭಿವೃದ್ಧಿಯಲ್ಲಿ ಭಾಗವಹಿಸಿ.",
+    "Share Your Feedback →":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಹಂಚಿಕೊಳ್ಳಿ →",
+    "← Back to Home":"← ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
+    "Sign in to access your JANASETU citizen account.":"ನಿಮ್ಮ ಜನಸೇತು ನಾಗರಿಕ ಖಾತೆಗೆ ಪ್ರವೇಶಿಸಲು ಲಾಗಿನ್ ಆಗಿ.",
+    "Create Citizen Account":"ನಾಗರಿಕ ಖಾತೆ ರಚಿಸಿ",
+    "Register to participate in improving your community.":"ನಿಮ್ಮ ಸಮುದಾಯದ ಅಭಿವೃದ್ಧಿಯಲ್ಲಿ ಭಾಗವಹಿಸಲು ನೋಂದಾಯಿಸಿ.",
+    "Admin Login":"ನಿರ್ವಾಹಕರ ಲಾಗಿನ್",
+    "Sign in to manage citizen feedback submissions.":"ನಾಗರಿಕರ ಅಭಿಪ್ರಾಯಗಳನ್ನು ನಿರ್ವಹಿಸಲು ಲಾಗಿನ್ ಆಗಿ.",
+    "Submit Feedback":"ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ",
+    "Share a local concern, suggestion or complaint.":"ಸ್ಥಳೀಯ ಸಮಸ್ಯೆ, ಸಲಹೆ ಅಥವಾ ದೂರನ್ನು ಹಂಚಿಕೊಳ್ಳಿ.",
+    "Track Application":"ಅರ್ಜಿಯ ಸ್ಥಿತಿ ಪರಿಶೀಲಿಸಿ",
+    "Enter your tracking ID to view the latest progress.":"ಇತ್ತೀಚಿನ ಪ್ರಗತಿಯನ್ನು ನೋಡಲು ನಿಮ್ಮ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ ನಮೂದಿಸಿ.",
+    "Admin Dashboard":"ನಿರ್ವಾಹಕರ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
+    "Review submissions and manage their progress.":"ಸಲ್ಲಿಕೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ ಮತ್ತು ಅವುಗಳ ಪ್ರಗತಿಯನ್ನು ನಿರ್ವಹಿಸಿ.",
+    "Every suggestion is an opportunity to improve our community.":"ಪ್ರತಿಯೊಂದು ಸಲಹೆಯೂ ನಮ್ಮ ಸಮುದಾಯವನ್ನು ಸುಧಾರಿಸುವ ಒಂದು ಅವಕಾಶ.",
+    "JANASETU | Citizen Feedback & Community Participation":"ಜನಸೇತು | ನಾಗರಿಕರ ಅಭಿಪ್ರಾಯ ಮತ್ತು ಸಮುದಾಯದ ಭಾಗವಹಿಸುವಿಕೆ",
+    "© JANASETU - Digital Citizen Feedback System":"© ಜನಸೇತು - ಡಿಜಿಟಲ್ ನಾಗರಿಕರ ಅಭಿಪ್ರಾಯ ವ್ಯವಸ್ಥೆ",
+    "JANASETU is an independent citizen feedback platform and is not an official Karnataka Government or Government of India website.":"ಜನಸೇತು ಸ್ವತಂತ್ರ ನಾಗರಿಕರ ಅಭಿಪ್ರಾಯ ವೇದಿಕೆಯಾಗಿದೆ. ಇದು ಕರ್ನಾಟಕ ಸರ್ಕಾರ ಅಥವಾ ಭಾರತ ಸರ್ಕಾರದ ಅಧಿಕೃತ ವೆಬ್‌ಸೈಟ್ ಅಲ್ಲ.",
+    "Login to share your feedback with your community.":"ನಿಮ್ಮ ಸಮುದಾಯದೊಂದಿಗೆ ಅಭಿಪ್ರಾಯ ಹಂಚಿಕೊಳ್ಳಲು ಲಾಗಿನ್ ಆಗಿ.",
+    "Authorized administrators can access the dashboard.":"ಅಧಿಕೃತ ನಿರ್ವಾಹಕರು ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಪ್ರವೇಶಿಸಬಹುದು.",
+    "Full Name":"ಪೂರ್ಣ ಹೆಸರು",
+    "Enter your full name":"ನಿಮ್ಮ ಪೂರ್ಣ ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
+    "Email Address":"ಇಮೇಲ್ ವಿಳಾಸ",
+    "Enter your email":"ನಿಮ್ಮ ಇಮೇಲ್ ನಮೂದಿಸಿ",
+    "Password":"ಪಾಸ್‌ವರ್ಡ್",
+    "Create a password":"ಪಾಸ್‌ವರ್ಡ್ ರಚಿಸಿ",
+    "Confirm Password":"ಪಾಸ್‌ವರ್ಡ್ ದೃಢೀಕರಿಸಿ",
+    "Enter password again":"ಪಾಸ್‌ವರ್ಡ್ ಅನ್ನು ಮತ್ತೆ ನಮೂದಿಸಿ",
+    "Create Account":"ಖಾತೆ ರಚಿಸಿ",
+    "Already registered?":"ಈಗಾಗಲೇ ನೋಂದಾಯಿಸಿದ್ದೀರಾ?",
+    "Login here":"ಇಲ್ಲಿ ಲಾಗಿನ್ ಆಗಿ",
+    "Enter your registered email":"ನೋಂದಾಯಿತ ಇಮೇಲ್ ನಮೂದಿಸಿ",
+    "Enter your password":"ನಿಮ್ಮ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ",
+    "Login":"ಲಾಗಿನ್",
+    "Don't have an account?":"ಖಾತೆ ಇಲ್ಲವೇ?",
+    "Create an account":"ಖಾತೆ ರಚಿಸಿ",
+    "Username":"ಬಳಕೆದಾರ ಹೆಸರು",
+    "Enter admin username":"ನಿರ್ವಾಹಕರ ಬಳಕೆದಾರ ಹೆಸರನ್ನು ನಮೂದಿಸಿ",
+    "Enter admin password":"ನಿರ್ವಾಹಕರ ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ",
+    "Your Name":"ನಿಮ್ಮ ಹೆಸರು",
+    "Enter your name (optional)":"ನಿಮ್ಮ ಹೆಸರನ್ನು ನಮೂದಿಸಿ (ಐಚ್ಛಿಕ)",
+    "Feedback Category":"ಅಭಿಪ್ರಾಯದ ವರ್ಗ",
+    "Select a category":"ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "Roads and Transport":"ರಸ್ತೆಗಳು ಮತ್ತು ಸಾರಿಗೆ",
+    "Water Supply":"ನೀರು ಸರಬರಾಜು",
+    "Street Lights":"ಬೀದಿ ದೀಪಗಳು",
+    "Sanitation and Cleanliness":"ನೈರ್ಮಲ್ಯ ಮತ್ತು ಸ್ವಚ್ಛತೆ",
+    "Drainage":"ಚರಂಡಿ ವ್ಯವಸ್ಥೆ",
+    "Public Facilities":"ಸಾರ್ವಜನಿಕ ಸೌಲಭ್ಯಗಳು",
+    "Environment":"ಪರಿಸರ",
+    "Other":"ಇತರೆ",
+    "Area / Location":"ಪ್ರದೇಶ / ಸ್ಥಳ",
+    "Enter your area or location":"ನಿಮ್ಮ ಪ್ರದೇಶ ಅಥವಾ ಸ್ಥಳವನ್ನು ನಮೂದಿಸಿ",
+    "Mark Location on Map":"ನಕ್ಷೆಯಲ್ಲಿ ಸ್ಥಳವನ್ನು ಗುರುತಿಸಿ",
+    "Use My Current Location":"ನನ್ನ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಬಳಸಿ",
+    "You can use your current location or select a place on the map.":"ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಸ್ಥಳವನ್ನು ಬಳಸಬಹುದು ಅಥವಾ ನಕ್ಷೆಯಲ್ಲಿ ಸ್ಥಳವನ್ನು ಆಯ್ಕೆಮಾಡಬಹುದು.",
+    "Describe Your Feedback":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯವನ್ನು ವಿವರಿಸಿ",
+    "Explain your suggestion or the issue...":"ನಿಮ್ಮ ಸಲಹೆ ಅಥವಾ ಸಮಸ್ಯೆಯನ್ನು ವಿವರಿಸಿ...",
+    "Upload Photo":"ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ",
+    "Please attach a photo related to your feedback.":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯಕ್ಕೆ ಸಂಬಂಧಿಸಿದ ಫೋಟೋವನ್ನು ಸೇರಿಸಿ.",
+    "Submit Your Feedback":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಿ",
+    "Feedback Submitted Successfully!":"ಅಭಿಪ್ರಾಯ ಯಶಸ್ವಿಯಾಗಿ ಸಲ್ಲಿಸಲಾಗಿದೆ!",
+    "Thank you for helping improve your community. Your feedback has been recorded.":"ನಿಮ್ಮ ಸಮುದಾಯದ ಅಭಿವೃದ್ಧಿಗೆ ಸಹಕರಿಸಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು. ನಿಮ್ಮ ಅಭಿಪ್ರಾಯವನ್ನು ದಾಖಲಿಸಲಾಗಿದೆ.",
+    "Your Tracking ID":"ನಿಮ್ಮ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ",
+    "Copy Tracking ID":"ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿಯನ್ನು ನಕಲಿಸಿ",
+    "Track Your Feedback":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯದ ಸ್ಥಿತಿಯನ್ನು ಪರಿಶೀಲಿಸಿ",
+    "Back to Home":"ಮುಖಪುಟಕ್ಕೆ ಹಿಂತಿರುಗಿ",
+    "Enter your tracking ID to check the latest progress.":"ಇತ್ತೀಚಿನ ಪ್ರಗತಿಯನ್ನು ಪರಿಶೀಲಿಸಲು ನಿಮ್ಮ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ ನಮೂದಿಸಿ.",
+    "Tracking ID":"ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ",
+    "Enter your tracking ID":"ನಿಮ್ಮ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ ನಮೂದಿಸಿ",
+    "Searching for your feedback...":"ನಿಮ್ಮ ಅಭಿಪ್ರಾಯವನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ...",
+    "Current Status":"ಪ್ರಸ್ತುತ ಸ್ಥಿತಿ",
+    "Category:":"ವರ್ಗ:",
+    "Area:":"ಪ್ರದೇಶ:",
+    "Description:":"ವಿವರಣೆ:",
+    "Submitted:":"ಸಲ್ಲಿಸಿದ ದಿನಾಂಕ:",
+    "Uploaded Photo":"ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ಫೋಟೋ",
+    "Admin Response":"ನಿರ್ವಾಹಕರ ಪ್ರತಿಕ್ರಿಯೆ",
+    "Manage citizen feedback and update progress.":"ನಾಗರಿಕರ ಅಭಿಪ್ರಾಯಗಳನ್ನು ನಿರ್ವಹಿಸಿ ಮತ್ತು ಪ್ರಗತಿಯನ್ನು ನವೀಕರಿಸಿ.",
+    "Total Feedback":"ಒಟ್ಟು ಅಭಿಪ್ರಾಯಗಳು",
+    "In Progress":"ಪ್ರಗತಿಯಲ್ಲಿದೆ",
+    "Resolved":"ಪರಿಹರಿಸಲಾಗಿದೆ",
+    "Under Review":"ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ",
+    "All Statuses":"ಎಲ್ಲಾ ಸ್ಥಿತಿಗಳು",
+    "Search by ID, area, category...":"ಐಡಿ, ಪ್ರದೇಶ ಅಥವಾ ವರ್ಗದ ಮೂಲಕ ಹುಡುಕಿ...",
+    "Refresh":"ಮರುಲೋಡ್ ಮಾಡಿ",
+    "Loading feedback...":"ಅಭಿಪ್ರಾಯಗಳನ್ನು ಲೋಡ್ ಮಾಡಲಾಗುತ್ತಿದೆ...",
+    "No feedback found":"ಯಾವುದೇ ಅಭಿಪ್ರಾಯ ಕಂಡುಬಂದಿಲ್ಲ",
+    "There are no records matching your search.":"ನಿಮ್ಮ ಹುಡುಕಾಟಕ್ಕೆ ಹೊಂದುವ ದಾಖಲೆಗಳಿಲ್ಲ.",
+    "Citizen:":"ನಾಗರಿಕ:",
+    "Update Status":"ಸ್ಥಿತಿಯನ್ನು ನವೀಕರಿಸಿ",
+    "Write a response to the citizen...":"ನಾಗರಿಕರಿಗೆ ಪ್ರತಿಕ್ರಿಯೆಯನ್ನು ಬರೆಯಿರಿ...",
+    "Save Update":"ನವೀಕರಣವನ್ನು ಉಳಿಸಿ",
+    "Delete":"ಅಳಿಸಿ",
+    "Submitted":"ಸಲ್ಲಿಸಲಾಗಿದೆ",
+    "Please wait...":"ದಯವಿಟ್ಟು ನಿರೀಕ್ಷಿಸಿ...",
+    "Not available":"ಲಭ್ಯವಿಲ್ಲ",
+    "Not specified":"ನಿರ್ದಿಷ್ಟಪಡಿಸಿಲ್ಲ",
+    "Anonymous":"ಅನಾಮಧೇಯ",
+    "Show password":"ಪಾಸ್‌ವರ್ಡ್ ತೋರಿಸಿ",
+    "Hide password":"ಪಾಸ್‌ವರ್ಡ್ ಮರೆಮಾಡಿ",
+    "Logged out successfully.":"ಯಶಸ್ವಿಯಾಗಿ ಲಾಗ್ ಔಟ್ ಆಗಿದ್ದೀರಿ.",
+    "Passwords do not match.":"ಪಾಸ್‌ವರ್ಡ್‌ಗಳು ಹೊಂದಿಕೆಯಾಗುತ್ತಿಲ್ಲ.",
+    "Creating account...":"ಖಾತೆ ರಚಿಸಲಾಗುತ್ತಿದೆ...",
+    "Account created successfully.":"ಖಾತೆ ಯಶಸ್ವಿಯಾಗಿ ರಚಿಸಲಾಗಿದೆ.",
+    "Logging in...":"ಲಾಗಿನ್ ಆಗಲಾಗುತ್ತಿದೆ...",
+    "Login successful.":"ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ.",
+    "Verifying...":"ಪರಿಶೀಲಿಸಲಾಗುತ್ತಿದೆ...",
+    "Admin login successful.":"ನಿರ್ವಾಹಕರ ಲಾಗಿನ್ ಯಶಸ್ವಿಯಾಗಿದೆ.",
+    "Map could not be loaded. You can still enter your area above.":"ನಕ್ಷೆಯನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮೇಲಿನ ಜಾಗದಲ್ಲಿ ನಿಮ್ಮ ಪ್ರದೇಶವನ್ನು ನಮೂದಿಸಬಹುದು.",
+    "Location selected on the map.":"ನಕ್ಷೆಯಲ್ಲಿ ಸ್ಥಳವನ್ನು ಆಯ್ಕೆ ಮಾಡಲಾಗಿದೆ.",
+    "Your browser does not support location. Please enter your area manually.":"ನಿಮ್ಮ ಬ್ರೌಸರ್ ಸ್ಥಳ ಗುರುತಿಸುವಿಕೆಯನ್ನು ಬೆಂಬಲಿಸುವುದಿಲ್ಲ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಪ್ರದೇಶವನ್ನು ಕೈಯಾರೆ ನಮೂದಿಸಿ.",
+    "Finding your precise location. Please keep location services turned on...":"ನಿಮ್ಮ ನಿಖರ ಸ್ಥಳವನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ. ದಯವಿಟ್ಟು ಸ್ಥಳ ಸೇವೆಗಳನ್ನು ಆನ್‌ನಲ್ಲಿಡಿ...",
+    "Locating...":"ಸ್ಥಳವನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ...",
+    "GPS location detected. Finding your street and area...":"GPS ಸ್ಥಳ ಪತ್ತೆಯಾಗಿದೆ. ನಿಮ್ಮ ರಸ್ತೆ ಮತ್ತು ಪ್ರದೇಶವನ್ನು ಹುಡುಕಲಾಗುತ್ತಿದೆ...",
+    "Location pinned successfully. Check the map pin and adjust it if needed.":"ಸ್ಥಳವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಗುರುತಿಸಲಾಗಿದೆ. ನಕ್ಷೆಯ ಗುರುತನ್ನು ಪರಿಶೀಲಿಸಿ, ಅಗತ್ಯವಿದ್ದರೆ ಬದಲಾಯಿಸಿ.",
+    "Location permission was denied. Allow location access for this site and enable Precise location.":"ಸ್ಥಳ ಅನುಮತಿಯನ್ನು ನಿರಾಕರಿಸಲಾಗಿದೆ. ಈ ವೆಬ್‌ಸೈಟ್‌ಗೆ ಸ್ಥಳ ಪ್ರವೇಶವನ್ನು ಅನುಮತಿಸಿ ಮತ್ತು ನಿಖರ ಸ್ಥಳವನ್ನು ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+    "Your device could not determine its location. Turn on GPS/location services and try again.":"ನಿಮ್ಮ ಸಾಧನವು ಸ್ಥಳವನ್ನು ಪತ್ತೆಹಚ್ಚಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. GPS/ಸ್ಥಳ ಸೇವೆಗಳನ್ನು ಆನ್ ಮಾಡಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "Location request timed out. Move near a window or outdoors and try again.":"ಸ್ಥಳ ವಿನಂತಿಯ ಸಮಯ ಮುಗಿದಿದೆ. ಕಿಟಕಿಯ ಹತ್ತಿರ ಅಥವಾ ಹೊರಗೆ ಹೋಗಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "Unable to get your location. Please try again.":"ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಪಡೆಯಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "Please select an image file.":"ದಯವಿಟ್ಟು ಚಿತ್ರ ಫೈಲ್ ಆಯ್ಕೆಮಾಡಿ.",
+    "Selected feedback photo preview":"ಆಯ್ಕೆ ಮಾಡಿದ ಅಭಿಪ್ರಾಯದ ಫೋಟೋ ಪೂರ್ವವೀಕ್ಷಣೆ",
+    "Please upload a photo before submitting.":"ಸಲ್ಲಿಸುವ ಮೊದಲು ದಯವಿಟ್ಟು ಫೋಟೋ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+    "Preparing photo...":"ಫೋಟೋ ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ...",
+    "Submitting feedback...":"ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...",
+    "Feedback was submitted, but no tracking ID was returned.":"ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸಲಾಗಿದೆ, ಆದರೆ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿ ದೊರೆತಿಲ್ಲ.",
+    "Feedback updated successfully.":"ಅಭಿಪ್ರಾಯವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ನವೀಕರಿಸಲಾಗಿದೆ.",
+    "Are you sure you want to delete this feedback? This action cannot be undone.":"ಈ ಅಭಿಪ್ರಾಯವನ್ನು ಅಳಿಸಲು ನೀವು ಖಚಿತವಾಗಿದ್ದೀರಾ? ಈ ಕ್ರಿಯೆಯನ್ನು ಹಿಂತಿರುಗಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "Saving...":"ಉಳಿಸಲಾಗುತ್ತಿದೆ...",
+    "Deleting...":"ಅಳಿಸಲಾಗುತ್ತಿದೆ...",
+    "Feedback deleted successfully.":"ಅಭಿಪ್ರಾಯವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಅಳಿಸಲಾಗಿದೆ.",
+    "Copied to clipboard.":"ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಲಾಗಿದೆ.",
+    "Unable to copy. Please copy it manually.":"ನಕಲಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಕೈಯಾರೆ ನಕಲಿಸಿ.",
+    "Please enter your name.":"ದಯವಿಟ್ಟು ನಿಮ್ಮ ಹೆಸರನ್ನು ನಮೂದಿಸಿ.",
+    "Please enter a valid email address.":"ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಇಮೇಲ್ ವಿಳಾಸ ನಮೂದಿಸಿ.",
+    "Password must contain at least 8 characters.":"ಪಾಸ್‌ವರ್ಡ್ ಕನಿಷ್ಠ 8 ಅಕ್ಷರಗಳನ್ನು ಹೊಂದಿರಬೇಕು.",
+    "Password is too long.":"ಪಾಸ್‌ವರ್ಡ್ ತುಂಬಾ ಉದ್ದವಾಗಿದೆ.",
+    "An account with this email already exists.":"ಈ ಇಮೇಲ್‌ನೊಂದಿಗೆ ಈಗಾಗಲೇ ಖಾತೆ ಇದೆ.",
+    "Please enter your email and password.":"ದಯವಿಟ್ಟು ನಿಮ್ಮ ಇಮೇಲ್ ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ.",
+    "Email or password is incorrect.":"ಇಮೇಲ್ ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ.",
+    "Please enter your Admin username and password.":"ದಯವಿಟ್ಟು ನಿರ್ವಾಹಕರ ಬಳಕೆದಾರ ಹೆಸರು ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ.",
+    "Admin username or password is incorrect.":"ನಿರ್ವಾಹಕರ ಬಳಕೆದಾರ ಹೆಸರು ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ.",
+    "Please log in as a citizen before submitting.":"ಅಭಿಪ್ರಾಯ ಸಲ್ಲಿಸುವ ಮೊದಲು ನಾಗರಿಕರಾಗಿ ಲಾಗಿನ್ ಆಗಿ.",
+    "Invalid location coordinates.":"ಸ್ಥಳದ ನಿರ್ದೇಶಾಂಕಗಳು ಅಮಾನ್ಯವಾಗಿವೆ.",
+    "Category, area, description, and a photo are mandatory.":"ವರ್ಗ, ಪ್ರದೇಶ, ವಿವರಣೆ ಮತ್ತು ಫೋಟೋ ಕಡ್ಡಾಯವಾಗಿವೆ.",
+    "Please upload a valid image.":"ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಚಿತ್ರವನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+    "Unable to save the uploaded image. Please try again.":"ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ಚಿತ್ರವನ್ನು ಉಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "Unable to submit your suggestion. Please try again.":"ನಿಮ್ಮ ಸಲಹೆಯನ್ನು ಸಲ್ಲಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "No suggestion found for this tracking ID.":"ಈ ಟ್ರ್ಯಾಕಿಂಗ್ ಐಡಿಗೆ ಯಾವುದೇ ಸಲಹೆ ಕಂಡುಬಂದಿಲ್ಲ.",
+    "Invalid status filter.":"ಸ್ಥಿತಿ ಫಿಲ್ಟರ್ ಅಮಾನ್ಯವಾಗಿದೆ.",
+    "Admin access required.":"ನಿರ್ವಾಹಕರ ಪ್ರವೇಶ ಅಗತ್ಯವಿದೆ.",
+    "Invalid status.":"ಸ್ಥಿತಿ ಅಮಾನ್ಯವಾಗಿದೆ.",
+    "Invalid Admin response.":"ನಿರ್ವಾಹಕರ ಪ್ರತಿಕ್ರಿಯೆ ಅಮಾನ್ಯವಾಗಿದೆ.",
+    "Choose a valid status.":"ಮಾನ್ಯವಾದ ಸ್ಥಿತಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+    "Suggestion not found.":"ಸಲಹೆ ಕಂಡುಬಂದಿಲ್ಲ."
+  };
+
+  const ENGLISH_TEXT = Object.fromEntries(
+    Object.entries(KANNADA_TEXT).map(([english, kannada]) => [kannada, english])
+  );
 
   function initializeLanguage() {
     const selector = $("#languageSelect");
-    if (!selector) return;
-    const applyLanguage = language => {
-      document.documentElement.lang = language === "kn" ? "kn" : "en";
-      $$("[data-en][data-kn]").forEach(element => {
-        element.textContent = element.dataset[language === "kn" ? "kn" : "en"];
+    const savedLanguage = localStorage.getItem("janasetuLanguage") || "en";
+    let activeLanguage = savedLanguage === "kn" ? "kn" : "en";
+
+    function translateText(value) {
+      const trimmed = value.trim();
+      if (!trimmed) return value;
+      const dictionary = activeLanguage === "kn" ? KANNADA_TEXT : ENGLISH_TEXT;
+      const translated = dictionary[trimmed];
+      if (!translated) return value;
+      const leading = value.match(/^\s*/)?.[0] || "";
+      const trailing = value.match(/\s*$/)?.[0] || "";
+      return leading + translated + trailing;
+    }
+
+    function translateElement(element) {
+      if (!(element instanceof Element)) return;
+      if (element.matches("[data-en][data-kn]")) {
+        element.textContent = activeLanguage === "kn"
+          ? element.dataset.kn
+          : element.dataset.en;
+      }
+
+      const attributes = ["placeholder", "title", "aria-label"];
+      attributes.forEach(attribute => {
+        if (element.hasAttribute(attribute)) {
+          const original = element.getAttribute(attribute);
+          element.setAttribute(attribute, translateText(original));
+        }
       });
-    };
-    selector.value = "en";
-    applyLanguage("en");
-    selector.addEventListener("change", event => applyLanguage(event.target.value));
+
+      if (element instanceof HTMLInputElement && element.type === "button") {
+        element.value = translateText(element.value);
+      }
+    }
+
+    function translateTree(root = document) {
+      if (root.nodeType === Node.TEXT_NODE) {
+        root.nodeValue = translateText(root.nodeValue || "");
+        return;
+      }
+      if (root.nodeType !== Node.ELEMENT_NODE && root !== document) return;
+
+      if (root !== document) translateElement(root);
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+      const textNodes = [];
+      while (walker.nextNode()) textNodes.push(walker.currentNode);
+      textNodes.forEach(node => {
+        const parent = node.parentElement;
+        if (parent && !parent.closest("script, style, textarea, input, select option[data-user-content]")) {
+          node.nodeValue = translateText(node.nodeValue || "");
+        }
+      });
+      if (root.querySelectorAll) {
+        root.querySelectorAll("*").forEach(translateElement);
+      }
+    }
+
+    function applyLanguage(language) {
+      activeLanguage = language === "kn" ? "kn" : "en";
+      localStorage.setItem("janasetuLanguage", activeLanguage);
+      document.documentElement.lang = activeLanguage;
+      if (selector) selector.value = activeLanguage;
+      translateTree(document);
+    }
+
+    if (selector) {
+      selector.value = activeLanguage;
+      selector.addEventListener("change", event => applyLanguage(event.target.value));
+    }
+
+    applyLanguage(activeLanguage);
+
+    // Also translate content created later by the app (forms, tracking results,
+    // admin records and notifications) without changing user-entered text.
+    const observer = new MutationObserver(records => {
+      records.forEach(record => {
+        record.addedNodes.forEach(node => {
+          if (node.nodeType === Node.ELEMENT_NODE || node.nodeType === Node.TEXT_NODE) {
+            translateTree(node);
+          }
+        });
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
   }
 
   /* -------------------- PASSWORD VISIBILITY -------------------- */
