@@ -1812,7 +1812,8 @@
 
 
 
-  initializeLanguage();\n  initializePage();
+  initializeLanguage();
+  initializePage();
 
   /* -------------------- JANASETU APP UPDATES -------------------- */
 
