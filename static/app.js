@@ -186,39 +186,14 @@
   function initializeLanguage() {
     const selector = $("#languageSelect");
     if (!selector) return;
-
-    const readLanguage = () => {
-      const match = document.cookie.match(/googtrans=([^;]+)/);
-      if (!match) return "en";
-      return decodeURIComponent(match[1]).endsWith("/kn") ? "kn" : "en";
-    };
-
-    selector.value = readLanguage();
-
     const applyLanguage = language => {
-      const value = language === "kn" ? "/en/kn" : "/en/en";
-      document.cookie = "googtrans=" + value + ";path=/;max-age=31536000;SameSite=Lax";
-      document.cookie = "googtrans=" + value + ";path=/;domain=" + location.hostname + ";max-age=31536000;SameSite=Lax";
-
-      const translateCombo = () => {
-        const combo = document.querySelector(".goog-te-combo");
-        if (!combo) return false;
-        combo.value = language;
-        combo.dispatchEvent(new Event("change"));
-        return true;
-      };
-
-      if (!translateCombo()) {
-        window.addEventListener("janasetu-translate-ready", translateCombo, { once: true });
-        // The Google language widget loads asynchronously; retry briefly without blocking the page.
-        let attempts = 0;
-        const retry = window.setInterval(() => {
-          attempts += 1;
-          if (translateCombo() || attempts >= 20) window.clearInterval(retry);
-        }, 250);
-      }
+      document.documentElement.lang = language === "kn" ? "kn" : "en";
+      $$("[data-en][data-kn]").forEach(element => {
+        element.textContent = element.dataset[language === "kn" ? "kn" : "en"];
+      });
     };
-
+    selector.value = "en";
+    applyLanguage("en");
     selector.addEventListener("change", event => applyLanguage(event.target.value));
   }
 
