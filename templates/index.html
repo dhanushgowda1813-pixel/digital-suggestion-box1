@@ -99,6 +99,7 @@
       class="menu-toggle"
       id="menuToggle"
       type="button"
+      onclick="(function(btn){var menu=document.getElementById('navMenu');var open=menu.hidden;menu.hidden=!open;menu.classList.toggle('open',open);btn.setAttribute('aria-expanded',String(open));})(this)"
       aria-label="Open navigation menu"
       aria-controls="navMenu"
       aria-expanded="false"
