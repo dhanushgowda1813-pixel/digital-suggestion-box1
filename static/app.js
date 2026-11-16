@@ -188,7 +188,7 @@
     if (!selector) return;
 
     const readLanguage = () => {
-      const match = document.cookie.match(/(?:^|;\\s*)googtrans=([^;]+)/);
+      const match = document.cookie.match(/googtrans=([^;]+)/);
       if (!match) return "en";
       return decodeURIComponent(match[1]).endsWith("/kn") ? "kn" : "en";
     };
