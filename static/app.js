@@ -396,7 +396,7 @@
     let activeLanguage = savedLanguage === "kn" ? "kn" : "en";
 
     function translateText(value) {
-      const trimmed = value.trim();
+      const trimmed = value.trim().replace(/\\s+/g, " ");
       if (!trimmed) return value;
       const dictionary = activeLanguage === "kn" ? KANNADA_TEXT : ENGLISH_TEXT;
       const translated = dictionary[trimmed];
