@@ -353,6 +353,26 @@ def admin_page():
 # SERVICE WORKER
 # =========================================================
 
+def get_janasetu_build_id():
+    build_id = os.environ.get("RENDER_GIT_COMMIT") or "development"
+    build_id = "".join(char for char in build_id if char.isalnum())[:16]
+    return build_id or "development"
+
+
+@app.context_processor
+def inject_janasetu_build_id():
+    return {"janasetu_build_id": get_janasetu_build_id()}
+
+
+@app.get("/api/version")
+def app_version():
+    response = jsonify({"version": get_janasetu_build_id()})
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @app.get("/sw.js")
 def service_worker():
 
@@ -361,9 +381,7 @@ def service_worker():
     # Give every Git deployment its own cache name. This ensures that
     # after the user taps "Update Now", the newly activated service worker
     # starts with a clean cache and fetches the latest HTML/CSS/JS assets.
-    build_id = os.environ.get("RENDER_GIT_COMMIT") or "development"
-    build_id = "".join(char for char in build_id if char.isalnum())[:16]
-    build_id = build_id or "development"
+    build_id = get_janasetu_build_id()
 
     response.set_data(
         response.get_data().replace(
