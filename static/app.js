@@ -2076,15 +2076,30 @@
   /* -------------------- JANASETU APP UPDATES -------------------- */
 
   function initializeAppUpdates() {
-    if (!("serviceWorker" in navigator)) return;
-
     let updateRegistration = null;
     let waitingWorker = null;
-    let updateInProgress = false;
     let updatePrompt = null;
+    let latestBuild = null;
+    let updateInProgress = false;
+
+    function readSavedBuild() {
+      try {
+        return window.localStorage.getItem("janasetu_last_seen_build");
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function saveBuild(build) {
+      try {
+        window.localStorage.setItem("janasetu_last_seen_build", build);
+      } catch (error) {
+        // Version polling still works for this open session without storage.
+      }
+    }
 
     function showUpdatePrompt() {
-      if (!waitingWorker || updatePrompt) return;
+      if (updatePrompt || !latestBuild) return;
 
       const overlay = document.createElement("div");
       overlay.className = "janasetu-update-overlay";
@@ -2113,22 +2128,73 @@
       updatePrompt = overlay;
 
       const updateButton = dialog.querySelector(".janasetu-update-now");
-
       updateButton.addEventListener("click", () => {
-        if (!waitingWorker) return;
+        if (updateInProgress) return;
         updateInProgress = true;
         updateButton.disabled = true;
         updateButton.textContent = "Updating...";
-        waitingWorker.postMessage({ type: "SKIP_WAITING" });
+        saveBuild(latestBuild);
+
+        if (waitingWorker) {
+          waitingWorker.postMessage({ type: "SKIP_WAITING" });
+          return;
+        }
+
+        // Fallback for WebViews where Service Worker updates are unavailable.
+        const nextUrl = new URL(window.location.href);
+        nextUrl.searchParams.set("_janasetu_update", latestBuild);
+        window.location.replace(nextUrl.toString());
       });
 
       updateButton.focus();
     }
 
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (updateInProgress) {
-        window.location.reload();
+    async function checkServerVersion() {
+      if (!navigator.onLine) return;
+
+      try {
+        const response = await fetch("/api/version?_=" + Date.now(), {
+          method: "GET",
+          cache: "no-store",
+          credentials: "same-origin",
+          headers: { "Accept": "application/json" }
+        });
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!data || !data.version) return;
+
+        const serverBuild = String(data.version);
+        const savedBuild = readSavedBuild();
+
+        if (!savedBuild) {
+          saveBuild(serverBuild);
+          return;
+        }
+
+        if (savedBuild !== serverBuild) {
+          latestBuild = serverBuild;
+          showUpdatePrompt();
+        }
+      } catch (error) {
+        console.warn("JANASETU server version check failed:", error);
       }
+    }
+
+    // Server-version polling works even when the AppMint WebView does not
+    // provide Service Worker support.
+    checkServerVersion();
+    window.setInterval(checkServerVersion, 30000);
+    window.addEventListener("focus", checkServerVersion);
+    window.addEventListener("online", checkServerVersion);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") checkServerVersion();
+    });
+
+    if (!("serviceWorker" in navigator)) return;
+
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (updateInProgress) window.location.reload();
     });
 
     window.addEventListener("load", async () => {
@@ -2137,7 +2203,7 @@
           updateViaCache: "none"
         });
 
-        const checkForUpdate = () => {
+        const checkForWorkerUpdate = () => {
           if (updateRegistration && navigator.onLine) {
             updateRegistration.update().catch(() => {});
           }
@@ -2147,7 +2213,12 @@
           if (updateRegistration && updateRegistration.waiting &&
               navigator.serviceWorker.controller) {
             waitingWorker = updateRegistration.waiting;
-            showUpdatePrompt();
+            checkServerVersion().then(() => {
+              if (!latestBuild) {
+                latestBuild = "latest";
+                showUpdatePrompt();
+              }
+            });
           }
         };
 
@@ -2159,28 +2230,27 @@
             if (installingWorker.state === "installed" &&
                 navigator.serviceWorker.controller) {
               waitingWorker = updateRegistration.waiting || installingWorker;
-              showUpdatePrompt();
+              checkServerVersion().then(() => {
+                if (!latestBuild) {
+                  latestBuild = "latest";
+                  showUpdatePrompt();
+                }
+              });
             }
           });
         });
 
         checkWaitingWorker();
-        checkForUpdate();
-
+        checkForWorkerUpdate();
         document.addEventListener("visibilitychange", () => {
           if (document.visibilityState === "visible") {
-            checkForUpdate();
+            checkForWorkerUpdate();
             checkWaitingWorker();
           }
         });
-
-        window.addEventListener("online", checkForUpdate);
-        window.addEventListener("focus", checkForUpdate);
-
-        // Recheck periodically while the app remains open.
-        window.setInterval(checkForUpdate, 5 * 60 * 1000);
+        window.addEventListener("focus", checkForWorkerUpdate);
       } catch (error) {
-        console.warn("JANASETU update check failed:", error);
+        console.warn("JANASETU service worker update check unavailable:", error);
       }
     });
   }
