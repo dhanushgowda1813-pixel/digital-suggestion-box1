@@ -143,3 +143,5 @@ Make sure the configured upload directory exists or can be created by the applic
 - Use HTTPS for public access.
 - Protect Admin credentials.
 - JANASETU is an independent citizen feedback platform and is not an official Karnataka Government or Government of India website.
+
+<!-- Deployment check: JANASETU website update detection test. -->
