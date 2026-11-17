@@ -358,19 +358,18 @@ def service_worker():
 
     response = app.send_static_file("sw.js")
 
-    # Make the service-worker response unique for every Render deployment.
-    # This lets the existing in-app "Update Now" prompt detect website-only
-    # changes too, even when static/sw.js itself was not edited.
-    build_id = (
-        os.environ.get("RENDER_GIT_COMMIT")
-        or os.environ.get("RENDER_SERVICE_ID")
-        or "development"
-    )
+    # Give every Git deployment its own cache name. This ensures that
+    # after the user taps "Update Now", the newly activated service worker
+    # starts with a clean cache and fetches the latest HTML/CSS/JS assets.
+    build_id = os.environ.get("RENDER_GIT_COMMIT") or "development"
+    build_id = "".join(char for char in build_id if char.isalnum())[:16]
+    build_id = build_id or "development"
+
     response.set_data(
-        response.get_data()
-        + b"\n// JANASETU deployment: "
-        + build_id.encode("ascii", errors="ignore")
-        + b"\n"
+        response.get_data().replace(
+            b"__JANASETU_BUILD_ID__",
+            build_id.encode("ascii")
+        )
     )
 
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
