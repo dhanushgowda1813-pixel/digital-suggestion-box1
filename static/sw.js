@@ -3,7 +3,7 @@
    Versioned cache + user-approved app updates
    ========================================================= */
 
-const CACHE_NAME = "janasetu-shell-v8";
+const CACHE_NAME = "janasetu-shell-__JANASETU_BUILD_ID__";
 const SHELL = ["/"];
 
 // Cache the main page on installation. Static assets are refreshed
