@@ -2080,6 +2080,7 @@
     let waitingWorker = null;
     let updatePrompt = null;
     let latestBuild = null;
+    let observedBuild = null;
     let updateInProgress = false;
 
     function readSavedBuild() {
@@ -2168,7 +2169,13 @@
         const savedBuild = readSavedBuild();
 
         if (!savedBuild) {
-          saveBuild(serverBuild);
+          if (observedBuild && observedBuild !== serverBuild) {
+            latestBuild = serverBuild;
+            showUpdatePrompt();
+          } else {
+            saveBuild(serverBuild);
+          }
+          observedBuild = serverBuild;
           return;
         }
 
@@ -2176,6 +2183,7 @@
           latestBuild = serverBuild;
           showUpdatePrompt();
         }
+        observedBuild = serverBuild;
       } catch (error) {
         console.warn("JANASETU server version check failed:", error);
       }
